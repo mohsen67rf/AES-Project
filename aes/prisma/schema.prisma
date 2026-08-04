@@ -1,0 +1,187 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  fullName  String
+  email     String   @unique
+  password  String
+  role      String   @default("VIEWER") // ADMIN, MANAGER, ENGINEER, VIEWER
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Mine {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  company   String?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  pits      Pit[]
+}
+
+model Pit {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  mineId    String
+  mine      Mine     @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  status    String   @default("ACTIVE")
+  geometry  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  benches   Bench[]
+}
+
+model Bench {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  pitId     String
+  pit       Pit      @relation(fields: [pitId], references: [id], onDelete: Cascade)
+  elevation Float?
+  height    Float?
+  status    String   @default("ACTIVE")
+  geometry  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  blocks    Block[]
+}
+
+model Block {
+  id            String     @id @default(cuid())
+  name          String
+  code          String     @unique
+  benchId       String
+  bench         Bench      @relation(fields: [benchId], references: [id], onDelete: Cascade)
+  designVolume  Float?
+  designTonnage Float?
+  status        String     @default("PLANNED")
+  geometry      Json?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  subBlocks     SubBlock[]
+}
+
+model SubBlock {
+  id                   String                @id @default(cuid())
+  code                 String                @unique
+  blockId              String
+  block                Block                 @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  sequence             Int?
+  status               String                @default("CREATED")
+  geometry             Json?
+  materialClass        String?
+  destination          String?
+  destinationId        String?
+  createdBy            String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  version              Int                   @default(1)
+  samples              Sample[]
+  labResults           LabResult[]
+  materialProfiles     MaterialProfile[]
+  destinationDecisions DestinationDecision[]
+  loadingRecords       LoadingRecord[]
+}
+
+model Sample {
+  id           String      @id @default(cuid())
+  subBlockId   String
+  subBlock     SubBlock    @relation(fields: [subBlockId], references: [id], onDelete: Cascade)
+  sampleNumber String      @unique
+  sampleDate   DateTime
+  sampler      String?
+  location     Json?
+  depth        Float?
+  remarks      String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  labResults   LabResult[]
+}
+
+model LabResult {
+  id               String            @id @default(cuid())
+  sampleId         String
+  sample           Sample            @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  labNumber        String            @unique
+  fe               Float?
+  feo              Float?
+  sio2             Float?
+  al2o3            Float?
+  p                Float?
+  s                Float?
+  moisture         Float?
+  density          Float?
+  receiveDate      DateTime?
+  approveDate      DateTime?
+  status           String            @default("PENDING")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  materialProfiles MaterialProfile[]
+  subBlock         SubBlock?         @relation(fields: [subBlockId], references: [id])
+  subBlockId       String?
+}
+
+model MaterialProfile {
+  id                   String                @id @default(cuid())
+  subBlockId           String
+  subBlock             SubBlock              @relation(fields: [subBlockId], references: [id], onDelete: Cascade)
+  oreType              String?
+  rockType             String?
+  processingBehavior   String?
+  gradeCategory        String?
+  economicClass        String?
+  mixingClass          String?
+  priority             Int?
+  notes                String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  destinationDecisions DestinationDecision[]
+  labResult            LabResult?            @relation(fields: [labResultId], references: [id])
+  labResultId          String?
+}
+
+model DestinationDecision {
+  id                String           @id @default(cuid())
+  subBlockId        String
+  subBlock          SubBlock         @relation(fields: [subBlockId], references: [id], onDelete: Cascade)
+  destinationType   String
+  destinationId     String?
+  decisionReason    String?
+  decisionBy        String?
+  decisionDate      DateTime         @default(now())
+  approvedBy        String?
+  approvedDate      DateTime?
+  status            String           @default("PENDING")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  materialProfileId String?
+  materialProfile   MaterialProfile? @relation(fields: [materialProfileId], references: [id])
+}
+
+model LoadingRecord {
+  id          String   @id @default(cuid())
+  subBlockId  String
+  subBlock    SubBlock @relation(fields: [subBlockId], references: [id], onDelete: Cascade)
+  loadTime    DateTime @default(now())
+  loader      String?
+  destination String?
+  tonnage     Float?
+  truckCount  Int?
+  status      String   @default("LOADING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

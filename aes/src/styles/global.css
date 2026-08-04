@@ -1,0 +1,77 @@
+/* ===== ۱. اول فونت رو import کن ===== */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ===== ۲. بعد دستورات Tailwind ===== */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== ۳. بعد بقیه‌ی استایل‌ها ===== */
+@layer base {
+  :root {
+    --bg-primary: #F4F6F8;
+    --bg-sidebar: #111827;
+    --bg-surface: #FFFFFF;
+    --text-primary: #111827;
+    --text-secondary: #2A2F38;
+    --text-muted: #687280;
+    --border-color: #E5E7EB;
+  }
+
+  .dark {
+    --bg-primary: #0F172A;
+    --bg-sidebar: #020617;
+    --bg-surface: #1E293B;
+    --text-primary: #F4F6F8;
+    --text-secondary: #CBD5E1;
+    --text-muted: #94A3B8;
+    --border-color: #334155;
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Vazirmatn', 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  direction: rtl;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9A227;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37;
+}
+
+.glow-card {
+  box-shadow: 0 0 30px rgba(201, 162, 39, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-card:hover {
+  box-shadow: 0 0 50px rgba(201, 162, 39, 0.25);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
