@@ -1,9 +1,14 @@
 // src/modules/mine/services.ts
 
-import { 
-  Mine, Pit, SubBlock, SubBlockStatus, 
-  Sample, MaterialProfile, DestinationDecision 
-} from './types';
+import type { 
+  Mine, 
+  Pit, 
+  SubBlock, 
+  SubBlockStatus, 
+  Sample, 
+  MaterialProfile, 
+  DestinationDecision 
+} from '../../core/domain/types/mine.types';
 
 // ============================================
 // کلیدهای localStorage
@@ -17,7 +22,7 @@ const MATERIAL_PROFILES_KEY = 'aes_material_profiles';
 const DESTINATION_DECISIONS_KEY = 'aes_destination_decisions';
 
 // ============================================
-// سرویس‌های SubBlock (قبلی)
+// سرویس‌های SubBlock
 // ============================================
 
 export function getSubBlocks(blockId?: string): SubBlock[] {
@@ -48,7 +53,7 @@ export function updateSubBlock(id: string, data: Partial<SubBlock>): SubBlock | 
   subBlocks[index] = {
     ...subBlocks[index],
     ...data,
-    version: subBlocks[index].version + 1,
+    version: (subBlocks[index].version || 0) + 1,
     updatedAt: new Date().toISOString(),
   };
   localStorage.setItem(SUBBLOCKS_KEY, JSON.stringify(subBlocks));
@@ -80,8 +85,7 @@ export function addSample(sample: Omit<Sample, 'id' | 'createdAt' | 'updatedAt'>
   samples.push(newSample);
   localStorage.setItem(SAMPLES_KEY, JSON.stringify(samples));
   
-  // به‌روزرسانی وضعیت SubBlock به SAMPLED
-  updateSubBlock(sample.subBlockId, { status: 'SAMPLED' });
+  updateSubBlock(sample.subBlockId, { status: 'SAMPLED' as SubBlockStatus });
   
   return newSample;
 }
@@ -113,8 +117,7 @@ export function addMaterialProfile(
   profiles.push(newProfile);
   localStorage.setItem(MATERIAL_PROFILES_KEY, JSON.stringify(profiles));
   
-  // به‌روزرسانی وضعیت SubBlock به MATERIAL_CLASSIFIED
-  updateSubBlock(profile.subBlockId, { status: 'MATERIAL_CLASSIFIED' });
+  updateSubBlock(profile.subBlockId, { status: 'CLASSIFIED' as SubBlockStatus });
   
   return newProfile;
 }
@@ -146,8 +149,7 @@ export function addDestinationDecision(
   decisions.push(newDecision);
   localStorage.setItem(DESTINATION_DECISIONS_KEY, JSON.stringify(decisions));
   
-  // به‌روزرسانی وضعیت SubBlock به DESTINATION_ASSIGNED
-  updateSubBlock(decision.subBlockId, { status: 'DESTINATION_ASSIGNED' });
+  updateSubBlock(decision.subBlockId, { status: 'DESTINATION_ASSIGNED' as SubBlockStatus });
   
   return newDecision;
 }

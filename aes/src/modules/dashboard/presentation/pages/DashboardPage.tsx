@@ -193,16 +193,21 @@ export function DashboardPage({ user, onLogout }: DashboardPageProps) {
   const logoText = isDark ? 'text-white' : 'text-[#1A2A3A]';
   const logoSub = isDark ? 'text-[#8A9DB0]' : 'text-[#4A6A8A]';
 
-  // ===== آیتم‌های منو با بلوک‌ها =====
+  // ===== آیتم‌های منو با مسیرهای درست =====
   const menuItems = [
     { icon: HomeIcon, label: 'داشبورد', path: '/dashboard', active: true },
     { icon: BuildingOffice2Icon, label: 'معدن', path: '/mine', active: false },
-    { icon: CubeIcon, label: 'بلوک‌ها', path: '/subblocks', active: false },  // ← آیتم جدید
+    { icon: CubeIcon, label: 'بلوک‌ها', path: '/blocks', active: false },  // ✅ مسیر درست
     { icon: WrenchScrewdriverIcon, label: 'تجهیزات', path: '/equipment', active: false },
     { icon: UsersIcon, label: 'پرسنل', path: '/personnel', active: false },
     { icon: ChartBarIcon, label: 'گزارشات', path: '/reports', active: false },
     { icon: Cog6ToothIcon, label: 'تنظیمات', path: '/settings', active: false },
   ];
+
+  // ===== هندلر کلیک روی منو =====
+  const handleMenuClick = (path: string) => {
+    navigate(path);
+  };
 
   return (
     <div className={`min-h-screen ${bgGradient} transition-colors duration-500`}>
@@ -249,14 +254,14 @@ export function DashboardPage({ user, onLogout }: DashboardPageProps) {
         <aside className={`w-20 lg:w-64 ${sidebarBg} min-h-screen p-4 sticky top-16 transition-colors duration-500`}>
           <nav className="space-y-1">
             {menuItems.map((item) => {
-              const isActive = item.path === '/dashboard';
+              const isActive = item.path === window.location.pathname;
               const activeBg = isDark ? 'bg-[#AACCDD]/10 text-[#AACCDD] border-[#AACCDD]/30' : 'bg-[#1A2A3A]/10 text-[#1A2A3A] border-[#1A2A3A]/30';
               const inactiveBg = isDark ? 'text-[#8A9DB0] hover:bg-[#AACCDD]/5 hover:text-[#E8EDF5]' : 'text-[#4A6A8A] hover:bg-[#1A2A3A]/5 hover:text-[#1A2A3A]';
               
               return (
                 <button
                   key={item.label}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => handleMenuClick(item.path)}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group ${
                     isActive ? activeBg : inactiveBg
                   }`}

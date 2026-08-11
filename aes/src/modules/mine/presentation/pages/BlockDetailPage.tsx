@@ -1,71 +1,38 @@
 // src/modules/mine/presentation/pages/BlockDetailPage.tsx
 
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowPathIcon, 
   ChevronRightIcon,
   DocumentPlusIcon,
-  XMarkIcon,
-  ExclamationTriangleIcon
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
-import { useTheme } from '../../../shared/context/ThemeContext';
-import { DrillingMap } from '../components/DrillingMap';
+import { useTheme } from '../../../../shared/context/ThemeContext';
+import { 
+  BlockRepository, 
+  SubBlockRepository,
+  DrillingPointRepository 
+} from '../../../../core/infrastructure/repositories';
 import { DailyDrillingForm } from '../components/DailyDrillingForm';
-import { Block, DrillingPoint, SubBlock } from '../types';
-
-// ============================================
-// سرویس‌های دیتابیس محلی
-// ============================================
-
-const BLOCKS_KEY = 'aes_blocks';
-const SUBBLOCKS_KEY = 'aes_subblocks';
-const DRILLING_POINTS_KEY = 'aes_drilling_points';
-
-function getBlockById(id: string): Block | null {
-  try {
-    const data = localStorage.getItem(BLOCKS_KEY);
-    const blocks: Block[] = data ? JSON.parse(data) : [];
-    return blocks.find(b => b.id === id) || null;
-  } catch {
-    return null;
-  }
-}
-
-function getDrillingPoints(blockId: string): DrillingPoint[] {
-  try {
-    const data = localStorage.getItem(DRILLING_POINTS_KEY);
-    const points: DrillingPoint[] = data ? JSON.parse(data) : [];
-    return points.filter(p => p.blockId === blockId);
-  } catch {
-    return [];
-  }
-}
-
-function getSubBlocks(blockId: string): SubBlock[] {
-  try {
-    const data = localStorage.getItem(SUBBLOCKS_KEY);
-    const subBlocks: SubBlock[] = data ? JSON.parse(data) : [];
-    return subBlocks.filter(sb => sb.blockId === blockId);
-  } catch {
-    return [];
-  }
-}
-
-function saveDrillingPoints(points: DrillingPoint[]): void {
-  localStorage.setItem(DRILLING_POINTS_KEY, JSON.stringify(points));
-}
+import type { Block, DrillingPoint, SubBlock } from '../../../../core/domain/types/mine.types';
 
 // ============================================
 // کامپوننت اصلی
 // ============================================
 
 interface BlockDetailPageProps {
-  blockId: string;
+  blockId?: string;
   onBack?: () => void;
 }
 
-export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
+export function BlockDetailPage({ blockId: propBlockId, onBack }: BlockDetailPageProps) {
+  const { blockId: paramBlockId } = useParams<{ blockId: string }>();
+  const navigate = useNavigate();
   const { isDark } = useTheme();
+  
+  const blockId = propBlockId || paramBlockId || '';
+  
   const [block, setBlock] = useState<Block | null>(null);
   const [drillingPoints, setDrillingPoints] = useState<DrillingPoint[]>([]);
   const [subBlocks, setSubBlocks] = useState<SubBlock[]>([]);
@@ -73,46 +40,50 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
   const [showDrillingForm, setShowDrillingForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'drilling' | 'subblocks'>('info');
 
+  // ===== بارگذاری داده =====
   const loadData = () => {
-    const blockData = getBlockById(blockId);
+    setLoading(true);
+    const blockData = BlockRepository.getById(blockId);
     setBlock(blockData);
+    
     if (blockData) {
-      setDrillingPoints(getDrillingPoints(blockData.id));
-      setSubBlocks(getSubBlocks(blockData.id));
+      setDrillingPoints(DrillingPointRepository.findBy('blockId', blockData.id));
+      setSubBlocks(SubBlockRepository.findBy('blockId', blockData.id));
     }
+    
     setLoading(false);
   };
 
   useEffect(() => {
-    loadData();
+    if (blockId) {
+      loadData();
+    }
   }, [blockId]);
 
-  // ===== به‌روزرسانی عمق یک چال =====
+  // ===== به‌روزرسانی عمق =====
   const handleDepthUpdate = (pointId: string, newDepth: number) => {
-    const updatedPoints = drillingPoints.map(p => {
-      if (p.id === pointId) {
-        const today = new Date().toISOString().split('T')[0];
-        const newProgress = {
-          date: today,
-          depth: newDepth,
-          shift: 'MORNING' as const,
-          operator: 'سیستم',
-          meterage: newDepth - (p.finalDepth || 0),
-        };
-        
-        return {
-          ...p,
-          finalDepth: newDepth,
-          status: newDepth >= p.designDepth ? 'COMPLETED' : 'DRILLING',
-          dailyProgress: [...(p.dailyProgress || []), newProgress],
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      return p;
-    });
+    const point = DrillingPointRepository.getById(pointId);
+    if (!point) return;
 
-    setDrillingPoints(updatedPoints);
-    saveDrillingPoints(updatedPoints);
+    const today = new Date().toISOString().split('T')[0];
+    const newProgress = {
+      date: today,
+      depth: newDepth,
+      shift: 'MORNING' as const,
+      operator: 'سیستم',
+      meterage: newDepth - (point.finalDepth || 0),
+    };
+
+    const updatedPoint: DrillingPoint = {
+      ...point,
+      finalDepth: newDepth,
+      status: newDepth >= point.designDepth ? 'COMPLETED' : 'DRILLING',
+      dailyProgress: [...(point.dailyProgress || []), newProgress],
+      updatedAt: new Date().toISOString(),
+    };
+
+    DrillingPointRepository.save(updatedPoint);
+    loadData();
   };
 
   // ===== ثبت پیشرفت روزانه =====
@@ -121,35 +92,42 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
     loadData();
   };
 
-  const mapPoints = drillingPoints.map(p => ({
-    ...p,
-    location: { x: p.location.x, y: p.location.y }
-  }));
-
+  // ===== آمار =====
   const totalPoints = drillingPoints.length;
   const completedPoints = drillingPoints.filter(p => p.status === 'COMPLETED').length;
   const collapsedPoints = drillingPoints.filter(p => p.status === 'COLLAPSED').length;
   const progressPercent = totalPoints > 0 ? (completedPoints / totalPoints) * 100 : 0;
   const totalMeterage = drillingPoints.reduce((sum, p) => sum + (p.finalDepth || 0), 0);
 
+  // ===== رنگ‌ها =====
   const bgPrimary = isDark ? 'bg-[#0A1628]' : 'bg-gray-50';
   const textPrimary = isDark ? 'text-white' : 'text-gray-800';
   const textSecondary = isDark ? 'text-[#8A9DB0]' : 'text-gray-500';
   const borderColor = isDark ? 'border-[#AACCDD]/10' : 'border-gray-200';
 
+  // ===== وضعیت بارگذاری =====
   if (loading) {
-    return <div className={`flex items-center justify-center h-64 ${textSecondary}`}>در حال بارگذاری...</div>;
+    return (
+      <div className={`flex items-center justify-center h-64 ${textSecondary}`}>
+        در حال بارگذاری...
+      </div>
+    );
   }
 
   if (!block) {
-    return <div className={`flex items-center justify-center h-64 text-red-400`}>بلوک مورد نظر یافت نشد!</div>;
+    return (
+      <div className={`flex items-center justify-center h-64 text-red-400`}>
+        بلوک مورد نظر یافت نشد!
+      </div>
+    );
   }
 
+  // ===== رندر =====
   return (
     <div className={`${bgPrimary} min-h-screen p-6 transition-colors duration-300`}>
       <div className="space-y-6 max-w-7xl mx-auto">
         
-        {/* ===== هدر ===== */}
+        {/* هدر */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {onBack && (
@@ -193,7 +171,7 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
           </div>
         </div>
 
-        {/* ===== تب‌ها ===== */}
+        {/* تب‌ها */}
         <div className={`flex gap-2 border-b ${borderColor} pb-2`}>
           <button
             onClick={() => setActiveTab('info')}
@@ -213,7 +191,7 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
                 : isDark ? 'text-[#8A9DB0] hover:text-white' : 'text-gray-500 hover:text-gray-800'
             }`}
           >
-            🔨 حفاری
+            🔨 حفاری {drillingPoints.length > 0 && `(${drillingPoints.length})`}
           </button>
           <button
             onClick={() => setActiveTab('subblocks')}
@@ -227,7 +205,7 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
           </button>
         </div>
 
-        {/* ===== تب اطلاعات ===== */}
+        {/* تب اطلاعات */}
         {activeTab === 'info' && (
           <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -259,92 +237,103 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
           </div>
         )}
 
-        {/* ===== تب حفاری ===== */}
+        {/* تب حفاری (بدون نقشه) */}
         {activeTab === 'drilling' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {drillingPoints.length === 0 && (
               <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
-                <p className={`text-sm ${textSecondary}`}>پیشرفت حفاری</p>
-                <p className={`text-2xl font-bold ${textPrimary}`}>{progressPercent.toFixed(1)}%</p>
-                <p className={`text-xs ${textSecondary}`}>{completedPoints} از {totalPoints} چال</p>
+                <div className="flex items-center gap-3 text-[#8A9DB0]">
+                  <InformationCircleIcon className="w-6 h-6" />
+                  <div>
+                    <p className="font-medium">هیچ نقطه حفاری برای این بلوک تعریف نشده است</p>
+                    <p className="text-sm">برای افزودن نقاط، از بخش مدیریت بلوک‌ها اقدام کنید</p>
+                  </div>
+                </div>
               </div>
-              <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
-                <p className={`text-sm ${textSecondary}`}>مجموع متراژ</p>
-                <p className={`text-2xl font-bold ${textPrimary}`}>{totalMeterage.toFixed(1)}</p>
-                <p className={`text-xs ${textSecondary}`}>متر حفاری</p>
-              </div>
-              <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
-                <p className={`text-sm ${textSecondary}`}>چال‌های ریزشی</p>
-                <p className={`text-2xl font-bold text-red-400`}>{collapsedPoints}</p>
-                <p className={`text-xs ${textSecondary}`}>نیاز به بررسی</p>
-              </div>
-              <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
-                <p className={`text-sm ${textSecondary}`}>چال‌های تکمیل‌شده</p>
-                <p className={`text-2xl font-bold text-green-400`}>{completedPoints}</p>
-                <p className={`text-xs ${textSecondary}`}>از {totalPoints} چال</p>
-              </div>
-            </div>
+            )}
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => setShowDrillingForm(true)}
-                className="px-5 py-2.5 bg-[#AACCDD]/10 hover:bg-[#AACCDD]/20 text-[#AACCDD] rounded-xl transition-colors flex items-center gap-2 border border-[#AACCDD]/20"
-              >
-                <DocumentPlusIcon className="w-5 h-5" />
-                ثبت پیشرفت روزانه
-              </button>
-            </div>
+            {drillingPoints.length > 0 && (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
+                    <p className={`text-sm ${textSecondary}`}>پیشرفت حفاری</p>
+                    <p className={`text-2xl font-bold ${textPrimary}`}>{progressPercent.toFixed(1)}%</p>
+                    <p className={`text-xs ${textSecondary}`}>{completedPoints} از {totalPoints} چال</p>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
+                    <p className={`text-sm ${textSecondary}`}>مجموع متراژ</p>
+                    <p className={`text-2xl font-bold ${textPrimary}`}>{totalMeterage.toFixed(1)}</p>
+                    <p className={`text-xs ${textSecondary}`}>متر حفاری</p>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
+                    <p className={`text-sm ${textSecondary}`}>چال‌های ریزشی</p>
+                    <p className={`text-2xl font-bold text-red-400`}>{collapsedPoints}</p>
+                    <p className={`text-xs ${textSecondary}`}>نیاز به بررسی</p>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
+                    <p className={`text-sm ${textSecondary}`}>چال‌های تکمیل‌شده</p>
+                    <p className={`text-2xl font-bold text-green-400`}>{completedPoints}</p>
+                    <p className={`text-xs ${textSecondary}`}>از {totalPoints} چال</p>
+                  </div>
+                </div>
 
-            <div className={`rounded-xl border ${borderColor} p-4 ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
-              <h3 className={`font-semibold mb-3 ${textPrimary}`}>نقشه نقاط حفاری</h3>
-              <DrillingMap
-                points={mapPoints}
-                onPointClick={() => {}}
-                onDepthUpdate={handleDepthUpdate}
-              />
-            </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setShowDrillingForm(true)}
+                    className="px-5 py-2.5 bg-[#AACCDD]/10 hover:bg-[#AACCDD]/20 text-[#AACCDD] rounded-xl transition-colors flex items-center gap-2 border border-[#AACCDD]/20"
+                  >
+                    <DocumentPlusIcon className="w-5 h-5" />
+                    ثبت پیشرفت روزانه
+                  </button>
+                </div>
 
-            <div className={`rounded-xl border ${borderColor} p-4 ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
-              <h3 className={`font-semibold mb-3 ${textPrimary}`}>لیست چال‌ها</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-right">
-                  <thead>
-                    <tr className={`border-b ${borderColor}`}>
-                      <th className={`px-3 py-2 text-xs ${textSecondary}`}>شماره</th>
-                      <th className={`px-3 py-2 text-xs ${textSecondary}`}>عمق طراحی</th>
-                      <th className={`px-3 py-2 text-xs ${textSecondary}`}>عمق فعلی</th>
-                      <th className={`px-3 py-2 text-xs ${textSecondary}`}>وضعیت</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {drillingPoints.map((point) => (
-                      <tr key={point.id} className={`border-b ${borderColor} last:border-0`}>
-                        <td className={`px-3 py-2 text-sm ${textPrimary}`}>{point.number}</td>
-                        <td className={`px-3 py-2 text-sm ${textPrimary}`}>{point.designDepth} m</td>
-                        <td className={`px-3 py-2 text-sm ${textPrimary}`}>{point.finalDepth || '-'} m</td>
-                        <td className="px-3 py-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            point.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
-                            point.status === 'DRILLING' ? 'bg-yellow-500/20 text-yellow-400' :
-                            point.status === 'COLLAPSED' ? 'bg-red-500/20 text-red-400' :
-                            'bg-blue-500/20 text-blue-400'
-                          }`}>
-                            {point.status === 'PLANNED' ? 'برنامه‌ریزی' :
-                             point.status === 'DRILLING' ? 'در حال حفاری' :
-                             point.status === 'COMPLETED' ? 'تکمیل' :
-                             point.status === 'COLLAPSED' ? 'ریزش' : point.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                <div className={`rounded-xl border ${borderColor} p-4 ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
+                  <h3 className={`font-semibold mb-3 ${textPrimary}`}>لیست چال‌ها</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right">
+                      <thead>
+                        <tr className={`border-b ${borderColor}`}>
+                          <th className={`px-3 py-2 text-xs ${textSecondary}`}>شماره</th>
+                          <th className={`px-3 py-2 text-xs ${textSecondary}`}>عمق طراحی</th>
+                          <th className={`px-3 py-2 text-xs ${textSecondary}`}>عمق فعلی</th>
+                          <th className={`px-3 py-2 text-xs ${textSecondary}`}>وضعیت</th>
+                          <th className={`px-3 py-2 text-xs ${textSecondary}`}>مختصات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {drillingPoints.map((point) => (
+                          <tr key={point.id} className={`border-b ${borderColor} last:border-0`}>
+                            <td className={`px-3 py-2 text-sm ${textPrimary}`}>{point.number}</td>
+                            <td className={`px-3 py-2 text-sm ${textPrimary}`}>{point.designDepth} m</td>
+                            <td className={`px-3 py-2 text-sm ${textPrimary}`}>{point.finalDepth || '-'} m</td>
+                            <td className="px-3 py-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                point.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
+                                point.status === 'DRILLING' ? 'bg-yellow-500/20 text-yellow-400' :
+                                point.status === 'COLLAPSED' ? 'bg-red-500/20 text-red-400' :
+                                'bg-blue-500/20 text-blue-400'
+                              }`}>
+                                {point.status === 'PLANNED' ? 'برنامه‌ریزی' :
+                                 point.status === 'DRILLING' ? 'در حال حفاری' :
+                                 point.status === 'COMPLETED' ? 'تکمیل' :
+                                 point.status === 'COLLAPSED' ? 'ریزش' : point.status}
+                              </span>
+                            </td>
+                            <td className={`px-3 py-2 text-xs font-mono ${textSecondary}`}>
+                              ({point.location.x.toFixed(4)}, {point.location.y.toFixed(4)})
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* ===== تب SubBlock‌ها ===== */}
+        {/* تب SubBlock‌ها */}
         {activeTab === 'subblocks' && (
           <div className={`rounded-xl border ${borderColor} p-4 ${isDark ? 'bg-[#13203A]/40' : 'bg-white/60'}`}>
             {subBlocks.length === 0 ? (
@@ -376,7 +365,7 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
                           </span>
                         </td>
                         <td className={`px-3 py-2 text-sm ${textPrimary}`}>
-                          {sb.labResults?.fe ? `${sb.labResults.fe}%` : '-'}
+                          {sb.assay ? `${sb.assay}%` : '-'}
                         </td>
                         <td className={`px-3 py-2 text-sm ${textPrimary}`}>
                           {sb.destination || '-'}
@@ -391,7 +380,7 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
         )}
       </div>
 
-      {/* ===== مودال ثبت پیشرفت روزانه ===== */}
+      {/* مودال ثبت پیشرفت روزانه */}
       {showDrillingForm && (
         <DailyDrillingForm
           blockId={block.id}
@@ -402,3 +391,5 @@ export function BlockDetailPage({ blockId, onBack }: BlockDetailPageProps) {
     </div>
   );
 }
+
+export default BlockDetailPage;

@@ -1,83 +1,20 @@
 // src/app/App.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { DashboardPage } from '../modules/dashboard/presentation/pages/DashboardPage';
-import { MinePage } from '../modules/mine/presentation/pages/MinePage';
+import { MinePage } from '../modules/mine/presentation/pages/Minepage';
 import { BlocksPage } from '../modules/mine/presentation/pages/BlocksPage';
 import { BlockDetailPage } from '../modules/mine/presentation/pages/BlockDetailPage';
 import { ThemeProvider } from '../shared/context/ThemeContext';
-
-// ============================================
-// نوع‌های داده
-// ============================================
-
-interface User {
-  id: string;
-  code: string;
-  fullName: string;
-  email: string;
-  password: string;
-  role: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
-// ============================================
-// سرویس دیتابیس کاربران
-// ============================================
-
-const DB_KEY = 'aes_users';
-
-function getUsers(): User[] {
-  try {
-    const data = localStorage.getItem(DB_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveUsers(users: User[]): void {
-  localStorage.setItem(DB_KEY, JSON.stringify(users));
-}
-
-function findUserByCode(code: string): User | null {
-  const users = getUsers();
-  return users.find(u => u.code === code) || null;
-}
-
-// ============================================
-// سرویس‌های معدن (داخل خود فایل)
-// ============================================
-
-const MINES_KEY = 'aes_mines';
-
-function getMines(): any[] {
-  try {
-    const data = localStorage.getItem(MINES_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function initializeMineData(): void {
-  const mines = getMines();
-  if (mines.length === 0) {
-    const newMine = {
-      id: crypto.randomUUID(),
-      name: 'معدن سنگ آهن مرکزی',
-      code: 'MI-001',
-      location: 'استان یزد، شهرستان بافق',
-      status: 'فعال',
-      createdAt: new Date().toISOString(),
-    };
-    localStorage.setItem(MINES_KEY, JSON.stringify([newMine]));
-    console.log('✅ معدن پیش‌فرض ساخته شد');
-  }
-}
-
+import { 
+  UserRepository, 
+  MineRepository, 
+  initializeRepositories 
+} from '../core/infrastructure/repositories';
+import type { User } from '../core/domain/types/mine.types';
+import { PitsPage } from '../modules/mine/presentation/pages/PitsPage';
+import { MineMapPage } from '../modules/mine/presentation/pages/MineMapPage';
 // ============================================
 // کامپوننت گرادیانت پس‌زمینه
 // ============================================
@@ -127,6 +64,20 @@ function GradientBackground() {
 }
 
 // ============================================
+// کامپوننت Wrapper برای BlockDetailPage
+// ============================================
+
+function BlockDetailPageWrapper() {
+  const { blockId } = useParams<{ blockId: string }>();
+  
+  if (!blockId) {
+    return <Navigate to="/blocks" replace />;
+  }
+  
+  return <BlockDetailPage blockId={blockId} />;
+}
+
+// ============================================
 // کامپوننت اصلی
 // ============================================
 
@@ -139,30 +90,14 @@ function App() {
   const [isHovering, setIsHovering] = useState(false);
 
   // ============================================
-  // ساخت کاربر تستی
+  // مقداردهی اولیه
   // ============================================
+  
   useEffect(() => {
-    const users = getUsers();
-    const testUserExists = users.some(u => u.code === 'AES-1001');
+    // مقداردهی اولیه دیتابیس
+    initializeRepositories();
     
-    if (!testUserExists) {
-      users.push({
-        id: '1',
-        code: 'AES-1001',
-        fullName: 'مدیر سیستم',
-        email: 'admin@aes.com',
-        password: '123456',
-        role: 'Manager',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      });
-      saveUsers(users);
-      console.log('✅ کاربر تستی با موفقیت ساخته شد');
-    }
-  }, []);
-
-  // بررسی نشست کاربر
-  useEffect(() => {
+    // بررسی نشست کاربر
     const savedUser = localStorage.getItem('aes_session');
     if (savedUser) {
       try {
@@ -173,13 +108,17 @@ function App() {
     }
   }, []);
 
+  // ============================================
+  // هندلر ورود
+  // ============================================
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const foundUser = findUserByCode(code);
+      const foundUser = UserRepository.findOne('code', code);
 
       if (!foundUser) {
         setError('کد کاربری یا رمز عبور اشتباه است');
@@ -201,12 +140,16 @@ function App() {
 
       localStorage.setItem('aes_session', JSON.stringify(foundUser));
       setUser(foundUser);
-    } catch {
+    } catch (err) {
       setError('خطا در ارتباط با دیتابیس');
     } finally {
       setLoading(false);
     }
   };
+
+  // ============================================
+  // هندلر خروج
+  // ============================================
 
   const handleLogout = () => {
     localStorage.removeItem('aes_session');
@@ -216,15 +159,14 @@ function App() {
   };
 
   // ============================================
-  // مقداردهی اولیه داده‌ها
+  // دریافت معدن پیش‌فرض
   // ============================================
 
-  initializeMineData();
-  const mines = getMines();
+  const mines = MineRepository.getAll();
   const defaultMineId = mines.length > 0 ? mines[0].id : '';
 
   // ============================================
-  // اگر کاربر وارد شده، مسیریابی رو نشون بده
+  // صفحه ورود (اگر کاربر وارد نشده)
   // ============================================
 
   if (!user) {
@@ -257,35 +199,6 @@ function App() {
               opacity: isHovering ? 1 : 0,
               background: 'linear-gradient(135deg, rgba(56, 130, 246, 0.4), rgba(170, 204, 221, 0.1), rgba(56, 130, 246, 0.4))',
               filter: 'blur(8px)',
-            }}
-          />
-
-          <div 
-            className="absolute top-4 right-4 w-1.5 h-1.5 rounded-full transition-all duration-700"
-            style={{
-              background: isHovering ? 'rgba(56, 130, 246, 0.9)' : 'rgba(56, 130, 246, 0.1)',
-              boxShadow: isHovering ? '0 0 20px rgba(56, 130, 246, 0.8), 0 0 40px rgba(56, 130, 246, 0.4)' : 'none',
-            }}
-          />
-          <div 
-            className="absolute top-4 left-4 w-1.5 h-1.5 rounded-full transition-all duration-700"
-            style={{
-              background: isHovering ? 'rgba(56, 130, 246, 0.9)' : 'rgba(56, 130, 246, 0.1)',
-              boxShadow: isHovering ? '0 0 20px rgba(56, 130, 246, 0.8), 0 0 40px rgba(56, 130, 246, 0.4)' : 'none',
-            }}
-          />
-          <div 
-            className="absolute bottom-4 right-4 w-1.5 h-1.5 rounded-full transition-all duration-700"
-            style={{
-              background: isHovering ? 'rgba(56, 130, 246, 0.9)' : 'rgba(56, 130, 246, 0.1)',
-              boxShadow: isHovering ? '0 0 20px rgba(56, 130, 246, 0.8), 0 0 40px rgba(56, 130, 246, 0.4)' : 'none',
-            }}
-          />
-          <div 
-            className="absolute bottom-4 left-4 w-1.5 h-1.5 rounded-full transition-all duration-700"
-            style={{
-              background: isHovering ? 'rgba(56, 130, 246, 0.9)' : 'rgba(56, 130, 246, 0.1)',
-              boxShadow: isHovering ? '0 0 20px rgba(56, 130, 246, 0.8), 0 0 40px rgba(56, 130, 246, 0.4)' : 'none',
             }}
           />
 
@@ -350,7 +263,7 @@ function App() {
   }
 
   // ============================================
-  // کاربر وارد شده: مسیریابی با ThemeProvider
+  // کاربر وارد شده: مسیریابی
   // ============================================
 
   return (
@@ -360,10 +273,13 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage user={user} onLogout={handleLogout} />} />
           <Route path="/mine" element={<MinePage mineId={defaultMineId} />} />
+          <Route path="/mine/:mineId/map" element={<MineMapPage />} />  // ✅ اضافه شده
+          <Route path="/mine/:mineId/pits" element={<PitsPage />} />
           <Route path="/blocks" element={<BlocksPage />} />
-          <Route path="/block/:blockId" element={<BlockDetailPage />} />
+          <Route path="/block/:blockId" element={<BlockDetailPageWrapper />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+          
       </BrowserRouter>
     </ThemeProvider>
   );
