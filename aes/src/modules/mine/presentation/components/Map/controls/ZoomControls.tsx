@@ -1,7 +1,6 @@
 // src/modules/mine/presentation/components/Map/controls/ZoomControls.tsx
 
 import { PlusIcon, MinusIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
-import L from 'leaflet';
 
 interface ZoomControlsProps {
   map: any;
@@ -19,29 +18,6 @@ export function ZoomControls({ map, className = '' }: ZoomControlsProps) {
 
   const handleZoomToFit = () => {
     if (!map) return;
-    
-    // جمع‌آوری همه ویژگی‌ها
-    let allFeatures: any[] = [];
-    map.eachLayer((layer: any) => {
-      if (layer instanceof L.GeoJSON) {
-        layer.eachLayer((subLayer: any) => {
-          if (subLayer.feature) {
-            allFeatures.push(subLayer.feature);
-          }
-        });
-      }
-    });
-
-    if (allFeatures.length > 0) {
-      const geoJsonLayer = L.geoJSON(allFeatures);
-      const bounds = geoJsonLayer.getBounds();
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
-        return;
-      }
-    }
-
-    // اگر داده‌ای نبود، به مرکز پیش‌فرض برو
     map.setView([31.5, 54.3], 10);
   };
 

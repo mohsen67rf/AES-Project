@@ -2,19 +2,22 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { DashboardPage } from '../modules/dashboard/presentation/pages/DashboardPage';
-import { MinePage } from '../modules/mine/presentation/pages/Minepage';
-import { BlocksPage } from '../modules/mine/presentation/pages/BlocksPage';
-import { BlockDetailPage } from '../modules/mine/presentation/pages/BlockDetailPage';
 import { ThemeProvider } from '../shared/context/ThemeContext';
+import { LanguageProvider } from '../shared/context/LanguageContext';
+import { DashboardPage } from '../modules/dashboard/presentation/pages/DashboardPage';
+import { ManagementDashboardPage } from '../modules/dashboard/presentation/pages/ManagementDashboardPage';
+import { BlockManagementPage } from '../modules/mine/presentation/pages/BlockManagement';
+import { MinePage } from '../modules/mine/presentation/pages/Minepage';
+import { BlockDetailPage } from '../modules/mine/presentation/pages/BlockDetailPage';
+import { PitsPage } from '../modules/mine/presentation/pages/PitsPage';
+import   MineMapPage  from '../modules/mine/presentation/pages/MineMapPage';
 import { 
   UserRepository, 
   MineRepository, 
   initializeRepositories 
 } from '../core/infrastructure/repositories';
 import type { User } from '../core/domain/types/mine.types';
-import { PitsPage } from '../modules/mine/presentation/pages/PitsPage';
-import { MineMapPage } from '../modules/mine/presentation/pages/MineMapPage';
+
 // ============================================
 // کامپوننت گرادیانت پس‌زمینه
 // ============================================
@@ -71,7 +74,7 @@ function BlockDetailPageWrapper() {
   const { blockId } = useParams<{ blockId: string }>();
   
   if (!blockId) {
-    return <Navigate to="/blocks" replace />;
+    return <Navigate to="/blocks-management" replace />;
   }
   
   return <BlockDetailPage blockId={blockId} />;
@@ -94,10 +97,8 @@ function App() {
   // ============================================
   
   useEffect(() => {
-    // مقداردهی اولیه دیتابیس
     initializeRepositories();
     
-    // بررسی نشست کاربر
     const savedUser = localStorage.getItem('aes_session');
     if (savedUser) {
       try {
@@ -166,7 +167,7 @@ function App() {
   const defaultMineId = mines.length > 0 ? mines[0].id : '';
 
   // ============================================
-  // صفحه ورود (اگر کاربر وارد نشده)
+  // صفحه ورود
   // ============================================
 
   if (!user) {
@@ -185,11 +186,11 @@ function App() {
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
             border: isHovering 
-              ? '1px solid rgba(56, 130, 246, 0.5)' 
+              ? '1px solid rgba(0, 212, 255, 0.5)' 
               : '1px solid rgba(170, 204, 221, 0.08)',
             boxShadow: isHovering 
-              ? '0 0 60px rgba(56, 130, 246, 0.25), 0 0 120px rgba(56, 130, 246, 0.08), inset 0 0 60px rgba(56, 130, 246, 0.05)' 
-              : '0 0 30px rgba(56, 130, 246, 0.05), 0 0 60px rgba(56, 130, 246, 0.02)',
+              ? '0 0 60px rgba(0, 212, 255, 0.25), 0 0 120px rgba(0, 212, 255, 0.08), inset 0 0 60px rgba(0, 212, 255, 0.05)' 
+              : '0 0 30px rgba(0, 212, 255, 0.05), 0 0 60px rgba(0, 212, 255, 0.02)',
             transition: 'all 0.7s cubic-bezier(0.2, 0.8, 0.4, 1)',
           }}
         >
@@ -197,7 +198,7 @@ function App() {
             className="absolute -inset-[2px] rounded-3xl transition-opacity duration-700"
             style={{
               opacity: isHovering ? 1 : 0,
-              background: 'linear-gradient(135deg, rgba(56, 130, 246, 0.4), rgba(170, 204, 221, 0.1), rgba(56, 130, 246, 0.4))',
+              background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(170, 204, 221, 0.1), rgba(0, 212, 255, 0.4))',
               filter: 'blur(8px)',
             }}
           />
@@ -206,7 +207,7 @@ function App() {
             <div className="mb-6">
               <img 
                 src="/logo.png" 
-                alt="ACSS" 
+                alt="AES" 
                 className="mx-auto"
                 style={{ width: '320px', height: 'auto', display: 'block' }}
               />
@@ -230,7 +231,7 @@ function App() {
                   onChange={(e) => setCode(e.target.value)}
                   required
                   placeholder="مثال: AES-1001"
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#4A6A8A] focus:outline-none focus:ring-2 focus:ring-[#3882F6]/50 focus:border-[#3882F6]/50"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#4A6A8A] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/50 focus:border-[#00D4FF]/50"
                 />
               </div>
 
@@ -242,14 +243,14 @@ function App() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#4A6A8A] focus:outline-none focus:ring-2 focus:ring-[#3882F6]/50 focus:border-[#3882F6]/50"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#4A6A8A] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/50 focus:border-[#00D4FF]/50"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-gradient-to-r from-[#3882F6] to-[#2563EB] text-white font-semibold rounded-xl transition-all duration-300 disabled:opacity-50"
+                className="w-full py-2.5 bg-gradient-to-r from-[#00D4FF] to-[#0099CC] text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-[#00D4FF]/30 disabled:opacity-50"
               >
                 {loading ? 'در حال ورود...' : 'ورود به سامانه'}
               </button>
@@ -268,19 +269,22 @@ function App() {
 
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage user={user} onLogout={handleLogout} />} />
-          <Route path="/mine" element={<MinePage mineId={defaultMineId} />} />
-          <Route path="/mine/:mineId/map" element={<MineMapPage />} />  // ✅ اضافه شده
-          <Route path="/mine/:mineId/pits" element={<PitsPage />} />
-          <Route path="/blocks" element={<BlocksPage />} />
-          <Route path="/block/:blockId" element={<BlockDetailPageWrapper />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-          
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage user={user} onLogout={handleLogout} />} />
+            <Route path="/management-dashboard" element={<ManagementDashboardPage />} />
+            <Route path="/blocks-management" element={<BlockManagementPage />} />
+            <Route path="/mine" element={<MinePage mineId={defaultMineId} />} />
+            <Route path="/mine/map" element={<MineMapPage />} />  // ✅ مسیر جدید
+            <Route path="/mine/:mineId/pits" element={<PitsPage />} />
+            <Route path="/block/:blockId" element={<BlockDetailPageWrapper />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/blocks/new" element={<div>صفحه افزودن بلوک</div>} />
+          </Routes>
+        </BrowserRouter>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

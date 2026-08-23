@@ -5,16 +5,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ============================================
-// جایگزین __dirname در ES Modules
-// ============================================
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// ============================================
-// تنظیمات Vite
-// ============================================
 
 export default defineConfig({
   plugins: [react()],
@@ -27,9 +19,12 @@ export default defineConfig({
       '@app': path.resolve(__dirname, './src/app'),
     },
   },
+  optimizeDeps: {
+    include: ['leaflet', 'react-leaflet'],  // ✅ اضافه کن
+  },
   server: {
     hmr: {
-      overlay: false,  // غیرفعال کردن overlay خطاها (اختیاری)
+      overlay: true,
     },
   },
 });

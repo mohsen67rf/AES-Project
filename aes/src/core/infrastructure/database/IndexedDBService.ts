@@ -10,10 +10,6 @@ export class IndexedDBService {
     this.storeName = storeName;
   }
 
-  // ============================================
-  // باز کردن دیتابیس
-  // ============================================
-
   async open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1);
@@ -38,17 +34,13 @@ export class IndexedDBService {
     });
   }
 
-  // ============================================
-  // ذخیره داده
-  // ============================================
-
   async save(id: string, data: any): Promise<void> {
     if (!this.db) await this.open();
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
-      const request = store.put({ id, data, updatedAt: new Date().toISOString() });
+      const request = store.put({ id, data });
 
       request.onsuccess = () => {
         console.log(`✅ داده با ID '${id}' ذخیره شد`);
@@ -60,10 +52,6 @@ export class IndexedDBService {
       };
     });
   }
-
-  // ============================================
-  // دریافت داده
-  // ============================================
 
   async get(id: string): Promise<any> {
     if (!this.db) await this.open();
@@ -84,10 +72,6 @@ export class IndexedDBService {
     });
   }
 
-  // ============================================
-  // حذف داده
-  // ============================================
-
   async delete(id: string): Promise<void> {
     if (!this.db) await this.open();
 
@@ -107,10 +91,6 @@ export class IndexedDBService {
     });
   }
 
-  // ============================================
-  // دریافت همه داده‌ها
-  // ============================================
-
   async getAll(): Promise<any[]> {
     if (!this.db) await this.open();
 
@@ -129,11 +109,8 @@ export class IndexedDBService {
     });
   }
 
-  // ============================================
-  // پاک کردن همه داده‌ها
-  // ============================================
-
-  async clear(): Promise<void> {
+  // ✅ متد clearAll برای پاک کردن همه داده‌ها
+  async clearAll(): Promise<void> {
     if (!this.db) await this.open();
 
     return new Promise((resolve, reject) => {

@@ -1,33 +1,22 @@
-/* ===== ۱. اول فونت رو import کن ===== */
+/* src/styles/global.css */
+
+/* ============================================
+   فونت Vazirmatn
+   ============================================ */
+
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ===== ۲. بعد دستورات Tailwind ===== */
+/* ============================================
+   Tailwind Directives (این خطوط برای اجرا درست هستن)
+   ============================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ===== ۳. بعد بقیه‌ی استایل‌ها ===== */
-@layer base {
-  :root {
-    --bg-primary: #F4F6F8;
-    --bg-sidebar: #111827;
-    --bg-surface: #FFFFFF;
-    --text-primary: #111827;
-    --text-secondary: #2A2F38;
-    --text-muted: #687280;
-    --border-color: #E5E7EB;
-  }
-
-  .dark {
-    --bg-primary: #0F172A;
-    --bg-sidebar: #020617;
-    --bg-surface: #1E293B;
-    --text-primary: #F4F6F8;
-    --text-secondary: #CBD5E1;
-    --text-muted: #94A3B8;
-    --border-color: #334155;
-  }
-}
+/* ============================================
+   استایل‌های پایه
+   ============================================ */
 
 * {
   margin: 0;
@@ -35,20 +24,29 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: 'Vazirmatn', 'Inter', sans-serif;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+html {
   direction: rtl;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+body {
+  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f7fa;
+  color: #333;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   اسکرول بار
+   ============================================ */
 
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: #1a1a2e;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -59,6 +57,10 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #D4AF37;
 }
+
+/* ============================================
+   کلاس‌های کمکی
+   ============================================ */
 
 .glow-card {
   box-shadow: 0 0 30px rgba(201, 162, 39, 0.1);
@@ -74,4 +76,73 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================
+   انیمیشن‌های مسیر حمل
+   ============================================ */
+
+.haul-route-main {
+  stroke-dasharray: 5, 5;
+  animation: haul-flow 0.5s linear infinite;
+}
+
+.haul-route-animation {
+  stroke-dasharray: 8, 16;
+  animation: haul-flow 1.5s linear infinite;
+}
+
+@keyframes haul-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -24;
+  }
+}
+
+.haul-route-main:hover {
+  stroke-width: 6;
+  opacity: 1;
+  transition: all 0.3s ease;
+}
+
+.haul-route-temp {
+  stroke-dasharray: 8, 8;
+  animation: temp-flow 0.8s linear infinite;
+}
+
+@keyframes temp-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -16;
+  }
+}
+
+/* ============================================
+   کلاس‌های Leaflet
+   ============================================ */
+
+/* رفع مشکل آیکون‌های Leaflet */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+.leaflet-container {
+  font-family: 'Vazirmatn', sans-serif !important;
+}
+
+/* استایل مارکرهای پیت */
+.pit-marker-container {
+  background: transparent !important;
+}
+
+.pit-marker-container div {
+  transition: all 0.3s ease;
+}
+
+.pit-marker-container div:hover {
+  transform: scale(1.2);
 }

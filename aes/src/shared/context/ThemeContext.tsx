@@ -12,19 +12,27 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('aes_theme');
+    // اگر مقداری ذخیره شده بود ازش استفاده کن، وگرنه پیش‌فرض dark
     return saved ? saved === 'dark' : true;
   });
 
   useEffect(() => {
+    // ذخیره در localStorage
     localStorage.setItem('aes_theme', isDark ? 'dark' : 'light');
+    
+    // اعمال کلاس به html
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+    
+    console.log('🌓 Theme changed to:', isDark ? 'dark' : 'light');
   }, [isDark]);
 
-  const toggleTheme = () => setIsDark(!isDark);
+  const toggleTheme = () => {
+    setIsDark(prev => !prev);
+  };
 
   return (
     <ThemeContext.Provider value={{ isDark, toggleTheme }}>

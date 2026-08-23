@@ -2,5 +2,7 @@
 
 export { StatsCard } from './StatsCard';
 export { ProductionChart } from './ProductionChart';
-export { ActiveMachines } from './ActiveMachines';
 export { CostDistribution } from './CostDistribution';
+export { KPICard } from './KPICard';
+export { BlockStatusChart } from './BlockStatusChart';
+export { ProcessingEfficiencyChart } from './ProcessingEfficiencyChart';

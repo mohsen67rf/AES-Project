@@ -1,222 +1,347 @@
-// src/modules/mine/presentation/pages/SubBlocksPage.tsx
+// src/modules/mine/presentation/pages/SubBlockDetailPage.tsx
 
-import { useState, useEffect, useMemo } from 'react';
-import { BeakerIcon, CubeIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../../shared/context/ThemeContext';
+import { SubBlockTimeline } from '../components/SubBlockTimeline/SubBlockTimeline';
 import { SubBlockRepository } from '../../../../core/infrastructure/repositories';
-import { SUB_BLOCK_STATUS_LABELS, SUB_BLOCK_STATUS } from '../../../../core/domain/constants/mine.constants';
-import { StatsCard } from '../../../../shared/components/StatsCard/StatsCard';
-import { PageHeader } from '../components/PageHeader/PageHeader';
-import { FilterBar } from '../components/FilterBar/FilterBar';
-import { SubBlocksTable } from '../components/SubBlocksTable/SubBlocksTable';
-import { AssayForm } from '../components/AssayForm';  // ✅ تغییر: از AssayForm استفاده می‌کنیم
-import type { SubBlock, Block } from '../../../../core/domain/types/mine.types';
+import { SubBlockLifecycleService } from '../../services/SubBlockLifecycleService';
+import { SUB_BLOCK_STATUS_LABELS, SUB_BLOCK_STATUS_COLORS } from '../../../../core/domain/constants/subblock.constants';
+import { 
+  ArrowLeftIcon, 
+  ArrowPathIcon,
+  DocumentTextIcon,
+  BeakerIcon,
+  MapPinIcon,
+  TruckIcon,
+  Cog6ToothIcon,
+  CheckCircleIcon,
+  ClockIcon
+} from '@heroicons/react/24/outline';
+import type { SubBlock, SubBlockStatus } from '../../../../core/domain/types/mine.types';
 
-interface SubBlocksPageProps {
-  block: Block;
-  onBack?: () => void;
-}
-
-export function SubBlocksPage({ block, onBack }: SubBlocksPageProps) {
+export function SubBlockDetailPage() {
+  const { subBlockId } = useParams<{ subBlockId: string }>();
+  const navigate = useNavigate();
   const { isDark } = useTheme();
-  const [subBlocks, setSubBlocks] = useState<SubBlock[]>([]);
+  const [subBlock, setSubBlock] = useState<SubBlock | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  // ✅ اصلاح: تایپ مشخص برای dateFilter
-  const [dateFilter, setDateFilter] = useState<{ startDate?: string; endDate?: string; preset?: string }>({});
-  const [showAssayForm, setShowAssayForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'timeline' | 'info' | 'lab' | 'processing'>('timeline');
 
-  // ===== بارگذاری داده =====
+  useEffect(() => {
+    if (subBlockId) {
+      loadData();
+    }
+  }, [subBlockId]);
+
   const loadData = () => {
     setLoading(true);
-    const data = SubBlockRepository.findBy('blockId', block.id);
-    setSubBlocks(data);
+    const data = SubBlockRepository.getById(subBlockId || '');
+    setSubBlock(data);
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadData();
-  }, [block.id]);
-
-  // ===== فیلتر کردن =====
-  const filteredSubBlocks = useMemo(() => {
-    let filtered = [...subBlocks];
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      filtered = filtered.filter(
-        (sb) =>
-          sb.code.toLowerCase().includes(q) ||
-          SUB_BLOCK_STATUS_LABELS[sb.status]?.includes(q)
-      );
-    }
-
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter((sb) => sb.status === statusFilter);
-    }
-
-    // ✅ اصلاح: بررسی وجود dateFilter
-    if (dateFilter.startDate) {
-      const start = new Date(dateFilter.startDate).getTime();
-      filtered = filtered.filter((sb) => new Date(sb.createdAt).getTime() >= start);
-    }
-    if (dateFilter.endDate) {
-      const end = new Date(dateFilter.endDate).getTime();
-      filtered = filtered.filter((sb) => new Date(sb.createdAt).getTime() <= end);
-    }
-
-    return filtered;
-  }, [subBlocks, searchQuery, statusFilter, dateFilter]);
-
-  // ===== آمار =====
-  const stats = useMemo(
-    () => ({
-      total: subBlocks.length,
-      completed: subBlocks.filter((sb) => sb.status === SUB_BLOCK_STATUS.COMPLETED).length,
-      inProgress: subBlocks.filter(
-        (sb) => sb.status !== SUB_BLOCK_STATUS.COMPLETED && sb.status !== SUB_BLOCK_STATUS.CREATED
-      ).length,
-      needAction: subBlocks.filter((sb) => sb.status === SUB_BLOCK_STATUS.CREATED).length,
-    }),
-    [subBlocks]
-  );
-
-  // ===== هندلرها =====
-  const handleAssayResults = (results: any[]) => {
-    const allSubBlocks = SubBlockRepository.getAll();
-    
-    results.forEach((result) => {
-      const index = allSubBlocks.findIndex(sb => sb.id === result.subBlockId);
-      if (index === -1) return;
-
-      let materialClass = '';
-      let destination: any = '';  // ✅ تغییر: استفاده از any برای موقت
-
-      if (result.isWaste) {
-        materialClass = result.wasteType === 'سنگی' ? 'WASTE_ROCK' : 'WASTE_ALLUVIAL';
-        destination = result.wasteType === 'سنگی' ? 'WASTE_DUMP_ROCK' : 'WASTE_DUMP_ALLUVIAL';
-      } else {
-        if (result.assay >= 25) {
-          materialClass = 'HIGH_GRADE';
-          destination = 'HIGH_GRADE_STOCKPILE';
-        } else if (result.assay >= 15) {
-          materialClass = 'MEDIUM_GRADE';
-          destination = 'MEDIUM_GRADE_STOCKPILE';
-        } else {
-          materialClass = 'LOW_GRADE';
-          destination = 'LOW_GRADE_STOCKPILE';
-        }
-      }
-
-      // ✅ اصلاح: به‌روزرسانی SubBlock
-      const updatedSubBlock: SubBlock = {
-        ...allSubBlocks[index],
-        assay: result.assay,
-        materialClass,
-        destination: destination as any,  // ✅ اصلاح: cast به any
-        status: SUB_BLOCK_STATUS.LAB_COMPLETED,
-        updatedAt: new Date().toISOString(),
-      };
-
-      SubBlockRepository.save(updatedSubBlock);
-    });
-
-    setShowAssayForm(false);
-    loadData();
+  const handleStatusClick = (status: SubBlockStatus) => {
+    console.log('📋 کلیک روی وضعیت:', status);
+    // می‌توانیم یک مودال برای تغییر وضعیت باز کنیم
   };
 
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('ALL');
-    setDateFilter({});
-  };
-
-  // ===== وضعیت بارگذاری =====
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#8A9DB0]">
+      <div className="flex items-center justify-center h-screen text-[#8A9DB0]">
         در حال بارگذاری...
       </div>
     );
   }
 
-  // ===== رندر =====
+  if (!subBlock) {
+    return (
+      <div className="flex items-center justify-center h-screen text-red-400">
+        ساب‌بلوک یافت نشد!
+      </div>
+    );
+  }
+
+  const progress = SubBlockLifecycleService.getProgress(subBlock);
+  const statusColor = SUB_BLOCK_STATUS_COLORS[subBlock.status] || '';
+
   return (
     <div className={`${isDark ? 'bg-[#0A1628]' : 'bg-gray-50'} min-h-screen p-6 transition-colors duration-300`}>
-      <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Header */}
-        <PageHeader
-          title="مدیریت SubBlock‌ها"
-          subtitle={`${block.code} | تراز: ${block.targetLevel} | تعداد: ${subBlocks.length}`}
-          onBack={onBack}
-          onRefresh={loadData}
-        />
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatsCard title="کل SubBlock" value={stats.total} icon={CubeIcon} />
-          <StatsCard
-            title="تکمیل شده"
-            value={`${stats.completed}/${stats.total}`}
-            icon={CheckCircleIcon}
-            subtitle={`${stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%`}
-          />
-          <StatsCard title="در حال انجام" value={stats.inProgress} icon={ClockIcon} />
-          <StatsCard title="نیاز به اقدام" value={stats.needAction} icon={ExclamationTriangleIcon} color="text-red-400" />
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* هدر */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className={`p-2 rounded-xl transition-colors ${
+                isDark 
+                  ? 'bg-[#AACCDD]/10 hover:bg-[#AACCDD]/20 text-[#AACCDD]' 
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
+            >
+              <ArrowLeftIcon className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                {subBlock.code}
+              </h1>
+              <div className="flex items-center gap-3 mt-1">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
+                  {SUB_BLOCK_STATUS_LABELS[subBlock.status] || subBlock.status}
+                </span>
+                <span className={`text-sm ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                  پیشرفت: {progress.percentComplete}%
+                </span>
+                <span className={`text-sm ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                  فاز {progress.phaseIndex} از {progress.totalPhases}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={loadData}
+            className={`p-2 rounded-xl transition-colors ${
+              isDark 
+                ? 'bg-[#AACCDD]/10 hover:bg-[#AACCDD]/20 text-[#AACCDD]' 
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+            }`}
+          >
+            <ArrowPathIcon className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Filters */}
-        <FilterBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
-          dateFilter={dateFilter}
-          onDateChange={setDateFilter}
-          onClear={handleClearFilters}
-          placeholder="جستجوی SubBlock..."
-        />
-
-        {/* Actions */}
-        {subBlocks.some((sb) => sb.status === SUB_BLOCK_STATUS.CREATED || sb.status === SUB_BLOCK_STATUS.SAMPLED) && (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowAssayForm(true)}
-              className="px-5 py-2.5 bg-[#AACCDD]/10 hover:bg-[#AACCDD]/20 text-[#AACCDD] rounded-xl transition-colors flex items-center gap-2 border border-[#AACCDD]/20"
-            >
-              <BeakerIcon className="w-5 h-5" />
-              ثبت آنالیز گروهی
-            </button>
+        {/* نوار پیشرفت */}
+        <div className={`p-4 rounded-xl ${isDark ? 'bg-[#13203A]/40' : 'bg-white/70'} border ${isDark ? 'border-[#AACCDD]/10' : 'border-gray-200'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+              چرخه‌ی زندگی ساب‌بلوک
+            </span>
+            <span className={`text-sm font-semibold ${isDark ? 'text-[#00D4FF]' : 'text-[#C9A227]'}`}>
+              {progress.percentComplete}%
+            </span>
           </div>
-        )}
+          <div className="w-full h-2 rounded-full overflow-hidden bg-gray-700/30">
+            <div 
+              className="h-full rounded-full transition-all duration-1000 ease-out"
+              style={{ 
+                width: `${progress.percentComplete}%`,
+                background: `linear-gradient(90deg, #00D4FF, #C9A227)`
+              }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            {['تعریف', 'نمونه', 'آزمایشگاه', 'طبقه‌بندی', 'تصمیم', 'اجرا', 'فرآوری', 'نهایی'].map((label, index) => (
+              <span 
+                key={index}
+                className={`text-[8px] ${
+                  index < progress.phaseIndex 
+                    ? 'text-green-400' 
+                    : index === progress.phaseIndex - 1 
+                      ? 'text-[#00D4FF]' 
+                      : 'text-gray-600'
+                }`}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
 
-        {/* Table */}
-        <SubBlocksTable
-          subBlocks={filteredSubBlocks}
-          isLoading={loading}
-          onRowClick={(sb) => console.log('Clicked:', sb.code)}
-        />
+        {/* تب‌ها */}
+        <div className={`flex gap-2 border-b ${isDark ? 'border-[#AACCDD]/10' : 'border-gray-200'} pb-2`}>
+          <button
+            onClick={() => setActiveTab('timeline')}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2 ${
+              activeTab === 'timeline'
+                ? isDark ? 'bg-[#00D4FF]/20 text-[#00D4FF]' : 'bg-[#C9A227]/20 text-[#C9A227]'
+                : isDark ? 'text-[#8A9DB0] hover:text-white' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <ClockIcon className="w-4 h-4" />
+            تایم‌لاین
+          </button>
+          <button
+            onClick={() => setActiveTab('info')}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2 ${
+              activeTab === 'info'
+                ? isDark ? 'bg-[#00D4FF]/20 text-[#00D4FF]' : 'bg-[#C9A227]/20 text-[#C9A227]'
+                : isDark ? 'text-[#8A9DB0] hover:text-white' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <DocumentTextIcon className="w-4 h-4" />
+            اطلاعات
+          </button>
+          <button
+            onClick={() => setActiveTab('lab')}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2 ${
+              activeTab === 'lab'
+                ? isDark ? 'bg-[#00D4FF]/20 text-[#00D4FF]' : 'bg-[#C9A227]/20 text-[#C9A227]'
+                : isDark ? 'text-[#8A9DB0] hover:text-white' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <BeakerIcon className="w-4 h-4" />
+            آزمایشگاه
+          </button>
+          <button
+            onClick={() => setActiveTab('processing')}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2 ${
+              activeTab === 'processing'
+                ? isDark ? 'bg-[#00D4FF]/20 text-[#00D4FF]' : 'bg-[#C9A227]/20 text-[#C9A227]'
+                : isDark ? 'text-[#8A9DB0] hover:text-white' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <Cog6ToothIcon className="w-4 h-4" />
+            فرآوری
+          </button>
+        </div>
 
-        {/* Result Count */}
-        <div className="text-sm text-[#4A6A8A] text-left">
-          نمایش {filteredSubBlocks.length} از {subBlocks.length} SubBlock
+        {/* محتوای تب‌ها */}
+        <div className={`p-6 rounded-xl ${isDark ? 'bg-[#13203A]/40' : 'bg-white/70'} border ${isDark ? 'border-[#AACCDD]/10' : 'border-gray-200'}`}>
+          {activeTab === 'timeline' && (
+            <SubBlockTimeline 
+              subBlock={subBlock} 
+              onStatusClick={handleStatusClick}
+            />
+          )}
+          
+          {activeTab === 'info' && (
+            <div className="space-y-4">
+              <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                اطلاعات پایه
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>کد</p>
+                  <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.code}</p>
+                </div>
+                <div>
+                  <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>بلوک</p>
+                  <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.blockId}</p>
+                </div>
+                <div>
+                  <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>تاریخ ایجاد</p>
+                  <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>
+                    {new Date(subBlock.createdAt).toLocaleDateString('fa-IR')}
+                  </p>
+                </div>
+                <div>
+                  <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>نسخه</p>
+                  <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.version || 1}</p>
+                </div>
+              </div>
+              
+              {subBlock.destination && (
+                <div className="mt-4 p-4 rounded-xl bg-[#00D4FF]/5 border border-[#00D4FF]/20">
+                  <h4 className={`text-sm font-semibold ${isDark ? 'text-[#00D4FF]' : 'text-[#C9A227]'}`}>
+                    مقصد نهایی
+                  </h4>
+                  <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.destination}</p>
+                  {subBlock.destinationReason && (
+                    <p className={`text-sm ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                      دلیل: {subBlock.destinationReason}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'lab' && subBlock.labResults && (
+            <div className="space-y-4">
+              <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                نتایج آزمایشگاه
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {Object.entries(subBlock.labResults).map(([key, value]) => (
+                  <div key={key} className={`p-3 rounded-xl ${isDark ? 'bg-[#0A1628]' : 'bg-gray-50'}`}>
+                    <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                      {key.toUpperCase()}
+                    </p>
+                    <p className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                      {typeof value === 'number' ? value.toFixed(2) : value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-4 rounded-xl bg-[#C9A227]/5 border border-[#C9A227]/20">
+                <p className={`text-sm ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                  عیار کل: <span className={`font-bold ${isDark ? 'text-[#C9A227]' : 'text-[#C9A227]'}`}>
+                    {subBlock.labResults.assay}%
+                  </span>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'processing' && (
+            <div className="space-y-4">
+              <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                اطلاعات فرآوری
+              </h3>
+              {subBlock.processingStages && subBlock.processingStages.length > 0 ? (
+                <div className="space-y-3">
+                  {subBlock.processingStages.map((stage, index) => (
+                    <div key={index} className={`p-4 rounded-xl ${isDark ? 'bg-[#0A1628]' : 'bg-gray-50'} border ${isDark ? 'border-[#AACCDD]/10' : 'border-gray-200'}`}>
+                      <div className="flex items-center justify-between">
+                        <h4 className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                          {stage.name}
+                        </h4>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          stage.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
+                          stage.status === 'IN_PROGRESS' ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {stage.status}
+                        </span>
+                      </div>
+                      <p className={`text-sm ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                        شروع: {new Date(stage.startDate).toLocaleDateString('fa-IR')}
+                        {stage.endDate && ` - پایان: ${new Date(stage.endDate).toLocaleDateString('fa-IR')}`}
+                      </p>
+                      {stage.notes && (
+                        <p className={`text-sm mt-1 ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                          {stage.notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={`text-center ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
+                  اطلاعات فرآوری ثبت نشده است
+                </p>
+              )}
+
+              {subBlock.finalProduct && (
+                <div className="mt-4 p-4 rounded-xl bg-green-500/5 border border-green-500/20">
+                  <h4 className={`text-sm font-semibold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                    محصول نهایی
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>نام محصول</p>
+                      <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.finalProduct.productName}</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>عیار</p>
+                      <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.finalProduct.grade}%</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>مقدار</p>
+                      <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.finalProduct.quantity} {subBlock.finalProduct.unit}</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>کیفیت</p>
+                      <p className={`${isDark ? 'text-white' : 'text-gray-800'}`}>{subBlock.finalProduct.quality}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Assay Form Modal - ✅ تغییر: استفاده از AssayForm */}
-      {showAssayForm && (
-        <AssayForm
-          subBlocks={subBlocks.map(sb => ({ 
-            id: sb.id, 
-            code: sb.code, 
-            assay: sb.assay, 
-            isWaste: false 
-          }))}
-          onClose={() => setShowAssayForm(false)}
-          onSuccess={handleAssayResults}
-        />
-      )}
     </div>
   );
 }
