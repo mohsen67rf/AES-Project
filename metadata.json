@@ -1,0 +1,6 @@
+{
+  "name": "AES Mining Operations",
+  "description": "Mining operations and pit management dashboard application",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
