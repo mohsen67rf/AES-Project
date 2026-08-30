@@ -24,9 +24,11 @@ export class SubBlockLifecycleService {
     const subBlocks: SubBlock[] = [];
     const avgTonnagePerSub = Math.round(totalBlockTonnage / count);
 
+    const letterCodes = ['SA', 'SB', 'SC', 'SD', 'SE', 'SF', 'SG', 'SH', 'SI', 'SJ'];
     for (let i = 1; i <= count; i++) {
       const seq = existingCount + i;
-      const subBlockCode = `${blockCode}-S${seq}`;
+      const letter = (seq - 1) < letterCodes.length ? letterCodes[seq - 1] : `S${seq}`;
+      const subBlockCode = `${blockCode} – ${letter}`;
       const now = new Date().toISOString();
 
       const newSubBlock: SubBlock = {

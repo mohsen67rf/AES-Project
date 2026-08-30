@@ -16,6 +16,7 @@ import {
 } from '../../../../core/infrastructure/repositories';
 import { BlockSubBlockLifecycleHub } from '../components/LifecycleHub/BlockSubBlockLifecycleHub';
 import { DailyDrillingForm } from '../components/DailyDrillingForm';
+import { Header } from '../../../dashboard/presentation/components/Header/Header';
 import type { Block, DrillingPoint, SubBlock } from '../../../../core/domain/types/mine.types';
 
 // ============================================
@@ -125,10 +126,11 @@ export function BlockDetailPage({ blockId: propBlockId, onBack }: BlockDetailPag
 
   // ===== رندر =====
   return (
-    <div className={`${bgPrimary} min-h-screen p-6 transition-colors duration-300`}>
-      <div className="space-y-6 max-w-7xl mx-auto">
+    <div className={`${bgPrimary} min-h-screen transition-colors duration-300`}>
+      <Header />
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
         
-        {/* هدر */}
+        {/* نوار عنوان و اطلاعات بلوک */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {onBack && (

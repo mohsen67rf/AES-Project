@@ -15,14 +15,21 @@ import {
   ChevronDownIcon,
   InformationCircleIcon,
   FunnelIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  FolderIcon,
+  WrenchScrewdriverIcon,
+  ArchiveBoxIcon,
+  BookOpenIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { 
   BlockRepository, 
   SubBlockRepository,
-  DrillingPointRepository
+  DrillingPointRepository,
+  MonthlyBandRepository,
+  DrillPatternDesignRepository
 } from '../../../../../core/infrastructure/repositories';
-import type { Block, SubBlock, DestinationType } from '../../../../../core/domain/types/mine.types';
+import type { Block, SubBlock, DestinationType, StakeholderRole } from '../../../../../core/domain/types/mine.types';
 import { SubBlockLifecycleService } from '../../../services/SubBlockLifecycleService';
 import { SubBlocksTable } from '../SubBlocksTable/SubBlocksTable';
 import { SamplingModal } from '../LifecycleModals/SamplingModal';
@@ -33,10 +40,19 @@ import { CrusherConsumptionModal } from '../LifecycleModals/CrusherConsumptionMo
 import { SubBlockDetailModal } from '../LifecycleModals/SubBlockDetailModal';
 import { DESTINATION_LABELS } from '../../../../../core/domain/constants/mine.constants';
 
+// کامپوننت‌های ارکان ۴گانه و چرخه ۱۳ مرحله‌ای
+import { StakeholderPerspectiveBar } from '../StakeholderPerspectiveBar';
+import { MonthlyBandsTab } from '../MonthlyBands/MonthlyBandsTab';
+import { DrillPatternTab } from '../DrillPattern/DrillPatternTab';
+import { DynamicStockpileTab } from '../Stockpiles/DynamicStockpileTab';
+import { MiningWorkflowOverview13Steps } from '../MiningWorkflowOverview13Steps';
+
 interface BlockSubBlockLifecycleHubProps {
   initialBlockId?: string;
   onBlockSelect?: (block: Block) => void;
 }
+
+type MainHubTab = 'SUB_BLOCKS' | 'MONTHLY_BANDS' | 'DRILL_PATTERNS' | 'DYNAMIC_STOCKPILES' | 'WORKFLOW_GUIDE';
 
 export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: BlockSubBlockLifecycleHubProps) {
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -44,6 +60,10 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
   const [subBlocks, setSubBlocks] = useState<SubBlock[]>([]);
   const [activeStageFilter, setActiveStageFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  
+  // تب فعال و نقش ذینفع
+  const [activeTab, setActiveTab] = useState<MainHubTab>('SUB_BLOCKS');
+  const [stakeholderRole, setStakeholderRole] = useState<StakeholderRole>('ALL');
 
   // مودال‌ها
   const [activeSubBlock, setActiveSubBlock] = useState<SubBlock | null>(null);
@@ -79,6 +99,19 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
   const selectedBlock = useMemo(() => {
     return blocks.find(b => b.id === selectedBlockId) || null;
   }, [blocks, selectedBlockId]);
+
+  // شمارش موارد نیازمند اقدام برای هر رکن
+  const pendingCounts = useMemo(() => {
+    const bands = MonthlyBandRepository.getAll();
+    const patterns = DrillPatternDesignRepository.getAll();
+
+    return {
+      clientBands: bands.filter(b => b.status === 'SUBMITTED_BY_SUPERVISION').length,
+      supervisionPermits: patterns.filter(p => p.status === 'PENDING_SUPERVISION_REVIEW').length,
+      miningDrilling: patterns.filter(p => p.status === 'PERMIT_ISSUED').length,
+      crushingFeeds: 2,
+    };
+  }, [blocks, subBlocks]);
 
   // فیلتر کردن ساب‌بلوک‌ها
   const filteredSubBlocks = useMemo(() => {
@@ -133,7 +166,7 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
     };
   }, [subBlocks]);
 
-  // ایجاد سریع ساب‌بلوک‌ها
+  // ایجاد سریع ساب‌بلوک‌ها با کدگذاری استاندارد SA, SB, SC, SD
   const handleCreateSubBlocks = () => {
     if (!selectedBlock) return;
     SubBlockLifecycleService.createSubBlocksForBlock(
@@ -142,7 +175,7 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
       selectedBlock.code,
       selectedBlock.targetLevel,
       newTotalTonnage,
-      'مهندس معدن'
+      'دفتر فنی پیمانکار استخراج'
     );
     loadData();
     setActiveModal(null);
@@ -168,7 +201,7 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
   const handleAutoClassifyAll = () => {
     subBlocks.forEach(sb => {
       if (sb.labResults?.fe !== undefined && sb.status === 'LAB_COMPLETED') {
-        SubBlockLifecycleService.autoClassifySubBlock(sb.id, 'موتور هوشمند طبقه‌بندی');
+        SubBlockLifecycleService.autoClassifySubBlock(sb.id, 'موتور هوشمند طبقه‌بندی زمین‌شناسی');
       }
     });
     loadData();
@@ -176,368 +209,478 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
-      {/* هدر چرخه و انتخاب بلوک */}
-      <div className="p-6 rounded-3xl bg-gradient-to-l from-[#0A1628] via-[#0E2038] to-[#122A4A] border border-white/10 shadow-xl">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="p-2 rounded-xl bg-[#00D4FF]/20 text-[#00D4FF]">
-                <SparklesIcon className="w-6 h-6" />
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-white">
-                چرخه‌ی هوشمند مدیریت بلوک‌ها و ساب‌بلوک‌ها
-              </h2>
-            </div>
-            <p className="text-sm text-[#8A9DB0]">
-              از تعریف بلوک و تفکیک زون‌ها تا نمونه‌برداری پودری، آنالیز آزمایشگاهی، طبقه‌بندی ژئومتالورژی، تعیین مقصد و مصرف در خطوط خردایش
-            </p>
-          </div>
-
-          {/* انتخابگر بلوک */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-col">
-              <label className="text-xs text-[#8A9DB0] mb-1 font-semibold">انتخاب بلوک معدنی</label>
-              <select
-                value={selectedBlockId}
-                onChange={(e) => setSelectedBlockId(e.target.value)}
-                className="px-4 py-2.5 bg-[#0A1628] border border-white/20 rounded-2xl text-white font-bold font-mono text-sm focus:outline-none focus:border-[#00D4FF] cursor-pointer min-w-[200px]"
-              >
-                {blocks.map(b => (
-                  <option key={b.id} value={b.id}>
-                    بلوک {b.code} (تراز {b.targetLevel})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              onClick={() => setActiveModal('createSubBlocks')}
-              className="mt-5 px-4 py-2.5 bg-[#00D4FF] hover:bg-[#00B4D8] text-[#0A1628] font-bold rounded-2xl text-sm transition-all shadow-lg shadow-[#00D4FF]/20 active:scale-95 cursor-pointer flex items-center gap-2"
-            >
-              <PlusCircleIcon className="w-5 h-5" />
-              <span>تفکیک ساب‌بلوک جدید</span>
-            </button>
-
-            <button
-              onClick={loadData}
-              title="بارگذاری مجدد"
-              className="mt-5 p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-            >
-              <ArrowPathIcon className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* کارت مشخصات بلوک انتخاب شده */}
-        {selectedBlock && (
-          <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-xs">
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-              <span className="text-[#8A9DB0] block mb-1">کد و شناسه بلوک</span>
-              <span className="text-white font-mono font-bold text-sm">{selectedBlock.code}</span>
-            </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-              <span className="text-[#8A9DB0] block mb-1">تراز پله معدن</span>
-              <span className="text-white font-bold text-sm font-mono">{selectedBlock.targetLevel} m</span>
-            </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-              <span className="text-[#8A9DB0] block mb-1">تعداد چال‌های طراحی</span>
-              <span className="text-white font-bold text-sm font-mono">{selectedBlock.drillingParams?.totalHoles || 0} چال</span>
-            </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-              <span className="text-[#8A9DB0] block mb-1">تعداد ساب‌بلوک‌ها</span>
-              <span className="text-[#00D4FF] font-bold text-sm font-mono">{metrics.totalSubBlocks} عدد</span>
-            </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-              <span className="text-[#8A9DB0] block mb-1">مجموع تناژ استخراجی</span>
-              <span className="text-white font-bold text-sm font-mono">{metrics.totalTonnage.toLocaleString()} تن</span>
-            </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-              <span className="text-[#8A9DB0] block mb-1">میانگین عیار آهن کانسار</span>
-              <span className={`font-mono font-bold text-sm ${parseFloat(metrics.avgFe) >= 55 ? 'text-green-400' : 'text-yellow-400'}`}>
-                {parseFloat(metrics.avgFe) > 0 ? `${metrics.avgFe}% Fe` : 'در انتظار آنالیز'}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* خط لوله پیشرفت چرخه (Lifecycle Pipeline Tracker) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-        {/* فاز ۱: تعریف */}
-        <button
-          onClick={() => setActiveStageFilter(activeStageFilter === 'SAMPLING' ? 'ALL' : 'SAMPLING')}
-          className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-            activeStageFilter === 'SAMPLING' ? 'bg-yellow-500/20 border-yellow-500 shadow-lg shadow-yellow-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-yellow-400">۱. نمونه‌برداری</span>
-            <DocumentPlusIcon className="w-5 h-5 text-yellow-400" />
-          </div>
-          <p className="text-2xl font-bold font-mono text-white">{metrics.sampledCount} <span className="text-xs text-[#8A9DB0]">از {metrics.totalSubBlocks}</span></p>
-          <p className="text-[11px] text-[#8A9DB0] mt-1">چال‌پاشی و پودری</p>
-        </button>
-
-        {/* فاز ۲: آزمایشگاه */}
-        <button
-          onClick={() => setActiveStageFilter(activeStageFilter === 'LAB' ? 'ALL' : 'LAB')}
-          className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-            activeStageFilter === 'LAB' ? 'bg-purple-500/20 border-purple-500 shadow-lg shadow-purple-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-purple-400">۲. آنالیز آزمایشگاه</span>
-            <BeakerIcon className="w-5 h-5 text-purple-400" />
-          </div>
-          <p className="text-2xl font-bold font-mono text-white">{metrics.assayedCount} <span className="text-xs text-[#8A9DB0]">آنالیز شده</span></p>
-          <p className="text-[11px] text-[#8A9DB0] mt-1">XRF و تیتراسیون Fe</p>
-        </button>
-
-        {/* فاز ۳: طبقه‌بندی کانسار */}
-        <button
-          onClick={() => setActiveStageFilter(activeStageFilter === 'CLASSIFY' ? 'ALL' : 'CLASSIFY')}
-          className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-            activeStageFilter === 'CLASSIFY' ? 'bg-blue-500/20 border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-blue-400">۳. طبقه‌بندی کانسار</span>
-            <TagIcon className="w-5 h-5 text-blue-400" />
-          </div>
-          <p className="text-2xl font-bold font-mono text-white">
-            {metrics.highGradeCount + metrics.mediumGradeCount} <span className="text-xs text-green-400 font-normal">کانسنگ</span>
-          </p>
-          <p className="text-[11px] text-[#8A9DB0] mt-1">{metrics.wasteCount} باطله معدنی</p>
-        </button>
-
-        {/* فاز ۴: تعیین مقصد */}
-        <button
-          onClick={() => setActiveStageFilter(activeStageFilter === 'DESTINATION' ? 'ALL' : 'DESTINATION')}
-          className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-            activeStageFilter === 'DESTINATION' ? 'bg-cyan-500/20 border-cyan-500 shadow-lg shadow-cyan-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-cyan-400">۴. دیسپاچینگ و مقصد</span>
-            <TruckIcon className="w-5 h-5 text-cyan-400" />
-          </div>
-          <p className="text-2xl font-bold font-mono text-white">
-            {subBlocks.filter(sb => !!sb.destination).length} <span className="text-xs text-[#8A9DB0]">مجوز حمل</span>
-          </p>
-          <p className="text-[11px] text-[#8A9DB0] mt-1">تخصیص خطوط و دپوها</p>
-        </button>
-
-        {/* فاز ۵: خطوط خردایش */}
-        <button
-          onClick={() => setActiveStageFilter(activeStageFilter === 'CRUSHING' ? 'ALL' : 'CRUSHING')}
-          className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-            activeStageFilter === 'CRUSHING' ? 'bg-pink-500/20 border-pink-500 shadow-lg shadow-pink-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-pink-400">۵. مصرف خط خردایش</span>
-            <Cog6ToothIcon className="w-5 h-5 text-pink-400" />
-          </div>
-          <p className="text-xl font-bold font-mono text-white truncate">
-            {metrics.totalCrushedTonnage.toLocaleString()} <span className="text-xs text-pink-400">تن</span>
-          </p>
-          <p className="text-[11px] text-[#8A9DB0] mt-1">خوراک سنگ‌شکن ۱ و ۲</p>
-        </button>
-
-        {/* فاز ۶: محصولات نهایی */}
-        <button
-          onClick={() => setActiveStageFilter(activeStageFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
-          className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-            activeStageFilter === 'COMPLETED' ? 'bg-green-500/20 border-green-500 shadow-lg shadow-green-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-green-400">۶. محصولات دانه‌بندی</span>
-            <CheckCircleIcon className="w-5 h-5 text-green-400" />
-          </div>
-          <p className="text-xl font-bold font-mono text-green-400 truncate">
-            {(metrics.totalLumpProduced + metrics.totalFinesProduced).toLocaleString()} <span className="text-xs text-white">تن</span>
-          </p>
-          <p className="text-[11px] text-[#8A9DB0] mt-1">کلوخه و نرمه نهایی</p>
-        </button>
-      </div>
-
-      {/* نوار فیلتر و جستجو و اقدامات گروهی */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="جستجوی کد ساب‌بلوک..."
-              className="px-4 py-2 pr-9 bg-[#0A1628] border border-white/10 rounded-xl text-white text-xs placeholder-[#4A6A8A] focus:outline-none focus:border-[#00D4FF] min-w-[220px]"
-            />
-            <FunnelIcon className="w-4 h-4 text-[#4A6A8A] absolute right-3 top-2.5" />
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setActiveStageFilter('ALL')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                activeStageFilter === 'ALL' ? 'bg-[#00D4FF] text-[#0A1628] font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
-              }`}
-            >
-              همه ({subBlocks.length})
-            </button>
-            <button
-              onClick={() => setActiveStageFilter('SAMPLING')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                activeStageFilter === 'SAMPLING' ? 'bg-yellow-500 text-black font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
-              }`}
-            >
-              نمونه‌برداری
-            </button>
-            <button
-              onClick={() => setActiveStageFilter('LAB')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                activeStageFilter === 'LAB' ? 'bg-purple-500 text-white font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
-              }`}
-            >
-              آزمایشگاه
-            </button>
-            <button
-              onClick={() => setActiveStageFilter('CLASSIFY')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                activeStageFilter === 'CLASSIFY' ? 'bg-blue-500 text-white font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
-              }`}
-            >
-              طبقه‌بندی
-            </button>
-            <button
-              onClick={() => setActiveStageFilter('CRUSHING')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                activeStageFilter === 'CRUSHING' ? 'bg-pink-500 text-white font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
-              }`}
-            >
-              خطوط خردایش
-            </button>
-          </div>
-        </div>
-
-        {/* دکمه طبقه‌بندی هوشمند دسته‌ای */}
-        <button
-          onClick={handleAutoClassifyAll}
-          className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-        >
-          <SparklesIcon className="w-4 h-4" />
-          <span>طبقه‌بندی خودکار ساب‌بلوک‌های آنالیزشده</span>
-        </button>
-      </div>
-
-      {/* جدول ساب‌بلوک‌ها */}
-      <SubBlocksTable
-        subBlocks={filteredSubBlocks}
-        onRowClick={(sb) => handleActionClick(sb, 'view')}
-        onActionClick={(sb, type) => handleActionClick(sb, type)}
+      {/* نوار تغییر دیدگاه ارکان ۴گانه سامانه */}
+      <StakeholderPerspectiveBar
+        activeRole={stakeholderRole}
+        onRoleChange={setStakeholderRole}
+        pendingCounts={pendingCounts}
       />
+
+      {/* نوار سوئیچ تب‌های ماژول‌های ۱۳ مرحله‌ای */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            onClick={() => setActiveTab('SUB_BLOCKS')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'SUB_BLOCKS'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <SparklesIcon className="w-4 h-4" />
+            <span>شناسنامه و چرخه ساب‌بلوک‌ها (مراحل ۶ تا ۹ و ۱۲)</span>
+            <span className="px-1.5 py-0.5 rounded-md bg-black/30 text-[10px] font-mono">
+              {metrics.totalSubBlocks}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('MONTHLY_BANDS')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'MONTHLY_BANDS'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-lg shadow-amber-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <FolderIcon className="w-4 h-4" />
+            <span>باندهای ماهانه (مراحل ۱ و ۲)</span>
+            {pendingCounts.clientBands > 0 && (
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-500/30 text-amber-200 text-[10px] font-bold">
+                {pendingCounts.clientBands} جدید
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('DRILL_PATTERNS')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'DRILL_PATTERNS'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-lg shadow-emerald-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <WrenchScrewdriverIcon className="w-4 h-4" />
+            <span>شبکه حفاری و مجوزها (مراحل ۳، ۴ و ۵)</span>
+            {pendingCounts.supervisionPermits > 0 && (
+              <span className="px-1.5 py-0.5 rounded-md bg-cyan-500/30 text-cyan-200 text-[10px] font-bold">
+                {pendingCounts.supervisionPermits} مجوز
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('DYNAMIC_STOCKPILES')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'DYNAMIC_STOCKPILES'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <ArchiveBoxIcon className="w-4 h-4" />
+            <span>سرویس‌شمار و موجودی دپوها (مراحل ۱۰ و ۱۱)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('WORKFLOW_GUIDE')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'WORKFLOW_GUIDE'
+                ? 'bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <BookOpenIcon className="w-4 h-4" />
+            <span>راهنمای تعاملی ۱۳ مرحله</span>
+          </button>
+        </div>
+      </div>
+
+      {/* بدنه بر اساس تب فعال */}
+      {activeTab === 'WORKFLOW_GUIDE' && (
+        <MiningWorkflowOverview13Steps onStepSelect={(step) => {
+          if (step <= 2) setActiveTab('MONTHLY_BANDS');
+          else if (step <= 5) setActiveTab('DRILL_PATTERNS');
+          else if (step <= 9 || step === 12) setActiveTab('SUB_BLOCKS');
+          else if (step <= 11) setActiveTab('DYNAMIC_STOCKPILES');
+        }} />
+      )}
+
+      {activeTab === 'MONTHLY_BANDS' && (
+        <MonthlyBandsTab stakeholderRole={stakeholderRole} />
+      )}
+
+      {activeTab === 'DRILL_PATTERNS' && (
+        <DrillPatternTab stakeholderRole={stakeholderRole} />
+      )}
+
+      {activeTab === 'DYNAMIC_STOCKPILES' && (
+        <DynamicStockpileTab stakeholderRole={stakeholderRole} />
+      )}
+
+      {activeTab === 'SUB_BLOCKS' && (
+        <>
+          {/* هدر چرخه و انتخاب بلوک */}
+          <div className="p-6 rounded-3xl bg-gradient-to-l from-[#0A1628] via-[#0E2038] to-[#122A4A] border border-white/10 shadow-xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="p-2 rounded-xl bg-[#00D4FF]/20 text-[#00D4FF]">
+                    <SparklesIcon className="w-6 h-6" />
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">
+                    چرخه‌ی هوشمند مدیریت بلوک‌ها و ساب‌بلوک‌ها
+                  </h2>
+                </div>
+                <p className="text-sm text-[#8A9DB0]">
+                  از تفکیک ساب‌بلوک‌ها (SA, SB, SC, SD) تا نمونه‌برداری پودری، آنالیز XRF، طبقه‌بندی عیار، تعیین مقصد و بارگیری به دپوها
+                </p>
+              </div>
+
+              {/* انتخابگر بلوک */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col">
+                  <label className="text-xs text-[#8A9DB0] mb-1 font-semibold">انتخاب بلوک معدنی</label>
+                  <select
+                    value={selectedBlockId}
+                    onChange={(e) => setSelectedBlockId(e.target.value)}
+                    className="px-4 py-2.5 bg-[#0A1628] border border-white/20 rounded-2xl text-white font-bold font-mono text-sm focus:outline-none focus:border-[#00D4FF] cursor-pointer min-w-[200px]"
+                  >
+                    {blocks.map(b => (
+                      <option key={b.id} value={b.id}>
+                        بلوک {b.code} (تراز {b.targetLevel})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {(stakeholderRole === 'ALL' || stakeholderRole === 'MINING_CONTRACTOR' || stakeholderRole === 'SUPERVISION') && (
+                  <button
+                    onClick={() => setActiveModal('createSubBlocks')}
+                    className="mt-5 px-4 py-2.5 bg-[#00D4FF] hover:bg-[#00B4D8] text-[#0A1628] font-bold rounded-2xl text-sm transition-all shadow-lg shadow-[#00D4FF]/20 active:scale-95 cursor-pointer flex items-center gap-2"
+                  >
+                    <PlusCircleIcon className="w-5 h-5" />
+                    <span>تفکیک ساب‌بلوک جدید (SA, SB, SC, SD)</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={loadData}
+                  title="بارگذاری مجدد"
+                  className="mt-5 p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                >
+                  <ArrowPathIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* کارت مشخصات بلوک انتخاب شده */}
+            {selectedBlock && (
+              <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-xs">
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
+                  <span className="text-[#8A9DB0] block mb-1">کد و شناسه بلوک</span>
+                  <span className="text-white font-mono font-bold text-sm">{selectedBlock.code}</span>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
+                  <span className="text-[#8A9DB0] block mb-1">تراز پله معدن</span>
+                  <span className="text-white font-bold text-sm font-mono">{selectedBlock.targetLevel} m</span>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
+                  <span className="text-[#8A9DB0] block mb-1">تعداد چال‌های طراحی</span>
+                  <span className="text-white font-bold text-sm font-mono">{selectedBlock.drillingParams?.totalHoles || 0} چال</span>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
+                  <span className="text-[#8A9DB0] block mb-1">تعداد ساب‌بلوک‌ها</span>
+                  <span className="text-[#00D4FF] font-bold text-sm font-mono">{metrics.totalSubBlocks} عدد</span>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
+                  <span className="text-[#8A9DB0] block mb-1">مجموع تناژ استخراجی</span>
+                  <span className="text-white font-bold text-sm font-mono">{metrics.totalTonnage.toLocaleString()} تن</span>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
+                  <span className="text-[#8A9DB0] block mb-1">میانگین عیار آهن کانسار</span>
+                  <span className={`font-mono font-bold text-sm ${parseFloat(metrics.avgFe) >= 55 ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {parseFloat(metrics.avgFe) > 0 ? `${metrics.avgFe}% Fe` : 'در انتظار آنالیز'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* خط لوله پیشرفت چرخه (Lifecycle Pipeline Tracker) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            {/* فاز ۱: نمونه‌برداری */}
+            <button
+              onClick={() => setActiveStageFilter(activeStageFilter === 'SAMPLING' ? 'ALL' : 'SAMPLING')}
+              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
+                activeStageFilter === 'SAMPLING' ? 'bg-yellow-500/20 border-yellow-500 shadow-lg shadow-yellow-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-yellow-400">۶. نمونه‌برداری</span>
+                <DocumentPlusIcon className="w-5 h-5 text-yellow-400" />
+              </div>
+              <p className="text-2xl font-bold font-mono text-white">{metrics.sampledCount} <span className="text-xs text-[#8A9DB0]">از {metrics.totalSubBlocks}</span></p>
+              <p className="text-[11px] text-[#8A9DB0] mt-1">پودر حفاری چال‌ها</p>
+            </button>
+
+            {/* فاز ۲: آزمایشگاه */}
+            <button
+              onClick={() => setActiveStageFilter(activeStageFilter === 'LAB' ? 'ALL' : 'LAB')}
+              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
+                activeStageFilter === 'LAB' ? 'bg-purple-500/20 border-purple-500 shadow-lg shadow-purple-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-purple-400">۷. آنالیز آزمایشگاه</span>
+                <BeakerIcon className="w-5 h-5 text-purple-400" />
+              </div>
+              <p className="text-2xl font-bold font-mono text-white">{metrics.assayedCount} <span className="text-xs text-[#8A9DB0]">آنالیز شده</span></p>
+              <p className="text-[11px] text-[#8A9DB0] mt-1">XRF (Fe, FeO, SiO2)</p>
+            </button>
+
+            {/* فاز ۳: طبقه‌بندی کانسار */}
+            <button
+              onClick={() => setActiveStageFilter(activeStageFilter === 'CLASSIFY' ? 'ALL' : 'CLASSIFY')}
+              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
+                activeStageFilter === 'CLASSIFY' ? 'bg-blue-500/20 border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-blue-400">۸. طبقه‌بندی سنگ</span>
+                <TagIcon className="w-5 h-5 text-blue-400" />
+              </div>
+              <p className="text-2xl font-bold font-mono text-white">
+                {metrics.highGradeCount + metrics.mediumGradeCount} <span className="text-xs text-green-400 font-normal">کانسنگ</span>
+              </p>
+              <p className="text-[11px] text-[#8A9DB0] mt-1">{metrics.wasteCount} باطله معدنی</p>
+            </button>
+
+            {/* فاز ۴: تعیین مقصد */}
+            <button
+              onClick={() => setActiveStageFilter(activeStageFilter === 'DESTINATION' ? 'ALL' : 'DESTINATION')}
+              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
+                activeStageFilter === 'DESTINATION' ? 'bg-cyan-500/20 border-cyan-500 shadow-lg shadow-cyan-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-cyan-400">۹. تعیین مقصد</span>
+                <TruckIcon className="w-5 h-5 text-cyan-400" />
+              </div>
+              <p className="text-2xl font-bold font-mono text-white">
+                {subBlocks.filter(sb => !!sb.destination).length} <span className="text-xs text-[#8A9DB0]">مجوز حمل</span>
+              </p>
+              <p className="text-[11px] text-[#8A9DB0] mt-1">تخصیص دپوها</p>
+            </button>
+
+            {/* فاز ۵: ناوگان حمل و سرویس‌ها */}
+            <button
+              onClick={() => setActiveTab('DYNAMIC_STOCKPILES')}
+              className="p-4 rounded-2xl border text-right transition-all cursor-pointer bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-amber-400">۱۰. سرویس‌شمار</span>
+                <TruckIcon className="w-5 h-5 text-amber-400" />
+              </div>
+              <p className="text-xl font-bold font-mono text-amber-300">تراک‌های ۱۰۰، ۶۰، ۳۵</p>
+              <p className="text-[11px] text-[#8A9DB0] mt-1">برآورد تناژ با سرویس</p>
+            </button>
+
+            {/* فاز ۶: موجودی دپوها */}
+            <button
+              onClick={() => setActiveTab('DYNAMIC_STOCKPILES')}
+              className="p-4 rounded-2xl border text-right transition-all cursor-pointer bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-purple-400">۱۱. موجودی دپوها</span>
+                <ArchiveBoxIcon className="w-5 h-5 text-purple-400" />
+              </div>
+              <p className="text-xl font-bold font-mono text-purple-300">بالانس دینامیک</p>
+              <p className="text-[11px] text-[#8A9DB0] mt-1">میانگین وزنی عیار</p>
+            </button>
+          </div>
+
+          {/* نوار فیلتر و جستجو و اقدامات گروهی */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="جستجوی کد ساب‌بلوک (مانند 1040 B 32 – SA)..."
+                  className="px-4 py-2 pr-9 bg-[#0A1628] border border-white/10 rounded-xl text-white text-xs placeholder-[#4A6A8A] focus:outline-none focus:border-[#00D4FF] min-w-[260px]"
+                />
+                <FunnelIcon className="w-4 h-4 text-[#4A6A8A] absolute right-3 top-2.5" />
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setActiveStageFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    activeStageFilter === 'ALL' ? 'bg-[#00D4FF] text-[#0A1628] font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
+                  }`}
+                >
+                  همه ({subBlocks.length})
+                </button>
+                <button
+                  onClick={() => setActiveStageFilter('SAMPLING')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    activeStageFilter === 'SAMPLING' ? 'bg-yellow-500 text-black font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
+                  }`}
+                >
+                  نمونه‌برداری
+                </button>
+                <button
+                  onClick={() => setActiveStageFilter('LAB')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    activeStageFilter === 'LAB' ? 'bg-purple-500 text-white font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
+                  }`}
+                >
+                  آزمایشگاه
+                </button>
+                <button
+                  onClick={() => setActiveStageFilter('CLASSIFY')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    activeStageFilter === 'CLASSIFY' ? 'bg-blue-500 text-white font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
+                  }`}
+                >
+                  طبقه‌بندی
+                </button>
+                <button
+                  onClick={() => setActiveStageFilter('DESTINATION')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    activeStageFilter === 'DESTINATION' ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
+                  }`}
+                >
+                  مقاصد و بارگیری
+                </button>
+              </div>
+            </div>
+
+            {/* دکمه طبقه‌بندی هوشمند دسته‌ای */}
+            <button
+              onClick={handleAutoClassifyAll}
+              className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <SparklesIcon className="w-4 h-4" />
+              <span>طبقه‌بندی خودکار ساب‌بلوک‌های آنالیزشده</span>
+            </button>
+          </div>
+
+          {/* جدول ساب‌بلوک‌ها */}
+          <SubBlocksTable
+            subBlocks={filteredSubBlocks}
+            onRowClick={(sb) => handleActionClick(sb, 'view')}
+            onActionClick={(sb, type) => handleActionClick(sb, type)}
+          />
+        </>
+      )}
 
       {/* مودال تفکیک ساب‌بلوک‌های جدید برای بلوک */}
       {activeModal === 'createSubBlocks' && selectedBlock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-[#0D1B2E] border border-white/10 rounded-2xl p-6 text-right space-y-4">
             <h3 className="text-base font-bold text-white">تفکیک ساب‌بلوک‌ها برای بلوک {selectedBlock.code}</h3>
             <p className="text-xs text-[#8A9DB0]">
-              بر اساس هندسه و الگوی چال‌پاشی، بلوک به قطعات استخراجی تفکیک و کدهای استاندارد اختصاص داده می‌شود.
+              بر اساس هندسه و الگوی چال‌پاشی، بلوک به قطعات استخراجی تفکیک و کدهای استاندارد (مانند {selectedBlock.code} – SA, SB, SC, SD) اختصاص داده می‌شود.
             </p>
 
             <div>
               <label className="block text-xs text-[#8A9DB0] mb-1">تعداد ساب‌بلوک‌ها برای ایجاد</label>
-              <input
-                type="number"
-                min="1"
-                max="20"
+              <select
                 value={newSubBlockCount}
-                onChange={(e) => setNewSubBlockCount(parseInt(e.target.value) || 1)}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-[#00D4FF]"
-              />
+                onChange={(e) => setNewSubBlockCount(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-[#0A1628] border border-white/20 rounded-xl text-white text-xs"
+              >
+                <option value={2}>۲ ساب‌بلوک (SA, SB)</option>
+                <option value={3}>۳ ساب‌بلوک (SA, SB, SC)</option>
+                <option value={4}>۴ ساب‌بلوک (SA, SB, SC, SD)</option>
+                <option value={6}>۶ ساب‌بلوک (SA تا SF)</option>
+                <option value={8}>۸ ساب‌بلوک (SA تا SH)</option>
+              </select>
             </div>
 
             <div>
-              <label className="block text-xs text-[#8A9DB0] mb-1">مجموع تناژ تخمینی کل بلوک (تن)</label>
+              <label className="block text-xs text-[#8A9DB0] mb-1">تناژ تخمینی کل بلوک (تن)</label>
               <input
                 type="number"
-                step="500"
                 value={newTotalTonnage}
-                onChange={(e) => setNewTotalTonnage(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-[#00D4FF]"
+                onChange={(e) => setNewTotalTonnage(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-[#0A1628] border border-white/20 rounded-xl text-white font-mono text-xs"
               />
-              <span className="text-[11px] text-[#4A6A8A] mt-1 block font-mono">
-                میانگین هر ساب‌بلوک: {Math.round(newTotalTonnage / (newSubBlockCount || 1)).toLocaleString()} تن
+              <span className="text-[11px] text-[#00D4FF] mt-1 block">
+                میانگین تناژ هر ساب‌بلوک: {Math.round(newTotalTonnage / newSubBlockCount).toLocaleString()} تن
               </span>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
               <button
-                type="button"
                 onClick={() => setActiveModal(null)}
-                className="px-4 py-2 text-sm text-[#8A9DB0] hover:text-white"
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold"
               >
                 انصراف
               </button>
               <button
-                type="button"
                 onClick={handleCreateSubBlocks}
-                className="px-5 py-2.5 bg-[#00D4FF] hover:bg-[#00B4D8] text-[#0A1628] font-bold rounded-xl text-sm transition-all"
+                className="px-5 py-2 rounded-xl bg-[#00D4FF] hover:bg-[#00B4D8] text-[#0A1628] text-xs font-bold shadow-lg shadow-[#00D4FF]/20"
               >
-                ایجاد و تفکیک
+                ایجاد و تفکیک ساب‌بلوک‌ها
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* مودال‌های عملیات چرخه */}
+      {/* مودال‌های اختصاصی مراحل ساب‌بلوک */}
       {activeModal === 'sample' && activeSubBlock && (
         <SamplingModal
-          subBlock={activeSubBlock}
+          isOpen={true}
           onClose={() => setActiveModal(null)}
+          subBlock={activeSubBlock}
           onSuccess={handleModalSuccess}
         />
       )}
 
       {activeModal === 'lab' && activeSubBlock && (
         <LabResultsModal
-          subBlock={activeSubBlock}
+          isOpen={true}
           onClose={() => setActiveModal(null)}
+          subBlock={activeSubBlock}
           onSuccess={handleModalSuccess}
         />
       )}
 
       {activeModal === 'classify' && activeSubBlock && (
         <ClassificationModal
-          subBlock={activeSubBlock}
+          isOpen={true}
           onClose={() => setActiveModal(null)}
+          subBlock={activeSubBlock}
           onSuccess={handleModalSuccess}
         />
       )}
 
       {activeModal === 'destination' && activeSubBlock && (
         <DestinationModal
-          subBlock={activeSubBlock}
+          isOpen={true}
           onClose={() => setActiveModal(null)}
+          subBlock={activeSubBlock}
           onSuccess={handleModalSuccess}
         />
       )}
 
       {activeModal === 'crush' && activeSubBlock && (
         <CrusherConsumptionModal
-          subBlock={activeSubBlock}
+          isOpen={true}
           onClose={() => setActiveModal(null)}
+          subBlock={activeSubBlock}
           onSuccess={handleModalSuccess}
         />
       )}
 
       {activeModal === 'detail' && activeSubBlock && (
         <SubBlockDetailModal
-          subBlock={activeSubBlock}
+          isOpen={true}
           onClose={() => setActiveModal(null)}
-          onOpenAction={(type) => setActiveModal(type)}
+          subBlock={activeSubBlock}
         />
       )}
     </div>

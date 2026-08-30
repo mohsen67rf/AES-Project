@@ -19,6 +19,7 @@ import {
   initializeRepositories 
 } from '../core/infrastructure/repositories';
 import { ActivityLogger } from '../core/services/ActivityLogger';
+import { LogoFull } from '../shared/components/Logo/LogoFull';
 import type { User } from '../core/domain/types/mine.types';
 
 // ============================================
@@ -268,17 +269,9 @@ function App() {
           />
 
           <div className="relative z-10 text-center">
-            <div className="mb-6">
-              <img 
-                src="/logo.png" 
-                alt="AES" 
-                className="mx-auto"
-                style={{ width: '320px', height: 'auto', display: 'block' }}
-              />
+            <div className="mb-6 flex justify-center">
+              <LogoFull variant="auth" />
             </div>
-
-            <h1 className="text-2xl font-bold text-white">به AES خوش آمدی</h1>
-            <p className="text-[#8A9DB0] text-sm mt-2">سامانه‌ی دستیار مهندس معدن</p>
 
             {error && (
               <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
@@ -288,37 +281,37 @@ function App() {
 
             <form onSubmit={handleLogin} className="mt-6 space-y-4 text-right">
               <div>
-                <label className="block text-sm font-medium text-[#8A9DB0] mb-1">کد کاربری (اختیاری)</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">کد کاربری</label>
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  placeholder="AES-1001 (اختیاری)"
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#4A6A8A] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/50 focus:border-[#00D4FF]/50 text-sm"
+                  placeholder="AES-1001 (پیش‌فرض: مدیر سیستم)"
+                  className="w-full px-4 py-2.5 bg-slate-900/60 border border-slate-700/60 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/60 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#8A9DB0] mb-1">رمز عبور (اختیاری)</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">رمز عبور</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="اختیاری"
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#4A6A8A] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/50 focus:border-[#00D4FF]/50 text-sm"
+                  placeholder="اختیاری جهت ورود آزمایشی"
+                  className="w-full px-4 py-2.5 bg-slate-900/60 border border-slate-700/60 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/60 text-xs"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-[#00D4FF] via-[#0099CC] to-[#0077AA] text-white font-bold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-[#00D4FF]/30 active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="w-full py-3 bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-[#6366F1]/30 active:scale-95 disabled:opacity-50 cursor-pointer text-xs"
               >
-                {loading ? 'در حال ورود...' : 'ورود مستقیم به سامانه (بدون رمز)'}
+                {loading ? 'در حال ورود...' : 'ورود مستقیم به سامانه مدیریت معدن'}
               </button>
             </form>
 
-            <p className="text-xs text-[#4A6A8A] mt-6">© ۱۴۰۴ - سامانه جامع مدیریت معادن</p>
+            <p className="text-[11px] text-slate-500 mt-6">© ۱۴۰۵ - AES Mining Management System</p>
           </div>
         </div>
       </div>

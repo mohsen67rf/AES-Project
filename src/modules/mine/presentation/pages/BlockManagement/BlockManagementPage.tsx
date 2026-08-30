@@ -9,6 +9,7 @@ import { BlockLifecycleService } from '../../../services/BlockLifecycleService';
 import { BlockApprovalModal } from '../../components/BlockApprovalModal';
 import { BlockTimeline } from '../../components/BlockTimeline';
 import { ActivityLogger } from '../../../../../core/services/ActivityLogger';
+import { Header } from '../../../../dashboard/presentation/components/Header/Header';
 import { 
   PlusIcon, 
   MagnifyingGlassIcon,
@@ -847,10 +848,11 @@ export function BlockManagementPage() {
   // ============================================
 
   return (
-    <div className={`${isDark ? 'bg-[#0A1628]' : 'bg-gray-50'} min-h-screen p-6 transition-colors duration-300`}>
-      <div className="space-y-6 max-w-7xl mx-auto">
+    <div className={`${isDark ? 'bg-[#0A1628]' : 'bg-gray-50'} min-h-screen transition-colors duration-300`}>
+      <Header />
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
         
-        {/* هدر */}
+        {/* عنوان و دکمه‌های کنترلی صفحه */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>

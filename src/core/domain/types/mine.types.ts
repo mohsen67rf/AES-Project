@@ -285,6 +285,105 @@ export type DestinationType =
 // سایر موجودیت‌ها (بدون تغییر)
 // ============================================
 
+export type StakeholderRole = 
+  | 'CLIENT'               // کارفرما
+  | 'SUPERVISION'          // نظارت
+  | 'MINING_CONTRACTOR'     // پیمانکار استخراج
+  | 'CRUSHING_CONTRACTOR'   // پیمانکار خردایش
+  | 'ALL';                 // دسترسی کامل (مدیریت)
+
+export interface MonthlyBand {
+  id: string;
+  mineId: string;
+  code: string;
+  title: string;
+  month: string;
+  year: number;
+  benchLevel: number;
+  volumeM3: number;
+  tonnageOre: number;
+  tonnageWaste: number;
+  primaryRockType: string;
+  estimatedFe: number;
+  status: 'DRAFT' | 'SUBMITTED_BY_SUPERVISION' | 'APPROVED_BY_CLIENT' | 'REJECTED' | 'ACTIVE_EXTRACTION' | 'COMPLETED';
+  supervisionEngineer: string;
+  clientApprover?: string;
+  approvalDate?: string;
+  rejectionReason?: string;
+  attachedCadFile?: string;
+  notes?: string;
+  geometry?: {
+    type: 'Polygon';
+    coordinates: number[][][];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DrillPatternDesign {
+  id: string;
+  blockId: string;
+  bandId?: string;
+  code: string;
+  blockCode: string;
+  designerContractor: string;
+  holeDiameterMm: number;
+  burdenMeters: number;
+  spacingMeters: number;
+  subDrillingMeters: number;
+  holeCount: number;
+  avgDepthMeters: number;
+  totalMetersDesign: number;
+  explosiveType?: string;
+  powderFactorKgPerM3?: number;
+  status: 'DESIGNED_BY_CONTRACTOR' | 'PENDING_SUPERVISION_REVIEW' | 'PERMIT_ISSUED' | 'REVISION_REQUIRED' | 'DRILLING_IN_PROGRESS' | 'DRILLING_COMPLETED';
+  supervisionReviewer?: string;
+  supervisionNotes?: string;
+  permitNumber?: string;
+  permitIssuedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Stockpile {
+  id: string;
+  mineId: string;
+  code: string;
+  name: string;
+  type: 'HIGH_GRADE' | 'MEDIUM_GRADE' | 'LOW_GRADE' | 'BLEND' | 'WASTE_ROCK' | 'WASTE_ALLUVIAL';
+  initialTonnage: number;
+  currentTonnage: number;
+  capacityTonnage: number;
+  weightedAvgFe: number;
+  weightedAvgSiO2?: number;
+  weightedAvgP?: number;
+  weightedAvgS?: number;
+  activeSubBlocksCount: number;
+  totalInflowTonnage: number;
+  totalOutflowTonnage: number;
+  coordinates: { x: number; y: number };
+  status: 'ACTIVE' | 'FULL' | 'RECLAIMING' | 'CLOSED';
+  lastUpdated: string;
+}
+
+export interface HaulageTrip {
+  id: string;
+  subBlockId: string;
+  subBlockCode: string;
+  stockpileId: string;
+  stockpileName: string;
+  truckType: 'TRUCK_100T' | 'TRUCK_60T' | 'TRUCK_35T' | 'TRUCK_15T' | 'CUSTOM';
+  nominalCapacity: number;
+  tripCount: number;
+  calculatedTonnage: number;
+  loaderId: string;
+  shift: 'MORNING' | 'EVENING' | 'NIGHT';
+  driverOrFleetCode?: string;
+  recordedBy: string;
+  timestamp: string;
+  notes?: string;
+}
+
 export interface Mine {
   id: string;
   name: string;
