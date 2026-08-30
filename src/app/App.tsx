@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '../shared/context/ThemeContext';
 import { LanguageProvider } from '../shared/context/LanguageContext';
+import { InfoTooltipProvider } from '../shared/components/InfoTooltip';
 import { DashboardPage } from '../modules/dashboard/presentation/pages/DashboardPage';
 import { ManagementDashboardPage } from '../modules/dashboard/presentation/pages/ManagementDashboardPage';
 import { BlockManagementPage } from '../modules/mine/presentation/pages/BlockManagement';
@@ -13,6 +14,8 @@ import { PitsPage } from '../modules/mine/presentation/pages/PitsPage';
 import MineMapPage from '../modules/mine/presentation/pages/MineMapPage';
 import { UserManagementPage } from '../modules/auth/presentation/pages/UserManagementPage';
 import { MiningLifecyclePage } from '../modules/mine/presentation/pages/MiningLifecyclePage';
+import { WarehousePage } from '../modules/warehouse/presentation/pages/WarehousePage';
+import { EquipmentPage } from '../modules/equipment/presentation/pages/EquipmentPage';
 import { 
   UserRepository, 
   MineRepository, 
@@ -45,6 +48,8 @@ function NavigationAuditTracker({ currentUser }: { currentUser: User | null }) {
       '/mine/map': 'نقشه سه‌بعدی و توپوگرافی معدن',
       '/users': 'مدیریت پرسنل و دسترسی‌ها',
       '/personnel': 'مدیریت پرسنل و دسترسی‌ها',
+      '/warehouse': 'انبار مواد ناریه و لجستیک سوخت معدن',
+      '/equipment': 'مدیریت، رصد و جانمایی ماشین‌آلات معدنی',
     };
 
     let title = pageTitles[currentPath];
@@ -325,25 +330,29 @@ function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <BrowserRouter>
-          <NavigationAuditTracker currentUser={user} />
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage user={user} onLogout={handleLogout} />} />
-            <Route path="/management-dashboard" element={<ManagementDashboardPage />} />
-            <Route path="/blocks-management" element={<BlockManagementPage />} />
-            <Route path="/mining-lifecycle" element={<MiningLifecyclePage />} />
-            <Route path="/subblocks-lifecycle" element={<MiningLifecyclePage />} />
-            <Route path="/users" element={<UserManagementPage />} />
-            <Route path="/personnel" element={<UserManagementPage />} />
-            <Route path="/mine" element={<MinePage mineId={defaultMineId} />} />
-            <Route path="/mine/map" element={<MineMapPage />} />
-            <Route path="/mine/:mineId/pits" element={<PitsPage />} />
-            <Route path="/block/:blockId" element={<BlockDetailPageWrapper />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/blocks/new" element={<div>صفحه افزودن بلوک</div>} />
-          </Routes>
-        </BrowserRouter>
+        <InfoTooltipProvider defaultDelayMs={2000}>
+          <BrowserRouter>
+            <NavigationAuditTracker currentUser={user} />
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage user={user} onLogout={handleLogout} />} />
+              <Route path="/management-dashboard" element={<ManagementDashboardPage />} />
+              <Route path="/blocks-management" element={<BlockManagementPage />} />
+              <Route path="/warehouse" element={<WarehousePage />} />
+              <Route path="/equipment" element={<EquipmentPage />} />
+              <Route path="/mining-lifecycle" element={<MiningLifecyclePage />} />
+              <Route path="/subblocks-lifecycle" element={<MiningLifecyclePage />} />
+              <Route path="/users" element={<UserManagementPage />} />
+              <Route path="/personnel" element={<UserManagementPage />} />
+              <Route path="/mine" element={<MinePage mineId={defaultMineId} />} />
+              <Route path="/mine/map" element={<MineMapPage />} />
+              <Route path="/mine/:mineId/pits" element={<PitsPage />} />
+              <Route path="/block/:blockId" element={<BlockDetailPageWrapper />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/blocks/new" element={<div>صفحه افزودن بلوک</div>} />
+            </Routes>
+          </BrowserRouter>
+        </InfoTooltipProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

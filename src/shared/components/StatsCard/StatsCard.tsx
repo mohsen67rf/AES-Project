@@ -1,4 +1,5 @@
 import React from 'react';
+import type { InfoTooltipMetadata } from '../InfoTooltip';
 
 interface StatsCardProps {
   title: string;
@@ -6,6 +7,7 @@ interface StatsCardProps {
   icon: React.ComponentType<{ className?: string }>;
   subtitle?: string;
   color?: string;
+  tooltipInfo?: InfoTooltipMetadata;
 }
 
 export function StatsCard({
@@ -14,9 +16,15 @@ export function StatsCard({
   icon: Icon,
   subtitle,
   color = 'text-[#AACCDD]',
+  tooltipInfo
 }: StatsCardProps) {
+  const hoverAttr = tooltipInfo ? JSON.stringify(tooltipInfo) : undefined;
+
   return (
-    <div className="group relative overflow-hidden rounded-2xl backdrop-blur-xl transition-all duration-500 p-5 bg-[#13203A]/80 border border-[#AACCDD]/10 hover:border-[#AACCDD]/30 hover:shadow-lg hover:shadow-[#AACCDD]/5">
+    <div 
+      data-hover-info={hoverAttr}
+      className="group relative overflow-hidden rounded-2xl backdrop-blur-xl transition-all duration-500 p-5 bg-[#13203A]/80 border border-[#AACCDD]/10 hover:border-[#AACCDD]/30 hover:shadow-lg hover:shadow-[#AACCDD]/5"
+    >
       <div className="relative z-10">
         <div className="flex items-start justify-between">
           <div>

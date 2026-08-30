@@ -18,7 +18,8 @@ import {
   PlusIcon,
   SparklesIcon,
   CubeIcon,
-  TruckIcon
+  TruckIcon,
+  ArchiveBoxIcon
 } from '@heroicons/react/24/outline';
 
 interface User {
@@ -73,8 +74,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user }) => {
               </p>
             </div>
 
-            {/* Right Action Controls: Date Range, Filters, Add Widget */}
+            {/* Right Action Controls: Date Range, Filters, Executive KPI Board, Add Widget */}
             <div className="flex items-center flex-wrap gap-2.5">
+              {/* Warehouse & Explosives Button */}
+              <button 
+                onClick={() => navigate('/warehouse')}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 transition-all duration-200"
+              >
+                <ArchiveBoxIcon className="w-4 h-4" />
+                <span>{isRtl ? 'انبار و مواد ناریه' : 'Warehouse & Explosives'}</span>
+              </button>
+
+              {/* Executive Management Dashboard Button */}
+              <button 
+                onClick={() => navigate('/management-dashboard')}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black text-indigo-400 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 transition-all duration-200"
+              >
+                <SparklesIcon className="w-4 h-4" />
+                <span>{isRtl ? 'میز کار مدیریت کارفرما (ویجت‌های سفارشی)' : 'Executive KPI Board'}</span>
+              </button>
+
               {/* Date Range Picker Pill */}
               <div 
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition-colors ${
@@ -101,11 +120,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user }) => {
 
               {/* Add Widget Button */}
               <button 
-                onClick={() => setShowAddWidgetModal(true)}
+                onClick={() => navigate('/management-dashboard')}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] shadow-lg shadow-[#7C3AED]/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-                <span>{isRtl ? 'افزودن ویجت' : 'Add Widget'}</span>
+                <span>{isRtl ? 'شخصی‌سازی ویجت‌ها' : 'Customize Widgets'}</span>
               </button>
             </div>
           </div>

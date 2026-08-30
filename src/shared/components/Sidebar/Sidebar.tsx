@@ -38,9 +38,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
 
   // Navigation Items matching the reference image + existing project modules
   const menuItems = [
-    { id: 'dashboard', label: isRtl ? 'داشبورد' : 'Dashboard', path: '/dashboard', icon: Squares2X2Icon },
+    { id: 'dashboard', label: isRtl ? 'داشبورد عمومی' : 'General Dashboard', path: '/dashboard', icon: Squares2X2Icon },
+    { id: 'management-kpi', label: isRtl ? 'مدیریت و شاخص‌ها (KPI)' : 'Executive Management (KPIs)', path: '/management-dashboard', icon: ChartBarIcon },
     { id: 'mines', label: isRtl ? 'معادن' : 'Mines', path: '/mine', icon: BuildingOffice2Icon },
-    { id: 'production', label: isRtl ? 'تولید و عیار' : 'Production', path: '/management-dashboard', icon: ChartBarIcon },
     { id: 'lifecycle', label: isRtl ? 'چرخه ساب‌بلوک‌ها' : 'Mining Lifecycle', path: '/mining-lifecycle', icon: SparklesIcon },
     { id: 'blocks', label: isRtl ? 'مدیریت بلوک‌ها' : 'Blocks', path: '/blocks-management', icon: CubeIcon },
     { id: 'equipment', label: isRtl ? 'تجهیزات و ماشین‌آلات' : 'Equipment', path: '/equipment', icon: TruckIcon },
