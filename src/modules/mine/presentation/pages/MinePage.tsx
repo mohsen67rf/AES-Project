@@ -110,7 +110,6 @@ export const MinePage: React.FC<MinePageProps> = ({ mineId }) => {
               <MapIcon className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold">نقشه سه‌بعدی و ترازهای استخراج</h3>
-            <p className="text-xs text-[#8A9DB0] mt-1">مشاهده توپوگرافی، پله‌های استخراج، شبکه‌های چال و وضعیت استخراج ترازها</p>
           </div>
 
           <div 
@@ -123,7 +122,6 @@ export const MinePage: React.FC<MinePageProps> = ({ mineId }) => {
               <CubeIcon className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold">مدیریت و صدور مجوز بلوک‌ها</h3>
-            <p className="text-xs text-[#8A9DB0] mt-1">طراحی پارامترهای حفاری و آتشباری، گردش تأییدیه‌ها و ثبت ژئومتری بلوک</p>
           </div>
 
           <div 
@@ -136,7 +134,6 @@ export const MinePage: React.FC<MinePageProps> = ({ mineId }) => {
               <SparklesIcon className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold">چرخه ساب‌بلوک‌ها و خطوط خردایش</h3>
-            <p className="text-xs text-[#8A9DB0] mt-1">تفکیک، نمونه‌برداری پودر چال، آنالیز عیار Fe، طبقه‌بندی هوشمند و خوراک‌دهی خطوط</p>
           </div>
         </div>
       </main>

@@ -136,9 +136,6 @@ export const ExecutiveStockpileWidget: React.FC = () => {
                 {isRtl ? 'بافر فعال: ۴۸.۸ روز' : 'Active Buffer: 48.8 Days'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'پایش لحظه‌ای تناژ دپوهای کانسنگ، عیار وزنی و ظرفیت خوراک کارخانه' : 'Live stockpile tonnage, weighted grade & plant feed buffer'}
-            </p>
           </div>
         </div>
 

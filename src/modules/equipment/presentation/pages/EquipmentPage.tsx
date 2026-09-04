@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '../../../../shared/context/ThemeContext';
 import { useLanguage } from '../../../../shared/context/LanguageContext';
-import { Sidebar } from '../../../../shared/components/Sidebar/Sidebar';
 import { AppHeader } from '../../../../shared/components/Header/AppHeader';
 import { EquipmentService, MINE_MAP_ZONES, EquipmentPlacementAuditLog } from '../../services/EquipmentService';
 import { 
@@ -39,9 +38,7 @@ export const EquipmentPage: React.FC = () => {
   const { language } = useLanguage();
   const isRtl = language === 'fa';
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  // سایدبار مشخصات و مدیریت تجهیزات (Properties Sidebar)
+  // سایدبار مشخصات و وضعیت ناوگان (جایگزین سایدبار داشبورد در این صفحه)
   const [propertiesSidebarOpen, setPropertiesSidebarOpen] = useState(true);
 
   // داده‌های ناوگان
@@ -199,17 +196,43 @@ export const EquipmentPage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen flex ${isDark ? 'bg-[#060A14] text-slate-100' : 'bg-slate-50 text-slate-800'}`}>
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className={`min-h-screen flex flex-col ${isDark ? 'bg-[#060A14] text-slate-100' : 'bg-slate-50 text-slate-800'}`}>
+      <AppHeader 
+        onToggleSidebar={() => setPropertiesSidebarOpen(!propertiesSidebarOpen)} 
+        onSearch={(q) => setSearchQuery(q)}
+      />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-screen">
-        <AppHeader 
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-          onSearch={(q) => setSearchQuery(q)}
+      <div className="flex-1 flex flex-row min-w-0 overflow-hidden">
+        {/* کادر مشخصات و وضعیت ناوگان دقیقا به جای سایدبار داشبورد (در سمت راست) */}
+        <EquipmentPropertiesSidebar 
+          isOpen={propertiesSidebarOpen}
+          onToggleOpen={() => setPropertiesSidebarOpen(!propertiesSidebarOpen)}
+          selectedItem={selectedItem}
+          items={items}
+          isDark={isDark}
+          selectedCategories={selectedCategories}
+          onToggleCategory={handleToggleCategory}
+          onSelectAllCategories={handleSelectAllCategories}
+          onClearCategories={handleClearCategories}
+          onSetCategories={setSelectedCategories}
+          statusFilter={statusFilter}
+          onSelectStatusFilter={setStatusFilter}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelectEquipment={(item) => setSelectedEquipmentId(item.id)}
+          onStartPlacement={handleStartPlacement}
+          onEditEquipment={handleOpenEditModal}
+          onDeleteEquipment={handleDeleteEquipment}
+          onAddNewEquipment={handleOpenAddModal}
+          onStatusChange={handleStatusChange}
+          isPlacementMode={isPlacementMode}
+          activePlacementItemId={activePlacementItemId}
+          fleetSummary={summary}
         />
 
-        <main className="p-3 sm:p-5 flex-1 flex flex-col max-w-[1920px] w-full mx-auto space-y-4">
-          {/* نوار بالایی: عنوان ماژول، دکمه‌های اکشن افزودن و سوابق */}
+        {/* بدنه اصلی شامل نوار ابزار، فیلترها و نقشه معدن (در سمت چپ) */}
+        <main className="flex-1 flex flex-col min-w-0 p-3 sm:p-4 overflow-y-auto space-y-3">
+          {/* نوار بالایی: عنوان ماژول و دکمه‌های اکشن */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shadow-md">
@@ -217,14 +240,8 @@ export const EquipmentPage: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-lg sm:text-xl font-black text-slate-100 flex items-center gap-2">
-                  <span>جانمایی و مدیریت ناوگان ماشین‌آلات معدنی</span>
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    GIS دیسپاچینگ
-                  </span>
+                  <span>جانمایی و مدیریت ناوگان ماشین‌آلات</span>
                 </h1>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  جانمایی دقیق روی نقشه مصوب معدن، رهگیری کارکرد روزانه، فیلتر چندگانه و مدیریت مشخصات ناوگان
-                </p>
               </div>
             </div>
 
@@ -313,62 +330,31 @@ export const EquipmentPage: React.FC = () => {
             )}
           </div>
 
-          {/* بدنه اصلی: نقشه تمام‌صفحه و سایدبار مشخصات در سمت راست با چیدمان دینامیک جهت بیشترین فضای دید نقشه */}
-          <div className="flex-1 relative flex flex-row min-h-[650px] overflow-hidden rounded-2xl border border-slate-800 bg-[#0B1323]">
-            {/* بوم نقشه واقعی معدن (Real GIS / Mine Map Canvas) - اشغال ۱۰۰٪ فضا */}
-            <div className="flex-1 flex flex-col min-w-0 h-full w-full">
-              <EquipmentMapCanvas 
-                items={items}
-                selectedCategories={selectedCategories}
-                statusFilter={statusFilter}
-                searchQuery={searchQuery}
-                isPlacementMode={isPlacementMode}
-                activePlacementItemId={activePlacementItemId}
-                onUpdatePosition={handleUpdatePosition}
-                onSelectEquipment={(item) => {
-                  setSelectedEquipmentId(item.id);
-                  setPropertiesSidebarOpen(true);
-                }}
-                selectedEquipmentId={selectedEquipmentId}
-                isDark={isDark}
-                onTogglePlacementMode={() => {
-                  setIsPlacementMode(!isPlacementMode);
-                  if (isPlacementMode) {
-                    setActivePlacementItemId(null);
-                  }
-                }}
-                onStatusChange={handleStatusChange}
-                onEditEquipment={handleOpenEditModal}
-              />
-            </div>
-
-            {/* سایدبار مدیریت و مشخصات ماشین‌آلات در سمت راست نقشه */}
-            <div className="h-full z-20 flex-shrink-0">
-              <EquipmentPropertiesSidebar 
-                isOpen={propertiesSidebarOpen}
-                onToggleOpen={() => setPropertiesSidebarOpen(!propertiesSidebarOpen)}
-                selectedItem={selectedItem}
-                items={items}
-                isDark={isDark}
-                selectedCategories={selectedCategories}
-                onToggleCategory={handleToggleCategory}
-                onSelectAllCategories={handleSelectAllCategories}
-                onClearCategories={handleClearCategories}
-                statusFilter={statusFilter}
-                onSelectStatusFilter={setStatusFilter}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onSelectEquipment={(item) => setSelectedEquipmentId(item.id)}
-                onStartPlacement={handleStartPlacement}
-                onEditEquipment={handleOpenEditModal}
-                onDeleteEquipment={handleDeleteEquipment}
-                onAddNewEquipment={handleOpenAddModal}
-                onStatusChange={handleStatusChange}
-                isPlacementMode={isPlacementMode}
-                activePlacementItemId={activePlacementItemId}
-                fleetSummary={summary}
-              />
-            </div>
+          {/* بوم نقشه واقعی معدن (Real GIS / Mine Map Canvas) */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-[600px] overflow-hidden rounded-2xl border border-slate-800 bg-[#0B1323]">
+            <EquipmentMapCanvas 
+              items={items}
+              selectedCategories={selectedCategories}
+              statusFilter={statusFilter}
+              searchQuery={searchQuery}
+              isPlacementMode={isPlacementMode}
+              activePlacementItemId={activePlacementItemId}
+              onUpdatePosition={handleUpdatePosition}
+              onSelectEquipment={(item) => {
+                setSelectedEquipmentId(item.id);
+                setPropertiesSidebarOpen(true);
+              }}
+              selectedEquipmentId={selectedEquipmentId}
+              isDark={isDark}
+              onTogglePlacementMode={() => {
+                setIsPlacementMode(!isPlacementMode);
+                if (isPlacementMode) {
+                  setActivePlacementItemId(null);
+                }
+              }}
+              onStatusChange={handleStatusChange}
+              onEditEquipment={handleOpenEditModal}
+            />
           </div>
         </main>
       </div>

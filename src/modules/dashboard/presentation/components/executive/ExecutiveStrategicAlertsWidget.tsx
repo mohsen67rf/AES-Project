@@ -78,9 +78,6 @@ export const ExecutiveStrategicAlertsWidget: React.FC = () => {
                 سیستم پایش هوشمند
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'شناسایی خودکار گلوگاه‌های تولید، فرصت‌های بهینه‌سازی و هشدارهای کنترل کیفیت' : 'Automated bottleneck detection & quality optimization alerts'}
-            </p>
           </div>
         </div>
       </div>

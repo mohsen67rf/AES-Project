@@ -142,9 +142,6 @@ export const ExecutiveExtractionByRockTypeWidget: React.FC = () => {
                 {isRtl ? 'کانسنگ: ۱۶,۵۵۰ تن/روز' : 'Ore: 16,550 T/D'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'تفکیک تناژ استخراجی بر اساس جنس سنگ، عیار متوسط و مقایسه با برنامه مصوب' : 'Tonnage by rock lithology, grade & plan vs. actual'}
-            </p>
           </div>
         </div>
 

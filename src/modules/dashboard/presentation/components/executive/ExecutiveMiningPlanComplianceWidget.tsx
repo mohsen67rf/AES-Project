@@ -45,9 +45,6 @@ export const ExecutiveMiningPlanComplianceWidget: React.FC = () => {
                 انطباق: ۹۹.۱٪
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'مقایسه عملکرد اجرایی با برنامه‌های کوتاه‌مدت، میان‌مدت و تعهدات کارفرما' : 'Actual mining execution vs. short/medium term targets'}
-            </p>
           </div>
         </div>
 

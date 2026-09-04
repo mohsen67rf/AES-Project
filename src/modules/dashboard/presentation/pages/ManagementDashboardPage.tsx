@@ -137,12 +137,6 @@ export const ManagementDashboardPage: React.FC = () => {
                   {isRtl ? 'سامانه تصمیم‌گیری هوشمند معدن' : 'Smart Decision Support'}
                 </span>
               </div>
-              <p className="text-xs md:text-sm text-slate-400 mt-1 font-medium">
-                {isRtl 
-                  ? 'مرکز مانیتورینگ شاخص‌های کلیدی عملکرد (KPI)، موجودی دپوها، لیتولوژی استخراج، نسبت باطله‌برداری و هزینه‌های تمام‌شده' 
-                  : 'Executive decision cockpit for stockpile balances, lithology extraction, stripping ratios & unit costs.'
-                }
-              </p>
             </div>
 
             {/* Quick Link back to Standard Overview */}

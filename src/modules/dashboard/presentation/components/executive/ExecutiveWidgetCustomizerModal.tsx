@@ -133,9 +133,6 @@ export const ExecutiveWidgetCustomizerModal: React.FC<ExecutiveWidgetCustomizerM
                   {activeCount} از {totalCount} فعال
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {isRtl ? 'ویجت‌های مدیریتی مورد نیاز برای تصمیم‌گیری را فعال یا غیرفعال کنید' : 'Show or hide key performance widgets for your executive mining overview'}
-              </p>
             </div>
           </div>
 
@@ -155,9 +152,6 @@ export const ExecutiveWidgetCustomizerModal: React.FC<ExecutiveWidgetCustomizerM
               <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                 <SparklesIcon className="w-4 h-4 text-amber-400" />
                 {isRtl ? 'پروفایل‌های آماده و سناریوهای مدیریتی:' : 'Management Preset Profiles:'}
-              </span>
-              <span className="text-[11px] text-slate-400">
-                {isRtl ? 'اعمال فوری چیدمان تخصصی تنها با یک کلیک' : 'One-click preset layouts'}
               </span>
             </div>
 

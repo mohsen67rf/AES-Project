@@ -63,9 +63,6 @@ export const ExecutiveCrusherFeedGradeWidget: React.FC = () => {
                 {isRtl ? 'عیار آهن: ۵۸.۷٪ Fe' : '58.7% Fe Feed'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'پایش لحظه‌ای عیار خوراک، نرخ بازیابی متالورژی و کنترل عناصر جریمه‌ساز' : 'Real-time feed grade, recovery % and penalty elements'}
-            </p>
           </div>
         </div>
 

@@ -50,9 +50,6 @@ export const ExecutiveDrillBlastBrokenOreWidget: React.FC = () => {
                 {totalBrokenOre.toLocaleString()} تن سنگ خردشده
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'پایش خرج ویژه آتشباری، موجودی سنگ آماده شاول در پله‌ها و متراژ حفاری' : 'Specific charge, broken blasted ore inventory & drill meters'}
-            </p>
           </div>
         </div>
 

@@ -68,9 +68,6 @@ export const ExecutiveStrippingRatioWidget: React.FC = () => {
                 SR: {currentActualSR}:1 (W:O)
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'پایش نسبت تناژ باطله به ماده معدنی و مقایسه با نسبت اقتصادی طرح نهایی پیت' : 'Waste to ore stripping ratio vs. LOM economic target'}
-            </p>
           </div>
         </div>
 

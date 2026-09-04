@@ -858,9 +858,6 @@ export function BlockManagementPage() {
             <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
               🏗️ مدیریت بلوک‌ها
             </h1>
-            <p className={`text-sm ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
-              مدیریت چرخه‌ی کامل بلوک‌ها از تعریف تا صدور مجوز
-            </p>
           </div>
           <div className="flex items-center gap-3">
             <button

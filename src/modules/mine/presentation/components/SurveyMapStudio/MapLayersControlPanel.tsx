@@ -1,7 +1,7 @@
 // src/modules/mine/presentation/components/SurveyMapStudio/MapLayersControlPanel.tsx
 
 import React, { useState, useMemo } from 'react';
-import type { MapLayer, FeatureCategory } from '../../../../../core/domain/types/survey-map.types';
+import type { MapLayer, FeatureCategory, OperationalUnitType } from '../../../../../core/domain/types/survey-map.types';
 import { useLanguage } from '../../../../../shared/context/LanguageContext';
 import {
   Square2StackIcon,
@@ -23,7 +23,11 @@ import {
   TagIcon,
   PaintBrushIcon,
   CheckCircleIcon,
-  SwatchIcon
+  SwatchIcon,
+  WrenchScrewdriverIcon,
+  GlobeAltIcon,
+  FireIcon,
+  PlusCircleIcon
 } from '@heroicons/react/24/outline';
 
 export interface DisplayOverlaySettings {
@@ -38,7 +42,7 @@ export interface DisplayOverlaySettings {
   showDroneRaster?: boolean;
 }
 
-export type LayerGroupType = 'ALL' | 'TOPOGRAPHY' | 'MINING' | 'SAFETY';
+export type LayerGroupType = 'ALL' | 'DRILLING' | 'GEOLOGY' | 'MINING' | 'TOPOGRAPHY' | 'SAFETY';
 
 interface MapLayersControlPanelProps {
   layers: MapLayer[];
@@ -62,6 +66,7 @@ interface MapLayersControlPanelProps {
     applyToFeatures?: boolean
   ) => void;
   onChangeDisplaySettings: (settings: Partial<DisplayOverlaySettings>) => void;
+  onQuickCreateUnitFeature?: (tool: 'DRILLING_BAND' | 'GEOLOGY_ROCK_BAND' | 'GEOLOGY_FAULT') => void;
   onClose?: () => void;
   isFloating?: boolean;
   className?: string;
@@ -118,12 +123,14 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
   const [customOpacity, setCustomOpacity] = useState<number>(0.85);
   const [applyToExistingFeatures, setApplyToExistingFeatures] = useState<boolean>(true);
 
-  // طبقه‌بندی لایه‌ها به ۳ گروه اصلی
+  // طبقه‌بندی لایه‌ها بر اساس واحدهای عملیاتی معدن و دسته‌بندی CAD
   const categorizedLayers = useMemo(() => {
     const topoIds = ['layer-topography', 'layer-crest', 'layer-toe', 'layer-crests', 'layer-toes', 'layer-benchmarks', 'layer-contours', 'layer-drone'];
-    const miningIds = ['layer-subblocks', 'layer-blocks', 'layer-holes', 'layer-roads', 'layer-stockpiles', 'layer-crusher'];
+    const miningIds = ['layer-subblocks', 'layer-blocks', 'layer-roads', 'layer-stockpiles', 'layer-crusher'];
     const safetyIds = ['layer-hazards', 'layer-annotations', 'layer-safety', 'layer-cracks'];
 
+    const drilling: MapLayer[] = [];
+    const geology: MapLayer[] = [];
     const topography: MapLayer[] = [];
     const mining: MapLayer[] = [];
     const safety: MapLayer[] = [];
@@ -131,26 +138,56 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
     layers.forEach(layer => {
       const cat = layer.category;
       const id = layer.id.toLowerCase();
+      const u = layer.unit;
 
+      // ۱. واحد حفاری و چال‌زنی
       if (
+        u === 'DRILLING' || 
+        cat === 'DRILLING_BAND' || 
+        cat === 'DRILL_HOLE' || 
+        id.includes('drill') || 
+        id.includes('hole')
+      ) {
+        drilling.push(layer);
+      }
+      // ۲. واحد زمین‌شناسی و لیتولوژی
+      else if (
+        u === 'GEOLOGY' || 
+        cat === 'GEOLOGY_ROCK_BAND' || 
+        cat === 'GEOLOGY_FAULT' || 
+        id.includes('geology') || 
+        id.includes('lithology') || 
+        id.includes('rock') || 
+        id.includes('fault')
+      ) {
+        geology.push(layer);
+      }
+      // ۳. واحد نقشه‌برداری و ژئودزی (توپوگرافی، پله‌ها و بنچ‌مارک‌ها)
+      else if (
+        u === 'SURVEY' || 
         cat === 'SURVEY_BENCHMARK' || 
         cat === 'BENCH_CREST' || 
         cat === 'BENCH_TOE' || 
         topoIds.some(t => id.includes(t.replace('layer-', '')))
       ) {
         topography.push(layer);
-      } else if (
+      }
+      // ۴. واحد ایمنی و ژئوتکنیک
+      else if (
+        u === 'SAFETY' || 
         cat === 'HAZARD_CRACK' || 
         cat === 'ANNOTATION' || 
         safetyIds.some(s => id.includes(s.replace('layer-', '')))
       ) {
         safety.push(layer);
-      } else {
+      }
+      // ۵. واحد استخراج و فنی معدن
+      else {
         mining.push(layer);
       }
     });
 
-    return { topography, mining, safety };
+    return { drilling, geology, mining, topography, safety };
   }, [layers]);
 
   // فیلتر لایه‌ها با جستجو و تب
@@ -163,6 +200,8 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
     );
   };
 
+  const visibleDrilling = useMemo(() => filterList(categorizedLayers.drilling), [categorizedLayers.drilling, searchQuery]);
+  const visibleGeology = useMemo(() => filterList(categorizedLayers.geology), [categorizedLayers.geology, searchQuery]);
   const visibleTopography = useMemo(() => filterList(categorizedLayers.topography), [categorizedLayers.topography, searchQuery]);
   const visibleMining = useMemo(() => filterList(categorizedLayers.mining), [categorizedLayers.mining, searchQuery]);
   const visibleSafety = useMemo(() => filterList(categorizedLayers.safety), [categorizedLayers.safety, searchQuery]);
@@ -234,28 +273,43 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
   };
 
   // پیش‌تنظیم‌های سریع (Presets)
-  const applyPreset = (preset: 'ALL_ON' | 'ALL_OFF' | 'ONLY_TOPO' | 'ONLY_MINING' | 'ONLY_SAFETY' | 'HIDE_LINE_LABELS') => {
+  const applyPreset = (preset: 'ALL_ON' | 'ALL_OFF' | 'ONLY_DRILLING' | 'ONLY_GEOLOGY' | 'ONLY_TOPO' | 'ONLY_MINING' | 'ONLY_SAFETY' | 'HIDE_LINE_LABELS') => {
     if (preset === 'ALL_ON') {
       onBatchToggleLayers(layers.map(l => l.id), true);
       onChangeDisplaySettings({ showContourLines: true, showCadGrid: true, showLabels: true });
     } else if (preset === 'ALL_OFF') {
       onBatchToggleLayers(layers.map(l => l.id), false);
+    } else if (preset === 'ONLY_DRILLING') {
+      const drillIds = categorizedLayers.drilling.map(l => l.id);
+      const otherIds = layers.filter(l => !drillIds.includes(l.id)).map(l => l.id);
+      onBatchToggleLayers(drillIds, true);
+      onBatchToggleLayers(otherIds, false);
+      setActiveTab('DRILLING');
+    } else if (preset === 'ONLY_GEOLOGY') {
+      const geoIds = categorizedLayers.geology.map(l => l.id);
+      const otherIds = layers.filter(l => !geoIds.includes(l.id)).map(l => l.id);
+      onBatchToggleLayers(geoIds, true);
+      onBatchToggleLayers(otherIds, false);
+      setActiveTab('GEOLOGY');
     } else if (preset === 'ONLY_TOPO') {
       const topoIds = categorizedLayers.topography.map(l => l.id);
-      const otherIds = [...categorizedLayers.mining, ...categorizedLayers.safety].map(l => l.id);
+      const otherIds = layers.filter(l => !topoIds.includes(l.id)).map(l => l.id);
       onBatchToggleLayers(topoIds, true);
       onBatchToggleLayers(otherIds, false);
       onChangeDisplaySettings({ showContourLines: true, showCadGrid: true });
+      setActiveTab('TOPOGRAPHY');
     } else if (preset === 'ONLY_MINING') {
       const miningIds = categorizedLayers.mining.map(l => l.id);
-      const otherIds = [...categorizedLayers.topography, ...categorizedLayers.safety].map(l => l.id);
+      const otherIds = layers.filter(l => !miningIds.includes(l.id)).map(l => l.id);
       onBatchToggleLayers(miningIds, true);
       onBatchToggleLayers(otherIds, false);
+      setActiveTab('MINING');
     } else if (preset === 'ONLY_SAFETY') {
       const safetyIds = categorizedLayers.safety.map(l => l.id);
-      const otherIds = [...categorizedLayers.topography, ...categorizedLayers.mining].map(l => l.id);
+      const otherIds = layers.filter(l => !safetyIds.includes(l.id)).map(l => l.id);
       onBatchToggleLayers(safetyIds, true);
       onBatchToggleLayers(otherIds, false);
+      setActiveTab('SAFETY');
     } else if (preset === 'HIDE_LINE_LABELS') {
       // خاموش کردن برچسب تمامی خطوط و باندهای پله
       onChangeDisplaySettings({ showLineLabels: false });
@@ -431,22 +485,23 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
     );
   };
 
-  // رندر هدر هر گروه با دکمه دسته‌جمعی
+  // رندر هدر هر گروه با دکمه دسته‌جمعی و اکشن‌های سریع اختصاصی واحد
   const renderGroupSection = (
     title: string,
     icon: React.ReactNode,
     colorClass: string,
     list: MapLayer[],
-    groupKey: string
+    groupKey: string,
+    extraActions?: React.ReactNode
   ) => {
-    if (list.length === 0) return null;
+    if (list.length === 0 && !extraActions) return null;
     const isCollapsed = !!collapsedGroups[groupKey];
     const groupActiveCount = list.filter(l => l.isVisible).length;
-    const isAllActive = groupActiveCount === list.length;
+    const isAllActive = list.length > 0 && groupActiveCount === list.length;
 
     return (
-      <div className="space-y-2 mb-3">
-        <div className="flex items-center justify-between px-1.5 py-1">
+      <div className="space-y-2 mb-3 bg-slate-900/40 rounded-2xl p-2 border border-slate-800/80">
+        <div className="flex items-center justify-between px-1 py-0.5">
           <button
             type="button"
             onClick={() => toggleGroupCollapse(groupKey)}
@@ -468,23 +523,32 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
 
           {/* سوییچ گروهی کل دسته */}
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleToggleGroup(list, !isAllActive)}
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all ${
-                isAllActive
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30'
-                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-              }`}
-            >
-              {isAllActive ? (isRtl ? 'خاموش همه' : 'Hide All') : (isRtl ? 'روشن همه' : 'Show All')}
-            </button>
+            {list.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleToggleGroup(list, !isAllActive)}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all ${
+                  isAllActive
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                }`}
+              >
+                {isAllActive ? (isRtl ? 'خاموش همه' : 'Hide All') : (isRtl ? 'روشن همه' : 'Show All')}
+              </button>
+            )}
           </div>
         </div>
 
+        {/* دکمه‌های اکشن سریع واحد */}
+        {extraActions && (
+          <div className="px-1 py-1.5 flex items-center gap-1.5 flex-wrap border-t border-slate-800/60 mt-1">
+            {extraActions}
+          </div>
+        )}
+
         {/* لیست لایه‌ها */}
         {!isCollapsed && (
-          <div className="space-y-1.5 pr-0.5">
+          <div className="space-y-1.5 pr-0.5 mt-1">
             {list.map(layer => renderLayerItem(layer))}
           </div>
         )}
@@ -742,49 +806,147 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
           )}
         </div>
 
-        {/* تب‌های دسته‌ای */}
-        <div className="grid grid-cols-4 gap-1 p-0.5 rounded-xl bg-slate-900 border border-slate-800/80 text-[11px] font-bold">
+        {/* تب‌های واحدهای سازمانی و تخصصی */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800/80 text-[10px] font-bold">
           <button
             onClick={() => setActiveTab('ALL')}
-            className={`py-1 rounded-lg transition-all text-center ${
+            className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1 ${
               activeTab === 'ALL' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
-            {isRtl ? 'همه' : 'All'}
+            <span>{isRtl ? 'همه لایه‌ها' : 'All'}</span>
           </button>
+
           <button
-            onClick={() => setActiveTab('TOPOGRAPHY')}
-            className={`py-1 rounded-lg transition-all text-center ${
-              activeTab === 'TOPOGRAPHY' ? 'bg-sky-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+            onClick={() => setActiveTab('DRILLING')}
+            className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1 ${
+              activeTab === 'DRILLING' ? 'bg-amber-500 text-slate-950 shadow-sm font-black' : 'text-amber-400/80 hover:text-amber-300'
             }`}
+            title={isRtl ? 'لایه‌های واحد حفاری و چال‌زنی' : 'Drilling Unit Layers'}
           >
-            {isRtl ? 'تراز/پله' : 'Topo'}
+            <WrenchScrewdriverIcon className="w-3 h-3" />
+            <span>{isRtl ? 'حفاری' : 'Drilling'}</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('GEOLOGY')}
+            className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1 ${
+              activeTab === 'GEOLOGY' ? 'bg-purple-500 text-white shadow-sm font-black' : 'text-purple-400/80 hover:text-purple-300'
+            }`}
+            title={isRtl ? 'لایه‌های واحد زمین‌شناسی، سنگ و گسل' : 'Geology Unit Layers'}
+          >
+            <GlobeAltIcon className="w-3 h-3" />
+            <span>{isRtl ? 'زمین‌شناسی' : 'Geology'}</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('MINING')}
-            className={`py-1 rounded-lg transition-all text-center ${
-              activeTab === 'MINING' ? 'bg-emerald-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+            className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1 ${
+              activeTab === 'MINING' ? 'bg-emerald-500 text-slate-950 shadow-sm font-black' : 'text-emerald-400/80 hover:text-emerald-300'
             }`}
+            title={isRtl ? 'لایه‌های واحد استخراج و ساب‌بلوک‌ها' : 'Mining Unit Layers'}
           >
-            {isRtl ? 'استخراج' : 'Mining'}
+            <TruckIcon className="w-3 h-3" />
+            <span>{isRtl ? 'استخراج' : 'Mining'}</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('TOPOGRAPHY')}
+            className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1 ${
+              activeTab === 'TOPOGRAPHY' ? 'bg-sky-500 text-slate-950 shadow-sm font-black' : 'text-sky-400/80 hover:text-sky-300'
+            }`}
+            title={isRtl ? 'لایه‌های نقشه‌برداری، پله‌ها و بنچ‌مارک' : 'Survey Unit Layers'}
+          >
+            <MapPinIcon className="w-3 h-3" />
+            <span>{isRtl ? 'نقشه‌برداری' : 'Survey'}</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('SAFETY')}
-            className={`py-1 rounded-lg transition-all text-center ${
-              activeTab === 'SAFETY' ? 'bg-rose-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+            className={`py-1.5 px-1 rounded-lg transition-all text-center flex items-center justify-center gap-1 ${
+              activeTab === 'SAFETY' ? 'bg-rose-500 text-slate-950 shadow-sm font-black' : 'text-rose-400/80 hover:text-rose-300'
             }`}
+            title={isRtl ? 'لایه‌های واحد ایمنی و ژئوتکنیک' : 'Safety Unit Layers'}
           >
-            {isRtl ? 'ایمنی' : 'Safety'}
+            <ShieldExclamationIcon className="w-3 h-3" />
+            <span>{isRtl ? 'ایمنی' : 'Safety'}</span>
           </button>
         </div>
       </div>
 
       {/* بدنه اسکرول‌خور لایه‌ها */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-        {/* ۱. لایه‌های توپوگرافی و ترازها (Crest, Toe, Topography, Benchmarks) */}
+        
+        {/* ۱. لایه‌های واحد حفاری و چال‌زنی (Drilling Unit) */}
+        {(activeTab === 'ALL' || activeTab === 'DRILLING') && (
+          renderGroupSection(
+            isRtl ? 'واحد حفاری و چال‌زنی (باندهای حفاری و چال‌ها)' : 'Drilling Unit Layers',
+            <WrenchScrewdriverIcon className="w-3.5 h-3.5" />,
+            'bg-amber-600',
+            visibleDrilling,
+            'drilling',
+            onQuickCreateUnitFeature ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onQuickCreateUnitFeature('DRILLING_BAND')}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all"
+                  title={isRtl ? 'ترسیم چندضلعی باند حفاری جدید در نقشه' : 'Draw Drilling Band'}
+                >
+                  <PlusCircleIcon className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{isRtl ? '+ ترسیم باند حفاری' : '+ Drilling Band'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onQuickCreateUnitFeature('DRILLING_BAND')}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-medium transition-all"
+                  title={isRtl ? 'ثبت و پیاده‌سازی موقعیت چال‌های آتشباری' : 'Blast Hole Positions'}
+                >
+                  <FireIcon className="w-3.5 h-3.5 text-orange-400" />
+                  <span>{isRtl ? 'موقعیت چال‌ها' : 'Blast Holes'}</span>
+                </button>
+              </>
+            ) : null
+          )
+        )}
+
+        {/* ۲. لایه‌های واحد زمین‌شناسی و لیتولوژی (Geology Unit) */}
+        {(activeTab === 'ALL' || activeTab === 'GEOLOGY') && (
+          renderGroupSection(
+            isRtl ? 'واحد زمین‌شناسی (جنس سنگ، لیتولوژی و گسل‌ها)' : 'Geology Unit Layers',
+            <GlobeAltIcon className="w-3.5 h-3.5" />,
+            'bg-purple-600',
+            visibleGeology,
+            'geology',
+            onQuickCreateUnitFeature ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onQuickCreateUnitFeature('GEOLOGY_ROCK_BAND')}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-[11px] font-bold transition-all"
+                  title={isRtl ? 'ترسیم زون جنس سنگ و تفکیک لیتولوژی' : 'Draw Rock Type Band'}
+                >
+                  <PlusCircleIcon className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{isRtl ? '+ ترسیم باند جنس سنگ' : '+ Rock Type Band'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onQuickCreateUnitFeature('GEOLOGY_FAULT')}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-bold transition-all"
+                  title={isRtl ? 'برداشت و ترسیم خطوط گسل و درزه معدن' : 'Draw Fault Line'}
+                >
+                  <PlusCircleIcon className="w-3.5 h-3.5 text-rose-400" />
+                  <span>{isRtl ? '+ برداشت خط گسل' : '+ Fault Line'}</span>
+                </button>
+              </>
+            ) : null
+          )
+        )}
+
+        {/* ۳. لایه‌های واحد نقشه‌برداری و ژئودزی (Survey & Topography) */}
         {(activeTab === 'ALL' || activeTab === 'TOPOGRAPHY') && (
           renderGroupSection(
-            isRtl ? 'لایه‌های توپوگرافی و خطوط شکست (Crest/Toe)' : 'Topography & Bench Lines',
+            isRtl ? 'واحد نقشه‌برداری (توپوگرافی، خطوط شکست پله و بنچ‌مارک)' : 'Survey & Topography',
             <MapPinIcon className="w-3.5 h-3.5" />,
             'bg-sky-600',
             visibleTopography,
@@ -792,10 +954,10 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
           )
         )}
 
-        {/* ۲. عوارض و عملیات استخراج معدن */}
+        {/* ۴. لایه‌های واحد استخراج و فنی معدن (Mining Operations) */}
         {(activeTab === 'ALL' || activeTab === 'MINING') && (
           renderGroupSection(
-            isRtl ? 'ساب‌بلوک‌ها و عملیات استخراج معدن' : 'Sub-Blocks & Mining Operations',
+            isRtl ? 'واحد استخراج (ساب‌بلوک‌ها، رمپ‌ها و دپوها)' : 'Mining Operations',
             <TruckIcon className="w-3.5 h-3.5" />,
             'bg-emerald-600',
             visibleMining,
@@ -803,10 +965,10 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
           )
         )}
 
-        {/* ۳. حریم‌های ایمنی، درزه‌ها و ژئوتکنیک */}
+        {/* ۵. لایه‌های واحد ایمنی، پایش و ژئوتکنیک (Safety & Geotechnical) */}
         {(activeTab === 'ALL' || activeTab === 'SAFETY') && (
           renderGroupSection(
-            isRtl ? 'حریم‌های ایمنی و پایش ژئوتکنیک' : 'Safety & Geotechnical Hazards',
+            isRtl ? 'واحد ایمنی (حریم‌های خطر، ترک‌های دیواره و پایش)' : 'Safety & Geotechnical',
             <ShieldExclamationIcon className="w-3.5 h-3.5" />,
             'bg-rose-600',
             visibleSafety,
@@ -815,7 +977,7 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
         )}
 
         {/* پیام در صورت نیافتن لایه در جستجو */}
-        {visibleTopography.length === 0 && visibleMining.length === 0 && visibleSafety.length === 0 && (
+        {visibleDrilling.length === 0 && visibleGeology.length === 0 && visibleTopography.length === 0 && visibleMining.length === 0 && visibleSafety.length === 0 && (
           <div className="py-8 text-center text-slate-500 text-xs">
             {isRtl ? 'لایه‌ای با این مشخصات یافت نشد.' : 'No layers matched your search.'}
           </div>

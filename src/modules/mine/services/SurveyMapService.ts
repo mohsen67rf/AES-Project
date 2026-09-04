@@ -10,7 +10,8 @@ import type {
   MapLayer, 
   MapRevisionLog, 
   MapCategory, 
-  MapFormat
+  MapFormat,
+  OperationalUnitType
 } from '../../../core/domain/types/survey-map.types';
 import type { StakeholderRole } from '../../../core/domain/types/mine.types';
 
@@ -75,15 +76,27 @@ export class SurveyMapService {
     userName: string
   ): SurveyMap {
     const defaultLayers: MapLayer[] = data.layers || [
-      { id: 'layer-crest', mapId: '', name: 'لبه بالای پله (Crest Lines)', category: 'BENCH_CREST', color: '#00D4FF', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
-      { id: 'layer-toe', mapId: '', name: 'پای پله و کف تراز (Toe Lines)', category: 'BENCH_TOE', color: '#38BDF8', strokeWidth: 2, strokeDash: 'dashed', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
-      { id: 'layer-topography', mapId: '', name: 'منحنی‌های میزان و توپوگرافی', category: 'GENERAL', color: '#67E8F9', strokeWidth: 1.5, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0 },
-      { id: 'layer-subblocks', mapId: '', name: 'ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)', category: 'SUB_BLOCK', color: '#10B981', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 0 },
-      { id: 'layer-holes', mapId: '', name: 'شبکه چال‌پاشی و انفجار', category: 'BLAST_HOLE', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
-      { id: 'layer-roads', mapId: '', name: 'رمپ‌ها و شبکه راه‌های حمل', category: 'HAUL_ROAD', color: '#60A5FA', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
-      { id: 'layer-benchmarks', mapId: '', name: 'بنچ‌مارک‌ها و نقاط ژئودزی', category: 'SURVEY_BENCHMARK', color: '#EC4899', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
-      { id: 'layer-hazards', mapId: '', name: 'حریم‌های ایمنی و درزه‌ها', category: 'HAZARD_CRACK', color: '#EF4444', strokeWidth: 2, strokeDash: 'dotted', showLabels: false, isVisible: true, isLocked: false, opacity: 0.7, featureCount: 0 },
-      { id: 'layer-annotations', mapId: '', name: 'یادداشت‌ها و برچسب‌های مهندسی', category: 'ANNOTATION', color: '#FBBF24', strokeWidth: 1, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
+      // ۱. واحد نقشه‌برداری و ژئودزی
+      { id: 'layer-crest', mapId: '', name: 'لبه بالای پله (Crest Lines)', category: 'BENCH_CREST', unit: 'SURVEY', color: '#00D4FF', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'لبه بالای پله استخراجی' },
+      { id: 'layer-toe', mapId: '', name: 'پای پله و کف تراز (Toe Lines)', category: 'BENCH_TOE', unit: 'SURVEY', color: '#38BDF8', strokeWidth: 2, strokeDash: 'dashed', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'پای پله و کف تراز پیت' },
+      { id: 'layer-topography', mapId: '', name: 'منحنی‌های میزان و توپوگرافی', category: 'GENERAL', unit: 'SURVEY', color: '#67E8F9', strokeWidth: 1.5, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0, description: 'منحنی‌های کانتور و تراز' },
+      { id: 'layer-benchmarks', mapId: '', name: 'بنچ‌مارک‌ها و نقاط ژئودزی', category: 'SURVEY_BENCHMARK', unit: 'SURVEY', color: '#EC4899', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'نقاط مبنا و بنچ‌مارک‌های GPS' },
+
+      // ۲. واحد حفاری و آتشباری
+      { id: 'layer-drilling-bands', mapId: '', name: 'باندهای حفاری پله (واحد حفاری)', category: 'DRILLING_BAND', unit: 'DRILLING', color: '#F97316', strokeWidth: 2.5, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 0, description: 'محدوده و باندهای حفاری تعریف‌شده توسط واحد حفاری' },
+      { id: 'layer-holes', mapId: '', name: 'موقعیت چال‌های حفاری و انفجار (واحد حفاری)', category: 'BLAST_HOLE', unit: 'DRILLING', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'شبکه چال‌پاشی و موقعیت سرچال‌ها' },
+
+      // ۳. واحد زمین‌شناسی و مدلسازی کانسار
+      { id: 'layer-geology-rock', mapId: '', name: 'باندهای جنس سنگ و کانسنگ (واحد زمین‌شناسی)', category: 'GEOLOGY_ROCK_BAND', unit: 'GEOLOGY', color: '#8B5CF6', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.75, featureCount: 0, description: 'تفکیک باندهای لیتولوژی و جنس سنگ‌های معدن' },
+      { id: 'layer-geology-faults', mapId: '', name: 'موقعیت گسل‌ها و درزه‌های ساختاری (واحد زمین‌شناسی)', category: 'GEOLOGY_FAULT', unit: 'GEOLOGY', color: '#DC2626', strokeWidth: 3, strokeDash: 'dashdot', showLabels: true, isVisible: true, isLocked: false, opacity: 0.95, featureCount: 0, description: 'گسل‌های اصلی و شکستگی‌های تکتونیکی معدن' },
+
+      // ۴. واحد استخراج و دفتر فنی
+      { id: 'layer-subblocks', mapId: '', name: 'ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)', category: 'SUB_BLOCK', unit: 'MINING', color: '#10B981', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 0, description: 'تفکیک ساب‌بلوک‌ها بر اساس عیار و مقصد' },
+      { id: 'layer-roads', mapId: '', name: 'رمپ‌ها و شبکه راه‌های حمل', category: 'HAUL_ROAD', unit: 'MINING', color: '#60A5FA', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'شبکه ترابری و رمپ‌های دسترسی' },
+
+      // ۵. واحد ایمنی و ژئوتکنیک
+      { id: 'layer-hazards', mapId: '', name: 'حریم‌های ایمنی و درزه‌ها (واحد ژئوتکنیک)', category: 'HAZARD_CRACK', unit: 'SAFETY', color: '#EF4444', strokeWidth: 2, strokeDash: 'dotted', showLabels: false, isVisible: true, isLocked: false, opacity: 0.7, featureCount: 0, description: 'حریم‌های ایمنی، درزه‌داری و دیواره ناپایدار' },
+      { id: 'layer-annotations', mapId: '', name: 'یادداشت‌ها و برچسب‌های مهندسی', category: 'ANNOTATION', unit: 'ALL', color: '#FBBF24', strokeWidth: 1, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'یادداشت‌های متنی روی نقشه' },
     ];
 
     const mapId = `map-${Date.now()}`;
@@ -172,25 +185,45 @@ export class SurveyMapService {
     userRole: StakeholderRole,
     userName: string
   ): MapFeature | null {
-    const map = this.getMapById(mapId);
+    const map = this.getMapById(mapId) || this.getAllMaps()[0];
     if (!map) return null;
 
     const featureId = `feat-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const newFeature: MapFeature = {
       ...feature,
       id: featureId,
-      mapId,
+      mapId: map.id,
       createdAt: new Date().toISOString(),
       createdBy: userName,
       createdRole: userRole
     };
 
+    if (!map.features) map.features = [];
     map.features.push(newFeature);
 
-    // به‌روزرسانی شمارنده لایه
+    // به‌روزرسانی یا ایجاد خودکار لایه و فعال‌سازی قطعی نمایش آن
+    if (!map.layers) map.layers = [];
     const targetLayer = map.layers.find(l => l.id === feature.layerId);
     if (targetLayer) {
       targetLayer.featureCount = (targetLayer.featureCount || 0) + 1;
+      targetLayer.isVisible = true; // اطمینان از مرئی بودن لایه جهت نمایش بی‌درنگ عارضه ترسیم‌شده
+    } else if (feature.layerId) {
+      map.layers.push({
+        id: feature.layerId,
+        mapId: map.id,
+        name: feature.name || 'لایه مهندسی',
+        category: (feature.category as any) || 'SUB_BLOCK',
+        unit: (feature.unit as any) || 'MINING',
+        color: feature.style?.strokeColor || '#10B981',
+        strokeWidth: 2,
+        strokeDash: 'solid',
+        showLabels: true,
+        isVisible: true,
+        isLocked: false,
+        opacity: 0.85,
+        featureCount: 1,
+        description: 'لایه مهندسی معدن'
+      });
     }
 
     // ثبت لاگ ممیزی
@@ -249,6 +282,30 @@ export class SurveyMapService {
       }
       return l;
     });
+
+    map.updatedAt = new Date().toISOString();
+    SurveyMapRepository.save(map);
+    return true;
+  }
+
+  /**
+   * روشن یا خاموش کردن یکپارچه تمام لایه‌های مربوط به یک واحد سازمانی
+   * (مانند واحد حفاری، زمین‌شناسی، نقشه‌برداری، استخراج، ایمنی)
+   */
+  public static setUnitLayersVisibility(mapId: string, unit: OperationalUnitType, visible: boolean): boolean {
+    const map = this.getMapById(mapId);
+    if (!map) return false;
+
+    if (unit === 'ALL') {
+      map.layers = map.layers.map(l => ({ ...l, isVisible: visible }));
+    } else {
+      map.layers = map.layers.map(l => {
+        if (l.unit === unit) {
+          return { ...l, isVisible: visible };
+        }
+        return l;
+      });
+    }
 
     map.updatedAt = new Date().toISOString();
     SurveyMapRepository.save(map);
@@ -699,11 +756,32 @@ export class SurveyMapService {
     );
   }
 
+  private static isInitialized = false;
+
   /**
    * بارگذاری نقشه‌های استاندارد و پیش‌فرض معدن در صورت خالی بودن ریپازیتوری
+   * و همچنین ارتقای خودکار نقشه‌های ذخیره‌شده قبلی به لایه‌ها و عوارض واحدهای عملیاتی
    */
   private static ensureInitialized() {
-    if (SurveyMapRepository.count() > 0) return;
+    if (this.isInitialized) return;
+    this.isInitialized = true;
+    const existingMap1 = SurveyMapRepository.getById('map-default-1040');
+    const existingMap2 = SurveyMapRepository.getById('map-default-blast-32');
+
+    if (existingMap1 && existingMap2) {
+      const hasDrillLayer = existingMap1.layers?.some(l => l.id === 'layer-drilling-bands');
+      const hasGeoLayer = existingMap1.layers?.some(l => l.id === 'layer-geology-rock');
+      const hasFaultLayer = existingMap1.layers?.some(l => l.id === 'layer-geology-faults');
+      if (hasDrillLayer && hasGeoLayer && hasFaultLayer) {
+        return;
+      }
+    } else if (SurveyMapRepository.count() > 0 && existingMap1) {
+      const hasDrillLayer = existingMap1.layers?.some(l => l.id === 'layer-drilling-bands');
+      const hasGeoLayer = existingMap1.layers?.some(l => l.id === 'layer-geology-rock');
+      if (hasDrillLayer && hasGeoLayer) {
+        return;
+      }
+    }
 
     // ۱. نقشه پلان استخراجی و تفکیک ساب‌بلوک‌های تراز ۱۰۴۰
     const map1Features: MapFeature[] = [
@@ -969,6 +1047,7 @@ export class SurveyMapService {
         category: 'HAZARD_CRACK',
         coordinates: [[584660, 3513050]],
         elevation: 1055,
+        unit: 'SAFETY',
         properties: {
           hazardLevel: 'HIGH',
           radiusM: 45,
@@ -983,6 +1062,261 @@ export class SurveyMapService {
         createdBy: 'واحد نظارت ژئوتکنیک',
         createdRole: 'SUPERVISION',
         createdAt: new Date().toISOString()
+      },
+      // --- عوارض واحد حفاری و آتشباری ---
+      // ۱. باند حفاری پله ۱۰۴۰
+      {
+        id: 'feat-drill-band-1040',
+        mapId: 'map-default-1040',
+        layerId: 'layer-drilling-bands',
+        name: 'باند حفاری DB-1040-East (۳۲ چال پودری)',
+        type: 'POLYGON',
+        category: 'DRILLING_BAND',
+        coordinates: [
+          [584420, 3512820],
+          [584540, 3512820],
+          [584540, 3512870],
+          [584420, 3512870]
+        ],
+        elevation: 1040,
+        unit: 'DRILLING',
+        properties: {
+          code: 'DB-1040-East',
+          unit: 'DRILLING',
+          plannedHoles: 32,
+          drilledHoles: 24,
+          benchLevel: 1040,
+          burdenM: 3.5,
+          spacingM: 4.5,
+          targetRock: 'مگنتیت پرعیار',
+          drillingRig: 'دریل واگن سندویک DX800',
+          operator: 'تیم حفاری و آتشباری',
+          notes: 'باند طراحی و پیاده‌شده توسط واحد حفاری'
+        },
+        style: {
+          strokeColor: '#F97316',
+          fillColor: '#F97316',
+          fillOpacity: 0.18,
+          strokeWidth: 2.5,
+          strokeDash: 'dashed'
+        },
+        createdBy: 'سرپرست واحد حفاری و آتشباری',
+        createdRole: 'MINING_CONTRACTOR',
+        createdAt: new Date().toISOString()
+      },
+      // ۲. شبکه چال‌های حفر شده در باند حفاری
+      ...Array.from({ length: 16 }, (_, idx) => {
+        const row = Math.floor(idx / 8);
+        const col = idx % 8;
+        return {
+          id: `feat-hole-1040-${idx + 1}`,
+          mapId: 'map-default-1040',
+          layerId: 'layer-holes',
+          name: `چال حفاری BH-${idx + 1}`,
+          type: 'POINT' as const,
+          category: 'BLAST_HOLE' as const,
+          coordinates: [[584432 + col * 13.5, 3512832 + row * 24]],
+          elevation: 1040,
+          unit: 'DRILLING' as const,
+          properties: {
+            code: `BH-${idx + 1}`,
+            unit: 'DRILLING',
+            depthM: 12.5,
+            subDrillM: 1.5,
+            diameterMm: 165,
+            status: idx < 11 ? 'DRILLED' : 'PLANNED',
+            drillDate: idx < 11 ? '1403/06/18' : undefined,
+            notes: idx < 11 ? 'حفاری شده و آماده خرج‌گذاری' : 'در انتظار دریل'
+          },
+          style: {
+            strokeColor: idx < 11 ? '#10B981' : '#F59E0B',
+            fillColor: idx < 11 ? '#10B981' : '#F59E0B',
+            pointRadius: 4.5
+          },
+          createdBy: 'اپراتور دستگاه دریل',
+          createdRole: 'MINING_CONTRACTOR',
+          createdAt: new Date().toISOString()
+        };
+      }),
+
+      // --- عوارض واحد زمین‌شناسی و مدلسازی کانسار ---
+      // ۱. باند جنس سنگ مگنتیت پرعیار
+      {
+        id: 'feat-rock-magnetite',
+        mapId: 'map-default-1040',
+        layerId: 'layer-geology-rock',
+        name: 'باند زمین‌شناسی: کانسنگ مگنتیت پرعیار (Fe > 60%)',
+        type: 'POLYGON',
+        category: 'GEOLOGY_ROCK_BAND',
+        coordinates: [
+          [584390, 3512790],
+          [584500, 3512790],
+          [584490, 3512910],
+          [584390, 3512900]
+        ],
+        elevation: 1040,
+        unit: 'GEOLOGY',
+        properties: {
+          code: 'GEO-LITH-MAG',
+          unit: 'GEOLOGY',
+          rockType: 'مگنتیت توده‌ای پرعیار',
+          feGrade: 62.8,
+          feoGrade: 23.4,
+          sio2Grade: 4.8,
+          density: 4.6,
+          geologicalUnit: 'افق میانی کانسار مرکزی',
+          notes: 'مدل‌سازی شده توسط واحد زمین‌شناسی بر اساس لاگ پودر چال و گمانه‌های اکتشافی'
+        },
+        style: {
+          strokeColor: '#8B5CF6',
+          fillColor: '#8B5CF6',
+          fillOpacity: 0.22,
+          strokeWidth: 2,
+          strokeDash: 'solid'
+        },
+        createdBy: 'کارشناس ارشد واحد زمین‌شناسی',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+      // ۲. باند کانسنگ هماتیتی اکسیدی
+      {
+        id: 'feat-rock-hematite',
+        mapId: 'map-default-1040',
+        layerId: 'layer-geology-rock',
+        name: 'باند زمین‌شناسی: کانسنگ هماتیتی اکسیدی (Fe ~ 52%)',
+        type: 'POLYGON',
+        category: 'GEOLOGY_ROCK_BAND',
+        coordinates: [
+          [584500, 3512790],
+          [584580, 3512790],
+          [584570, 3512910],
+          [584490, 3512910]
+        ],
+        elevation: 1040,
+        unit: 'GEOLOGY',
+        properties: {
+          code: 'GEO-LITH-HEM',
+          unit: 'GEOLOGY',
+          rockType: 'هماتیت اکسیدی رگچه‌ای',
+          feGrade: 52.3,
+          feoGrade: 14.8,
+          sio2Grade: 11.2,
+          density: 4.1,
+          notes: 'زون اکسیداسیون سطحی پله'
+        },
+        style: {
+          strokeColor: '#D97706',
+          fillColor: '#D97706',
+          fillOpacity: 0.22,
+          strokeWidth: 2,
+          strokeDash: 'solid'
+        },
+        createdBy: 'کارشناس ارشد واحد زمین‌شناسی',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+      // ۳. باند اسکارن گارنت-پیریت باطله
+      {
+        id: 'feat-rock-skarn',
+        mapId: 'map-default-1040',
+        layerId: 'layer-geology-rock',
+        name: 'باند زمین‌شناسی: اسکارن باطله و آکتینولیت (Fe < 30%)',
+        type: 'POLYGON',
+        category: 'GEOLOGY_ROCK_BAND',
+        coordinates: [
+          [584390, 3512900],
+          [584570, 3512910],
+          [584580, 3512980],
+          [584390, 3512970]
+        ],
+        elevation: 1040,
+        unit: 'GEOLOGY',
+        properties: {
+          code: 'GEO-LITH-SKARN',
+          unit: 'GEOLOGY',
+          rockType: 'اسکارن گارنت-پیریت باطله',
+          feGrade: 24.1,
+          sGrade: 1.8,
+          density: 3.2,
+          destination: 'دامپ باطله غربی',
+          notes: 'زون کنتاکت اسکارنی باطله'
+        },
+        style: {
+          strokeColor: '#6B7280',
+          fillColor: '#6B7280',
+          fillOpacity: 0.22,
+          strokeWidth: 2,
+          strokeDash: 'solid'
+        },
+        createdBy: 'واحد زمین‌شناسی و مدلسازی کانسار',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+      // ۴. گسل اصلی شمال‌شرقی پیت
+      {
+        id: 'feat-fault-main-ne',
+        mapId: 'map-default-1040',
+        layerId: 'layer-geology-faults',
+        name: 'گسل اصلی شمال‌شرقی پیت (NE Major Fault F-01)',
+        type: 'POLYLINE',
+        category: 'GEOLOGY_FAULT',
+        coordinates: [
+          [584360, 3512760],
+          [584440, 3512860],
+          [584530, 3512950],
+          [584620, 3513070]
+        ],
+        elevation: 1040,
+        unit: 'GEOLOGY',
+        properties: {
+          code: 'FAULT-F01',
+          unit: 'GEOLOGY',
+          dip: 72,
+          dipDirection: 'شمال‌غرب (۳۱۵°)',
+          zoneWidthM: 3.5,
+          activity: 'غیرفعال تکتونیکی',
+          riskLevel: 'عامل ناپایداری موضعی در شیب پله',
+          notes: 'گسل اصلی پیت ترسیم‌شده توسط واحد زمین‌شناسی با شواهد برجا در دیواره'
+        },
+        style: {
+          strokeColor: '#DC2626',
+          strokeWidth: 3.5,
+          strokeDash: 'dashdot'
+        },
+        createdBy: 'واحد زمین‌شناسی و تکتونیک',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+      // ۵. انشعاب گسل فرعی ساختاری
+      {
+        id: 'feat-fault-branch-f02',
+        mapId: 'map-default-1040',
+        layerId: 'layer-geology-faults',
+        name: 'انشعاب گسل فرعی ساختاری (Branch Fault F-02)',
+        type: 'POLYLINE',
+        category: 'GEOLOGY_FAULT',
+        coordinates: [
+          [584440, 3512860],
+          [584490, 3512830],
+          [584550, 3512810]
+        ],
+        elevation: 1040,
+        unit: 'GEOLOGY',
+        properties: {
+          code: 'FAULT-F02',
+          unit: 'GEOLOGY',
+          dip: 65,
+          dipDirection: 'جنوب‌غرب (۲۱۰°)',
+          notes: 'شکستگی تنشی منشعب از گسل اصلی F-01'
+        },
+        style: {
+          strokeColor: '#B91C1C',
+          strokeWidth: 2.2,
+          strokeDash: 'dashed'
+        },
+        createdBy: 'واحد زمین‌شناسی و تکتونیک',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
       }
     ];
 
@@ -990,7 +1324,7 @@ export class SurveyMapService {
       id: 'map-default-1040',
       code: 'MAP-1040-OFFICIAL',
       title: 'پلان تفکیک ساب‌بلوک‌ها و عوارض تراز ۱۰۴۰ پیت مرکزی',
-      description: 'نقشه رسمی نقشه‌برداری فتوگرامتری با تفکیک ساب‌های SA, SB, SC, SD و خطوط شکست پله',
+      description: 'نقشه رسمی نقشه‌برداری فتوگرامتری با تفکیک ساب‌های SA, SB, SC, SD و لایه‌های حفاری و زمین‌شناسی',
       category: 'BENCH_PLAN',
       format: 'DXF_JSON',
       surveyDate: '1403/06/15',
@@ -1010,15 +1344,27 @@ export class SurveyMapService {
       version: 'Rev 1.2',
       status: 'APPROVED_OFFICIAL',
       layers: [
-        { id: 'layer-crest', mapId: 'map-default-1040', name: 'لبه بالای پله (Crest Lines)', category: 'BENCH_CREST', color: '#00D4FF', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1 },
-        { id: 'layer-toe', mapId: 'map-default-1040', name: 'پای پله و کف تراز (Toe Lines)', category: 'BENCH_TOE', color: '#38BDF8', strokeWidth: 2, strokeDash: 'dashed', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1 },
-        { id: 'layer-topography', mapId: 'map-default-1040', name: 'منحنی‌های میزان و توپوگرافی پیت', category: 'GENERAL', color: '#67E8F9', strokeWidth: 1.5, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0 },
-        { id: 'layer-subblocks', mapId: 'map-default-1040', name: 'ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)', category: 'SUB_BLOCK', color: '#10B981', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 4 },
-        { id: 'layer-holes', mapId: 'map-default-1040', name: 'شبکه چال‌پاشی و انفجار', category: 'BLAST_HOLE', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
-        { id: 'layer-roads', mapId: 'map-default-1040', name: 'رمپ‌ها و شبکه راه‌های حمل', category: 'HAUL_ROAD', color: '#60A5FA', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1 },
-        { id: 'layer-benchmarks', mapId: 'map-default-1040', name: 'بنچ‌مارک‌ها و نقاط ژئودزی', category: 'SURVEY_BENCHMARK', color: '#EC4899', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 1 },
-        { id: 'layer-hazards', mapId: 'map-default-1040', name: 'حریم‌های ایمنی و درزه‌ها', category: 'HAZARD_CRACK', color: '#EF4444', strokeWidth: 2, strokeDash: 'dotted', showLabels: false, isVisible: true, isLocked: false, opacity: 0.7, featureCount: 1 },
-        { id: 'layer-annotations', mapId: 'map-default-1040', name: 'یادداشت‌ها و برچسب‌های مهندسی', category: 'ANNOTATION', color: '#FBBF24', strokeWidth: 1, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0 },
+        // لایه‌های واحد نقشه‌برداری
+        { id: 'layer-crest', mapId: 'map-default-1040', name: 'لبه بالای پله (Crest Lines)', category: 'BENCH_CREST', unit: 'SURVEY', color: '#00D4FF', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'لبه بالای پله' },
+        { id: 'layer-toe', mapId: 'map-default-1040', name: 'پای پله و کف تراز (Toe Lines)', category: 'BENCH_TOE', unit: 'SURVEY', color: '#38BDF8', strokeWidth: 2, strokeDash: 'dashed', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'پای پله و کف تراز' },
+        { id: 'layer-topography', mapId: 'map-default-1040', name: 'منحنی‌های میزان و توپوگرافی پیت', category: 'GENERAL', unit: 'SURVEY', color: '#67E8F9', strokeWidth: 1.5, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0, description: 'توپوگرافی و تراز' },
+        { id: 'layer-benchmarks', mapId: 'map-default-1040', name: 'بنچ‌مارک‌ها و نقاط ژئودزی', category: 'SURVEY_BENCHMARK', unit: 'SURVEY', color: '#EC4899', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'نقاط مبنای GPS' },
+
+        // لایه‌های واحد حفاری و آتشباری
+        { id: 'layer-drilling-bands', mapId: 'map-default-1040', name: 'باندهای حفاری پله (واحد حفاری)', category: 'DRILLING_BAND', unit: 'DRILLING', color: '#F97316', strokeWidth: 2.5, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 1, description: 'باندها و محدوده‌های حفاری تعریف‌شده توسط واحد حفاری' },
+        { id: 'layer-holes', mapId: 'map-default-1040', name: 'موقعیت چال‌های حفاری و انفجار (واحد حفاری)', category: 'BLAST_HOLE', unit: 'DRILLING', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 16, description: 'موقعیت سرچال‌های حفر شده و طراحی‌شده' },
+
+        // لایه‌های واحد زمین‌شناسی و مدلسازی کانسار
+        { id: 'layer-geology-rock', mapId: 'map-default-1040', name: 'باندهای جنس سنگ و کانسنگ (واحد زمین‌شناسی)', category: 'GEOLOGY_ROCK_BAND', unit: 'GEOLOGY', color: '#8B5CF6', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 3, description: 'تفکیک باندهای لیتولوژی: مگنتیت، هماتیت و اسکارن' },
+        { id: 'layer-geology-faults', mapId: 'map-default-1040', name: 'موقعیت گسل‌ها و درزه‌های ساختاری (واحد زمین‌شناسی)', category: 'GEOLOGY_FAULT', unit: 'GEOLOGY', color: '#DC2626', strokeWidth: 3, strokeDash: 'dashdot', showLabels: true, isVisible: true, isLocked: false, opacity: 0.95, featureCount: 2, description: 'گسل‌های اصلی و شکستگی‌های تکتونیکی معدن' },
+
+        // لایه‌های واحد استخراج و دفتر فنی
+        { id: 'layer-subblocks', mapId: 'map-default-1040', name: 'ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)', category: 'SUB_BLOCK', unit: 'MINING', color: '#10B981', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 4, description: 'ساب‌بلوک‌های تفکیکی استخراجی' },
+        { id: 'layer-roads', mapId: 'map-default-1040', name: 'رمپ‌ها و شبکه راه‌های حمل', category: 'HAUL_ROAD', unit: 'MINING', color: '#60A5FA', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'رمپ اصلی خروج پیت' },
+
+        // لایه‌های واحد ایمنی و ژئوتکنیک
+        { id: 'layer-hazards', mapId: 'map-default-1040', name: 'حریم‌های ایمنی و درزه‌ها (واحد ژئوتکنیک)', category: 'HAZARD_CRACK', unit: 'SAFETY', color: '#EF4444', strokeWidth: 2, strokeDash: 'dotted', showLabels: false, isVisible: true, isLocked: false, opacity: 0.7, featureCount: 1, description: 'حریم‌های پایش دیواره' },
+        { id: 'layer-annotations', mapId: 'map-default-1040', name: 'یادداشت‌ها و برچسب‌های مهندسی', category: 'ANNOTATION', unit: 'ALL', color: '#FBBF24', strokeWidth: 1, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'یادداشت‌های متنی روی نقشه' },
       ],
       features: map1Features,
       approvedBy: 'مدیریت کارفرما (مهندس حسینی)',
@@ -1169,8 +1515,36 @@ export class SurveyMapService {
       updatedAt: new Date().toISOString()
     };
 
-    SurveyMapRepository.save(defaultMap1);
-    SurveyMapRepository.save(defaultMap2);
-    console.log('✅ نقشه‌های استاندارد مهندسی معدن مقداردهی اولیه شدند');
+    if (!existingMap1) {
+      SurveyMapRepository.save(defaultMap1);
+    } else {
+      // ادغام ایمن لایه‌های جدید بدون دستکاری و حذف عوارض ترسیم‌شده توسط کاربر
+      let map1Changed = false;
+      defaultMap1.layers.forEach(defLayer => {
+        if (!existingMap1.layers.some(l => l.id === defLayer.id)) {
+          existingMap1.layers.push(defLayer);
+          map1Changed = true;
+        }
+      });
+      if (map1Changed) {
+        SurveyMapRepository.save(existingMap1);
+      }
+    }
+
+    if (!existingMap2) {
+      SurveyMapRepository.save(defaultMap2);
+    } else {
+      let map2Changed = false;
+      defaultMap2.layers.forEach(defLayer => {
+        if (!existingMap2.layers.some(l => l.id === defLayer.id)) {
+          existingMap2.layers.push(defLayer);
+          map2Changed = true;
+        }
+      });
+      if (map2Changed) {
+        SurveyMapRepository.save(existingMap2);
+      }
+    }
+    console.log('✅ وضعیت نقشه‌های استاندارد و لایه‌های مهندسی معدن تأیید گردید');
   }
 }

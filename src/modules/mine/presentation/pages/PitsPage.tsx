@@ -32,7 +32,6 @@ export const PitsPage: React.FC = () => {
             </button>
             <div>
               <h1 className="text-xl font-black">پیت‌ها و جبهه‌کارهای معدنی {mine?.name || ''}</h1>
-              <p className="text-xs text-[#8A9DB0]">وضعیت زون‌های استخراجی، تراز پله‌ها و رمپ‌های دسترسی</p>
             </div>
           </div>
         </div>

@@ -18,20 +18,55 @@ import {
   EyeIcon,
   EyeSlashIcon,
   SwatchIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  ArrowUturnLeftIcon,
+  ArrowUturnRightIcon,
+  CheckIcon,
+  XMarkIcon,
+  CheckCircleIcon,
+  QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline';
 
 export type ActiveToolType = 
   | 'SELECT' 
+  | 'INSPECT'
   | 'PAN' 
   | 'POLYGON' 
   | 'POLYLINE' 
   | 'POINT' 
+  | 'DRILLING_BAND'
+  | 'GEOLOGY_ROCK_BAND'
+  | 'GEOLOGY_FAULT'
   | 'MEASURE' 
   | 'ANNOTATION';
 
 export type CadRenderMode = 'SHADED' | 'WIREFRAME' | 'TRANSLUCENT';
 export type StrokeWeightMode = 'FINE' | 'REGULAR' | 'BOLD';
+
+// توابع هندسی با کارایی فوق‌العاده بالا جهت Hit-Testing هوشمند و انتخاب نرم در تمام زوم‌ها
+function isPointInPolygon(point: [number, number], vs: [number, number][]): boolean {
+  const x = point[0], y = point[1];
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i][0], yi = vs[i][1];
+    const xj = vs[j][0], yj = vs[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function distToSegmentSquared(p: [number, number], v: [number, number], w: [number, number]): number {
+  const l2 = (v[0] - w[0]) ** 2 + (v[1] - w[1]) ** 2;
+  if (l2 === 0) return (p[0] - v[0]) ** 2 + (p[1] - v[1]) ** 2;
+  let t = ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1]) * (w[1] - v[1])) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return (p[0] - (v[0] + t * (w[0] - v[0]))) ** 2 + (p[1] - (v[1] + t * (w[1] - v[1]))) ** 2;
+}
+
+function distToSegment(p: [number, number], v: [number, number], w: [number, number]): number {
+  return Math.sqrt(distToSegmentSquared(p, v, w));
+}
 
 interface MapCanvasEditorProps {
   map: SurveyMap;
@@ -88,12 +123,32 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
   // مراجع نگهداری وضعیت درگ و کلیک چپ ماوس جهت Pan بدون تأخیر و بدون تداخل با کلیک
   const isPointerDownRef = useRef<boolean>(false);
   const pointerStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pointerDownTimeRef = useRef<number>(0);
+  const totalDragDistanceRef = useRef<number>(0);
   const lastPanPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const hasMovedEnoughToPanRef = useRef<boolean>(false);
 
   // نقاط در حال ترسیم (برای پلی‌گان، خط یا اندازه‌گیری)
   const [drawingPoints, setDrawingPoints] = useState<[number, number][]>([]);
+  // سابقه نقاط واگرد شده جهت Redo در زمان ترسیم
+  const [drawingRedoPoints, setDrawingRedoPoints] = useState<[number, number][]>([]);
+  
+  const drawingPointsRef = useRef<[number, number][]>(drawingPoints);
+  const drawingRedoPointsRef = useRef<[number, number][]>(drawingRedoPoints);
+  drawingPointsRef.current = drawingPoints;
+  drawingRedoPointsRef.current = drawingRedoPoints;
+
+  const activeToolRef = useRef<ActiveToolType>(activeTool);
+  activeToolRef.current = activeTool;
+
+  const finalizeDrawingRef = useRef<() => void>(() => {});
+  const cancelDrawingRef = useRef<() => void>(() => {});
+  const undoDrawingPointRef = useRef<() => void>(() => {});
+  const redoDrawingPointRef = useRef<() => void>(() => {});
+
   const [measureResults, setMeasureResults] = useState<{ distance: number; area?: number } | null>(null);
+  // پنجره راهنمای میانبرهای کیبورد CAD
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
 
   // مختصات لحظه‌ای نشانگر ماوس
   const [cursorCoords, setCursorCoords] = useState<{ utmX: number; utmY: number; z: number }>({
@@ -367,13 +422,418 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
     };
   }, []);
 
-  // کلیدهای میانبر ناوبری کیبورد (+, -, 0, Space, Delete, Backspace)
+  // واگرد آخرین نقطه ثبت شده در حین ترسیم (Undo Vertex)
+  const undoDrawingPoint = useCallback(() => {
+    setDrawingPoints(prev => {
+      if (prev.length === 0) return prev;
+      const lastPoint = prev[prev.length - 1];
+      setDrawingRedoPoints(redo => [...redo, lastPoint]);
+      const nextPoints = prev.slice(0, prev.length - 1);
+      
+      if (activeTool === 'MEASURE') {
+        if (nextPoints.length >= 2) {
+          const lengthCalc = SurveyMapService.calculateLength(nextPoints);
+          const areaCalc = nextPoints.length >= 3 ? SurveyMapService.calculateArea(nextPoints) : undefined;
+          setMeasureResults({
+            distance: lengthCalc,
+            area: areaCalc?.areaM2
+          });
+        } else {
+          setMeasureResults(null);
+        }
+      }
+      return nextPoints;
+    });
+  }, [activeTool]);
+
+  // اعمال مجدد نقطه واگرد شده (Redo Vertex)
+  const redoDrawingPoint = useCallback(() => {
+    setDrawingRedoPoints(redo => {
+      if (redo.length === 0) return redo;
+      const pointToRestore = redo[redo.length - 1];
+      setDrawingPoints(prev => {
+        const nextPoints = [...prev, pointToRestore];
+        if (activeTool === 'MEASURE' && nextPoints.length >= 2) {
+          const lengthCalc = SurveyMapService.calculateLength(nextPoints);
+          const areaCalc = nextPoints.length >= 3 ? SurveyMapService.calculateArea(nextPoints) : undefined;
+          setMeasureResults({
+            distance: lengthCalc,
+            area: areaCalc?.areaM2
+          });
+        }
+        return nextPoints;
+      });
+      return redo.slice(0, redo.length - 1);
+    });
+  }, [activeTool]);
+
+  // لغو کامل ترسیم جاری (Cancel Drawing)
+  const cancelDrawing = useCallback(() => {
+    drawingPointsRef.current = [];
+    drawingRedoPointsRef.current = [];
+    setDrawingPoints([]);
+    setDrawingRedoPoints([]);
+    setMeasureResults(null);
+  }, []);
+
+  // نهایی کردن ترسیم جاری و ثبت رسمی المان (از طریق کلید Enter یا دابل‌کلیک یا دکمه HUD)
+  const finalizeDrawing = useCallback(() => {
+    const rawPoints = drawingPointsRef.current;
+    if (!rawPoints || rawPoints.length === 0) return;
+
+    // حذف نقاط تکراری مجاور (به‌ویژه ناشی از دابل‌کلیک ماوس در یک مختصات)
+    const currentPoints: [number, number][] = [];
+    for (let i = 0; i < rawPoints.length; i++) {
+      if (i === 0) {
+        currentPoints.push(rawPoints[i]);
+      } else {
+        const prev = currentPoints[currentPoints.length - 1];
+        const cur = rawPoints[i];
+        const dist = Math.hypot(cur[0] - prev[0], cur[1] - prev[1]);
+        if (dist > 0.05) {
+          currentPoints.push(cur);
+        }
+      }
+    }
+
+    const currentTool = activeToolRef.current;
+
+    // ۱. ترسیم باند حفاری واحد حفاری
+    if (currentTool === 'DRILLING_BAND') {
+      if (currentPoints.length < 3) {
+        return;
+      }
+      const areaCalc = SurveyMapService.calculateArea(currentPoints);
+      const bandCode = `DB-${map.benchLevel}-${String.fromCharCode(65 + ((map.features?.filter(f => f.category === 'DRILLING_BAND').length || 0) % 26))}`;
+      const created = SurveyMapService.addFeature(
+        map.id,
+        {
+          layerId: 'layer-drilling-bands',
+          name: `باند حفاری ${map.benchLevel} (${bandCode})`,
+          type: 'POLYGON',
+          category: 'DRILLING_BAND',
+          unit: 'DRILLING',
+          coordinates: currentPoints,
+          elevation: map.benchLevel,
+          properties: {
+            code: bandCode,
+            areaM2: areaCalc.areaM2,
+            plannedHoles: Math.round(areaCalc.areaM2 / 24),
+            drillRig: 'دریل واگن سندویک DX800',
+            patternSpacing: '3.5m × 4.0m',
+            notes: `ترسیم شده توسط واحد حفاری (${userName})`
+          },
+          style: {
+            strokeColor: '#F97316',
+            fillColor: '#F97316',
+            fillOpacity: 0.3,
+            strokeWidth: 2.2,
+            strokeDash: 'dashed'
+          },
+          createdBy: userName,
+          createdRole: activeRole
+        },
+        activeRole,
+        userName
+      );
+      if (created) {
+        if (!map.features) map.features = [];
+        if (!map.features.some(f => f.id === created.id)) map.features.push(created);
+        onSelectFeature(created);
+      }
+      drawingPointsRef.current = [];
+      drawingRedoPointsRef.current = [];
+      setDrawingPoints([]);
+      setDrawingRedoPoints([]);
+      onMapUpdated();
+      if (onFeatureCreated) onFeatureCreated();
+      return;
+    }
+
+    // ۲. ترسیم باند جنس سنگ واحد زمین‌شناسی
+    if (currentTool === 'GEOLOGY_ROCK_BAND') {
+      if (currentPoints.length < 3) {
+        return;
+      }
+      const areaCalc = SurveyMapService.calculateArea(currentPoints);
+      const rockName = 'مگنتیت پرعیار (Fe 62%)';
+      
+      const created = SurveyMapService.addFeature(
+        map.id,
+        {
+          layerId: 'layer-geology-rock',
+          name: `باند زمین‌شناسی: ${rockName}`,
+          type: 'POLYGON',
+          category: 'GEOLOGY_ROCK_BAND',
+          unit: 'GEOLOGY',
+          coordinates: currentPoints,
+          elevation: map.benchLevel,
+          properties: {
+            code: `GEO-${Date.now().toString().slice(-4)}`,
+            rockType: rockName,
+            areaM2: areaCalc.areaM2,
+            feGrade: 61.5,
+            density: 3.85,
+            notes: `مدل‌سازی لیتولوژی توسط زمین‌شناسی (${userName})`
+          },
+          style: {
+            strokeColor: '#10B981',
+            fillColor: '#10B981',
+            fillOpacity: 0.28,
+            strokeWidth: 2
+          },
+          createdBy: userName,
+          createdRole: activeRole
+        },
+        activeRole,
+        userName
+      );
+      if (created) {
+        if (!map.features) map.features = [];
+        if (!map.features.some(f => f.id === created.id)) map.features.push(created);
+        onSelectFeature(created);
+      }
+      drawingPointsRef.current = [];
+      drawingRedoPointsRef.current = [];
+      setDrawingPoints([]);
+      setDrawingRedoPoints([]);
+      onMapUpdated();
+      if (onFeatureCreated) onFeatureCreated();
+      return;
+    }
+
+    // ۳. ترسیم خط گسل واحد زمین‌شناسی
+    if (currentTool === 'GEOLOGY_FAULT') {
+      if (currentPoints.length < 2) {
+        return;
+      }
+      const lengthM = SurveyMapService.calculateLength(currentPoints);
+      const faultName = `گسل ساختاری F-${Date.now().toString().slice(-3)}`;
+      const created = SurveyMapService.addFeature(
+        map.id,
+        {
+          layerId: 'layer-geology-faults',
+          name: faultName,
+          type: 'POLYLINE',
+          category: 'GEOLOGY_FAULT',
+          unit: 'GEOLOGY',
+          coordinates: currentPoints,
+          elevation: map.benchLevel,
+          properties: {
+            code: faultName,
+            lengthM,
+            dipAngle: '68° SE',
+            strike: 'N45E',
+            faultType: 'امتدادلغز نرمال (Strike-Slip)',
+            safetyBufferM: 15,
+            notes: `برداشت گسل توسط واحد زمین‌شناسی (${userName})`
+          },
+          style: {
+            strokeColor: '#DC2626',
+            strokeWidth: 2.5,
+            strokeDash: 'dashdot'
+          },
+          createdBy: userName,
+          createdRole: activeRole
+        },
+        activeRole,
+        userName
+      );
+      if (created) {
+        if (!map.features) map.features = [];
+        if (!map.features.some(f => f.id === created.id)) map.features.push(created);
+        onSelectFeature(created);
+      }
+      drawingPointsRef.current = [];
+      drawingRedoPointsRef.current = [];
+      setDrawingPoints([]);
+      setDrawingRedoPoints([]);
+      onMapUpdated();
+      if (onFeatureCreated) onFeatureCreated();
+      return;
+    }
+
+    // ۴. ساب‌بلوک استخراجی
+    if (currentTool === 'POLYGON') {
+      if (currentPoints.length < 3) {
+        return;
+      }
+      const areaCalc = SurveyMapService.calculateArea(currentPoints);
+      const subBlockName = `ساب‌بلوک جدید ${map.benchLevel} – S${String.fromCharCode(65 + ((map.features?.filter(f => f.category === 'SUB_BLOCK').length || 0) % 26))}`;
+      
+      const created = SurveyMapService.addFeature(
+        map.id,
+        {
+          layerId: 'layer-subblocks',
+          name: subBlockName,
+          type: 'POLYGON',
+          category: 'SUB_BLOCK',
+          unit: 'MINING',
+          coordinates: currentPoints,
+          elevation: map.benchLevel,
+          properties: {
+            code: subBlockName,
+            tonnage: Math.round(areaCalc.areaM2 * 12 * 2.7),
+            areaM2: areaCalc.areaM2,
+            feGrade: 58.5,
+            rockType: 'مگنتیت پرعیار',
+            destination: 'سنگ‌شکن خط ۱',
+            status: 'CLASSIFIED_HIGH',
+            notes: `ترسیم شده توسط ${userName}`
+          },
+          style: {
+            strokeColor: '#10B981',
+            fillColor: '#10B981',
+            fillOpacity: 0.28,
+            strokeWidth: 2
+          },
+          createdBy: userName,
+          createdRole: activeRole
+        },
+        activeRole,
+        userName
+      );
+      if (created) {
+        if (!map.features) map.features = [];
+        if (!map.features.some(f => f.id === created.id)) map.features.push(created);
+        onSelectFeature(created);
+      }
+      drawingPointsRef.current = [];
+      drawingRedoPointsRef.current = [];
+      setDrawingPoints([]);
+      setDrawingRedoPoints([]);
+      onMapUpdated();
+      if (onFeatureCreated) onFeatureCreated();
+      return;
+    }
+
+    // ۵. خط مهندسی / رمپ
+    if (currentTool === 'POLYLINE') {
+      if (currentPoints.length < 2) {
+        return;
+      }
+      const lengthM = SurveyMapService.calculateLength(currentPoints);
+      const created = SurveyMapService.addFeature(
+        map.id,
+        {
+          layerId: 'layer-roads',
+          name: `مسیر / خط مهندسی (${lengthM} متر)`,
+          type: 'POLYLINE',
+          category: 'HAUL_ROAD',
+          unit: 'MINING',
+          coordinates: currentPoints,
+          elevation: map.benchLevel,
+          properties: {
+            lengthM,
+            notes: `ترسیم شده توسط ${userName}`
+          },
+          style: {
+            strokeColor: '#38BDF8',
+            strokeWidth: 2
+          },
+          createdBy: userName,
+          createdRole: activeRole
+        },
+        activeRole,
+        userName
+      );
+      if (created) {
+        if (!map.features) map.features = [];
+        if (!map.features.some(f => f.id === created.id)) map.features.push(created);
+        onSelectFeature(created);
+      }
+      drawingPointsRef.current = [];
+      drawingRedoPointsRef.current = [];
+      setDrawingPoints([]);
+      setDrawingRedoPoints([]);
+      onMapUpdated();
+      if (onFeatureCreated) onFeatureCreated();
+      return;
+    }
+
+    // ۶. اندازه‌گیری
+    if (currentTool === 'MEASURE') {
+      setDrawingPoints([]);
+      setDrawingRedoPoints([]);
+      setMeasureResults(null);
+    }
+  }, [map, userName, activeRole, onMapUpdated, onFeatureCreated, onSelectFeature]);
+
+  // اتصال ارجاعات پایدار جهت فراخوانی در شنودگر سراسری کیبورد بدون Stale Closure
+  finalizeDrawingRef.current = finalizeDrawing;
+  cancelDrawingRef.current = cancelDrawing;
+  undoDrawingPointRef.current = undoDrawingPoint;
+  redoDrawingPointRef.current = redoDrawingPoint;
+
+  // کلیدهای میانبر ناوبری کیبورد (+, -, 0, Space, Enter, Escape, Ctrl+Z, Ctrl+Y, Backspace)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
 
+      // ۱. پایان یافتن ترسیمات با زدن دکمه Enter
+      if (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+        if (drawingPointsRef.current.length > 0) {
+          e.preventDefault();
+          finalizeDrawingRef.current();
+          return;
+        }
+      }
+
+      // ۲. لغو ترسیم جاری یا انصراف با Escape
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        if (drawingPointsRef.current.length > 0) {
+          e.preventDefault();
+          cancelDrawingRef.current();
+          return;
+        } else if (selectedFeatureId) {
+          e.preventDefault();
+          onSelectFeature(null);
+          return;
+        }
+      }
+
+      // ۳. عملگرهای Undo و Redo در زمان ترسیم المان‌ها
+      // Undo با Ctrl+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        if (drawingPointsRef.current.length > 0 || drawingRedoPointsRef.current.length > 0) {
+          e.preventDefault();
+          if (e.shiftKey) {
+            redoDrawingPointRef.current();
+          } else {
+            undoDrawingPointRef.current();
+          }
+          return;
+        }
+      }
+
+      // Redo با Ctrl+Y
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        if (drawingRedoPointsRef.current.length > 0) {
+          e.preventDefault();
+          redoDrawingPointRef.current();
+          return;
+        }
+      }
+
+      // واگرد آخرین نقطه با Backspace در زمان ترسیم المان‌ها
+      if (e.key === 'Backspace') {
+        if (drawingPointsRef.current.length > 0) {
+          e.preventDefault();
+          undoDrawingPointRef.current();
+          return;
+        } else if (selectedFeatureId && canEdit) {
+          const feat = map.features?.find(f => f.id === selectedFeatureId);
+          if (feat) {
+            e.preventDefault();
+            handleFeatureDelete(feat);
+            return;
+          }
+        }
+      }
+
+      // کلید فاصله‌گذاری جهت Pan
       if (e.key === ' ' || e.code === 'Space') {
         setIsSpacePressed(true);
       } else if (e.key === '+' || e.key === '=') {
@@ -385,7 +845,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
       } else if (e.key === '0' || e.key === 'Home' || e.key.toLowerCase() === 'f') {
         e.preventDefault();
         zoomToExtents();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      } else if (e.key === 'Delete') {
         if (selectedFeatureId && canEdit) {
           const feat = map.features?.find(f => f.id === selectedFeatureId);
           if (feat) {
@@ -449,6 +909,8 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
       isPointerDownRef.current = true;
       pointerStartRef.current = { x: e.clientX, y: e.clientY };
       lastPanPosRef.current = { x: e.clientX, y: e.clientY };
+      pointerDownTimeRef.current = Date.now();
+      totalDragDistanceRef.current = 0;
       hasMovedEnoughToPanRef.current = false;
     }
   };
@@ -460,8 +922,10 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
         e.clientX - pointerStartRef.current.x,
         e.clientY - pointerStartRef.current.y
       );
+      totalDragDistanceRef.current = moveDistance;
 
-      if (moveDistance > 3) {
+      // آستانه را به ۸ پیکسل افزایش می‌دهیم تا لرزش دست یا کلیک ساده، انتخاب را لغو نکند
+      if (moveDistance > 8) {
         hasMovedEnoughToPanRef.current = true;
         if (!isPanning) {
           setIsPanning(true);
@@ -511,171 +975,14 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
     if (isPointerDownRef.current) {
       isPointerDownRef.current = false;
       setIsPanning(false);
-      setTimeout(() => {
+      // در کلیک‌های بسیار سریع یا بدون جابجایی معنادار بلافاصله آزاد شود
+      if (totalDragDistanceRef.current < 8) {
         hasMovedEnoughToPanRef.current = false;
-      }, 60);
-    }
-  };
-
-  // کلیک ماوس روی نقشه برای ترسیم یا انتخاب
-  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (hasMovedEnoughToPanRef.current || isPanning) {
-      return;
-    }
-
-    const [svgX, svgY] = getSvgCoordinates(e.clientX, e.clientY);
-    const [utmX, utmY] = svgToUtm(svgX, svgY);
-
-    if (activeTool === 'POINT') {
-      if (!canEdit) return;
-      SurveyMapService.addFeature(
-        map.id,
-        {
-          layerId: 'layer-holes',
-          name: `نقطه نقشه‌برداری P-${Math.floor(Math.random() * 900 + 100)}`,
-          type: 'POINT',
-          category: 'SURVEY_BENCHMARK',
-          coordinates: [[utmX, utmY]],
-          elevation: map.benchLevel,
-          properties: {
-            code: `PT-${Math.floor(Math.random() * 900 + 100)}`,
-            xUTM: utmX,
-            yUTM: utmY,
-            zElev: map.benchLevel,
-            notes: `ثبت شده توسط ${userName}`
-          },
-          style: {
-            strokeColor: '#EC4899',
-            fillColor: '#EC4899',
-            strokeWidth: 1.2,
-            pointRadius: 4
-          },
-          createdBy: userName,
-          createdRole: activeRole
-        },
-        activeRole,
-        userName
-      );
-      onMapUpdated();
-      if (onFeatureCreated) onFeatureCreated();
-      return;
-    }
-
-    if (activeTool === 'ANNOTATION') {
-      if (!canEdit && !SurveyPermissionService.getPermissions(activeRole).canAddAnnotations) return;
-      const text = window.prompt('متن یادداشت یا برچسب مهندسی را وارد کنید:', 'محدوده دپو کانسنگ');
-      if (text) {
-        SurveyMapService.addFeature(
-          map.id,
-          {
-            layerId: 'layer-annotations',
-            name: text,
-            type: 'TEXT_ANNOTATION',
-            category: 'ANNOTATION',
-            coordinates: [[utmX, utmY]],
-            elevation: map.benchLevel,
-            properties: {
-              notes: text,
-              author: userName
-            },
-            style: {
-              strokeColor: '#FBBF24',
-              textColor: '#FBBF24',
-              strokeWidth: 1,
-              fontSize: 11
-            },
-            createdBy: userName,
-            createdRole: activeRole
-          },
-          activeRole,
-          userName
-        );
-        onMapUpdated();
-        if (onFeatureCreated) onFeatureCreated();
+      } else {
+        setTimeout(() => {
+          hasMovedEnoughToPanRef.current = false;
+        }, 50);
       }
-      return;
-    }
-
-    if (activeTool === 'POLYGON' || activeTool === 'POLYLINE' || activeTool === 'MEASURE') {
-      setDrawingPoints(prev => [...prev, [utmX, utmY]]);
-    } else if (activeTool === 'SELECT') {
-      onSelectFeature(null);
-    }
-  };
-
-  // دابل کلیک برای نهایی کردن ترسیم یا زوم اکستند
-  const handleDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (activeTool === 'POLYGON' && drawingPoints.length >= 3) {
-      const areaCalc = SurveyMapService.calculateArea(drawingPoints);
-      const subBlockName = `ساب‌بلوک جدید ${map.benchLevel} – S${String.fromCharCode(65 + ((map.features?.filter(f => f.category === 'SUB_BLOCK').length || 0) % 26))}`;
-      
-      SurveyMapService.addFeature(
-        map.id,
-        {
-          layerId: 'layer-subblocks',
-          name: subBlockName,
-          type: 'POLYGON',
-          category: 'SUB_BLOCK',
-          coordinates: drawingPoints,
-          elevation: map.benchLevel,
-          properties: {
-            code: subBlockName,
-            tonnage: Math.round(areaCalc.areaM2 * 12 * 2.7),
-            areaM2: areaCalc.areaM2,
-            feGrade: 58.5,
-            rockType: 'مگنتیت پرعیار',
-            destination: 'سنگ‌شکن خط ۱',
-            status: 'CLASSIFIED_HIGH',
-            notes: `ترسیم شده توسط ${userName}`
-          },
-          style: {
-            strokeColor: '#10B981',
-            fillColor: '#10B98122',
-            fillOpacity: 0.18,
-            strokeWidth: 1.2
-          },
-          createdBy: userName,
-          createdRole: activeRole
-        },
-        activeRole,
-        userName
-      );
-      setDrawingPoints([]);
-      onMapUpdated();
-      if (onFeatureCreated) onFeatureCreated();
-    } else if (activeTool === 'POLYLINE' && drawingPoints.length >= 2) {
-      const lengthM = SurveyMapService.calculateLength(drawingPoints);
-      SurveyMapService.addFeature(
-        map.id,
-        {
-          layerId: 'layer-roads',
-          name: `مسیر / خط مهندسی (${lengthM} متر)`,
-          type: 'POLYLINE',
-          category: 'HAUL_ROAD',
-          coordinates: drawingPoints,
-          elevation: map.benchLevel,
-          properties: {
-            lengthM,
-            notes: `ترسیم شده توسط ${userName}`
-          },
-          style: {
-            strokeColor: '#38BDF8',
-            strokeWidth: 1.5
-          },
-          createdBy: userName,
-          createdRole: activeRole
-        },
-        activeRole,
-        userName
-      );
-      setDrawingPoints([]);
-      onMapUpdated();
-      if (onFeatureCreated) onFeatureCreated();
-    } else if (activeTool === 'MEASURE') {
-      setDrawingPoints([]);
-      setMeasureResults(null);
-    } else if (activeTool === 'PAN' || e.button === 1) {
-      zoomToExtents();
     }
   };
 
@@ -715,6 +1022,229 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
     return map.features?.find(f => f.id === selectedFeatureId) || null;
   }, [map.features, selectedFeatureId]);
 
+  // سیستم انتخاب هوشمند عارضه در هر زوم با تلورانس متناسب با پیکسل‌های صفحه نمایش
+  const findFeatureAtSvgCoords = useCallback((svgX: number, svgY: number): MapFeature | null => {
+    const svgEl = svgRef.current;
+    const rect = svgEl ? svgEl.getBoundingClientRect() : { width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+    const screenToSvgRatio = (CANVAS_WIDTH / (rect.width || CANVAS_WIDTH)) / (zoomRef.current || 1);
+    
+    // آستانه کلیک معادل ۲۴ پیکسل نمایشگر جهت انتخاب بی‌نهایت نرم و سریع
+    const toleranceSvg = 24 * screenToSvgRatio;
+    const clickPt: [number, number] = [svgX, svgY];
+
+    let candidateFeature: MapFeature | null = null;
+    let minDistance = Infinity;
+
+    // پیمایش معکوس عوارض تا عوارض ترسیم‌شده رویی اولویت داشته باشند
+    const featuresReversed = [...visibleFeatures].reverse();
+
+    for (const feat of featuresReversed) {
+      if (!feat.coordinates || feat.coordinates.length === 0) continue;
+
+      // ۱. اگر نقطه است (چال، بنچ‌مارک)
+      if (feat.type === 'POINT' && feat.coordinates[0]) {
+        const ptSvg = utmToSvg(feat.coordinates[0][0], feat.coordinates[0][1]);
+        const dist = Math.hypot(svgX - ptSvg[0], svgY - ptSvg[1]);
+        const ptTol = Math.max(toleranceSvg, (feat.style.pointRadius || 4) * screenToSvgRatio * 3);
+        if (dist <= ptTol && dist < minDistance) {
+          minDistance = dist;
+          candidateFeature = feat;
+        }
+      }
+
+      // ۲. اگر چندضلعی است (ساب‌بلوک، باند حفاری، باند زمین‌شناسی)
+      else if (feat.type === 'POLYGON' && feat.coordinates.length >= 3) {
+        const polySvgPts = feat.coordinates.map(pt => utmToSvg(pt[0], pt[1]));
+        const isInside = isPointInPolygon(clickPt, polySvgPts);
+        if (isInside) {
+          return feat;
+        }
+        for (let i = 0; i < polySvgPts.length; i++) {
+          const nextIdx = (i + 1) % polySvgPts.length;
+          const segDist = distToSegment(clickPt, polySvgPts[i], polySvgPts[nextIdx]);
+          if (segDist <= toleranceSvg && segDist < minDistance) {
+            minDistance = segDist;
+            candidateFeature = feat;
+          }
+        }
+      }
+
+      // ۳. اگر خط یا مسیر است (گسل، رمپ، Toe، Crest)
+      else if (feat.type === 'POLYLINE' && feat.coordinates.length >= 2) {
+        const lineSvgPts = feat.coordinates.map(pt => utmToSvg(pt[0], pt[1]));
+        for (let i = 0; i < lineSvgPts.length - 1; i++) {
+          const segDist = distToSegment(clickPt, lineSvgPts[i], lineSvgPts[i + 1]);
+          if (segDist <= toleranceSvg && segDist < minDistance) {
+            minDistance = segDist;
+            candidateFeature = feat;
+          }
+        }
+      }
+
+      // ۴. اگر دایره یا زون است
+      else if (feat.type === 'CIRCLE_ZONE' && feat.coordinates[0]) {
+        const centerSvg = utmToSvg(feat.coordinates[0][0], feat.coordinates[0][1]);
+        const radiusSvg = (feat.properties?.radiusM || 40) * uniformScale;
+        const distToCenter = Math.hypot(svgX - centerSvg[0], svgY - centerSvg[1]);
+        const distToRim = Math.abs(distToCenter - radiusSvg);
+        if (distToCenter <= radiusSvg || distToRim <= toleranceSvg) {
+          if (distToRim < minDistance) {
+            minDistance = distToRim;
+            candidateFeature = feat;
+          }
+        }
+      }
+    }
+
+    return candidateFeature;
+  }, [visibleFeatures, utmToSvg, uniformScale]);
+
+  // کلیک ماوس روی نقشه برای ترسیم یا انتخاب هوشمند
+  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    const clickDuration = Date.now() - pointerDownTimeRef.current;
+    if (hasMovedEnoughToPanRef.current && totalDragDistanceRef.current > 8 && clickDuration > 180) {
+      return;
+    }
+
+    const [svgX, svgY] = getSvgCoordinates(e.clientX, e.clientY);
+    const [utmX, utmY] = svgToUtm(svgX, svgY);
+
+    if (activeTool === 'POINT') {
+      if (!canEdit) return;
+      const created = SurveyMapService.addFeature(
+        map.id,
+        {
+          layerId: 'layer-benchmarks',
+          name: `نقطه نقشه‌برداری P-${Math.floor(Math.random() * 900 + 100)}`,
+          type: 'POINT',
+          category: 'SURVEY_BENCHMARK',
+          coordinates: [[utmX, utmY]],
+          elevation: map.benchLevel,
+          properties: {
+            code: `PT-${Math.floor(Math.random() * 900 + 100)}`,
+            xUTM: utmX,
+            yUTM: utmY,
+            zElev: map.benchLevel,
+            notes: `ثبت شده توسط ${userName}`
+          },
+          style: {
+            strokeColor: '#EC4899',
+            fillColor: '#EC4899',
+            strokeWidth: 2,
+            pointRadius: 6
+          },
+          createdBy: userName,
+          createdRole: activeRole
+        },
+        activeRole,
+        userName
+      );
+      if (created) {
+        if (!map.features) map.features = [];
+        if (!map.features.some(f => f.id === created.id)) map.features.push(created);
+        onSelectFeature(created);
+      }
+      onMapUpdated();
+      if (onFeatureCreated) onFeatureCreated();
+      return;
+    }
+
+    if (activeTool === 'ANNOTATION') {
+      if (!canEdit && !SurveyPermissionService.getPermissions(activeRole).canAddAnnotations) return;
+      const text = window.prompt('متن یادداشت یا برچسب مهندسی را وارد کنید:', 'محدوده دپو کانسنگ') || 'یادداشت فنی';
+      if (text) {
+        const created = SurveyMapService.addFeature(
+          map.id,
+          {
+            layerId: 'layer-annotations',
+            name: text,
+            type: 'TEXT_ANNOTATION',
+            category: 'ANNOTATION',
+            coordinates: [[utmX, utmY]],
+            elevation: map.benchLevel,
+            properties: {
+              notes: text,
+              author: userName
+            },
+            style: {
+              strokeColor: '#FBBF24',
+              textColor: '#FBBF24',
+              strokeWidth: 1,
+              fontSize: 11
+            },
+            createdBy: userName,
+            createdRole: activeRole
+          },
+          activeRole,
+          userName
+        );
+        if (created) {
+          if (!map.features) map.features = [];
+          if (!map.features.some(f => f.id === created.id)) map.features.push(created);
+          onSelectFeature(created);
+        }
+        onMapUpdated();
+        if (onFeatureCreated) onFeatureCreated();
+      }
+      return;
+    }
+
+    if (
+      activeTool === 'POLYGON' || 
+      activeTool === 'POLYLINE' || 
+      activeTool === 'MEASURE' ||
+      activeTool === 'DRILLING_BAND' ||
+      activeTool === 'GEOLOGY_ROCK_BAND' ||
+      activeTool === 'GEOLOGY_FAULT'
+    ) {
+      // بررسی کلیک در حریم رأس اول جهت بستن خودکار چندضلعی و ثبت نهایی (Snap & Close Loop)
+      if (
+        (activeTool === 'POLYGON' || activeTool === 'DRILLING_BAND' || activeTool === 'GEOLOGY_ROCK_BAND') &&
+        drawingPointsRef.current.length >= 3
+      ) {
+        const firstPt = drawingPointsRef.current[0];
+        const [firstSvgX, firstSvgY] = utmToSvg(firstPt[0], firstPt[1]);
+        const distPx = Math.hypot(svgX - firstSvgX, svgY - firstSvgY);
+        if (distPx <= 22) {
+          finalizeDrawing();
+          return;
+        }
+      }
+
+      // به‌روزرسانی بی‌درنگ هم در Ref و هم در State تا در رویداد دابل‌کلیک هیچ مختصاتی گم نشود
+      const next: [number, number][] = [...drawingPointsRef.current, [utmX, utmY]];
+      drawingPointsRef.current = next;
+      setDrawingPoints(next);
+      setDrawingRedoPoints([]);
+      drawingRedoPointsRef.current = [];
+
+      if (activeTool === 'MEASURE' && next.length >= 2) {
+        const lengthCalc = SurveyMapService.calculateLength(next);
+        const areaCalc = next.length >= 3 ? SurveyMapService.calculateArea(next) : undefined;
+        setMeasureResults({
+          distance: lengthCalc,
+          area: areaCalc?.areaM2
+        });
+      }
+      return;
+    } else if (activeTool === 'SELECT' || activeTool === 'INSPECT') {
+      // انتخاب هوشمند مجاورتی حتی اگر کلیک کمی خارج از لبه خورده باشد
+      const nearest = findFeatureAtSvgCoords(svgX, svgY);
+      onSelectFeature(nearest);
+    }
+  };
+
+  // دابل کلیک برای نهایی کردن ترسیم یا زوم اکستند
+  const handleDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (drawingPointsRef.current.length >= 2) {
+      finalizeDrawing();
+    } else if (activeTool === 'PAN' || e.button === 1) {
+      zoomToExtents();
+    }
+  };
+
   // حذف المان
   const handleFeatureDelete = useCallback((feat: MapFeature) => {
     if (!canEdit) {
@@ -735,12 +1265,15 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
     }
   }, [canEdit, onDeleteFeatureRequest, map.id, activeRole, userName, selectedFeatureId, onSelectFeature, onMapUpdated]);
 
-  // کلیک روی المان‌های نقشه جهت انتخاب عارضه
+  // کلیک مستقیم روی المان‌های نقشه جهت انتخاب عارضه با کارایی بالا
   const handleFeatureClick = useCallback((e: React.MouseEvent, feat: MapFeature) => {
     e.stopPropagation();
-    if (hasMovedEnoughToPanRef.current || isPanning) return;
+    const clickDuration = Date.now() - pointerDownTimeRef.current;
+    if (hasMovedEnoughToPanRef.current && totalDragDistanceRef.current > 8 && clickDuration > 180) {
+      return;
+    }
     onSelectFeature(feat);
-  }, [isPanning, onSelectFeature]);
+  }, [onSelectFeature]);
 
   // بررسی هوشمند نمایش برچسب عوارض با Level of Detail (LOD)
   const shouldShowFeatureLabel = (feat: MapFeature): boolean => {
@@ -835,19 +1368,85 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
           </div>
         </div>
 
-        {/* جعبه راهنما در صورت فعال بودن ابزار ترسیم */}
+        {/* نوار ابزار تعاملی و هوشمند کنترل ترسیم CAD: واگرد (Undo)، مجدد (Redo)، پایان ترسیم (Enter) و لغو (Esc) */}
         {drawingPoints.length > 0 && (
-          <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs backdrop-blur-md shadow-lg pointer-events-auto flex items-center gap-2.5">
-            <span className="font-bold text-[11px]">
-              {activeTool === 'POLYGON' && `ترسیم ساب‌بلوک (${drawingPoints.length} رأس) - دابل کلیک برای بستن`}
-              {activeTool === 'POLYLINE' && `ترسیم خط (${drawingPoints.length} نقطه) - دابل کلیک برای اتمام`}
-              {activeTool === 'MEASURE' && `اندازه‌گیری: طول ${measureResults?.distance || 0}m ${measureResults?.area ? `| مساحت: ${measureResults.area.toLocaleString()} m²` : ''}`}
-            </span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-950/95 border border-cyan-500/40 text-xs backdrop-blur-xl shadow-2xl pointer-events-auto ring-1 ring-cyan-500/20">
+            {/* مشخصات ابزار جاری و شمارنده رأس‌ها */}
+            <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-[11px] pl-2 border-l border-slate-800/80">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>
+                {activeTool === 'DRILLING_BAND' && 'ترسیم باند حفاری'}
+                {activeTool === 'GEOLOGY_ROCK_BAND' && 'ترسیم باند جنس سنگ'}
+                {activeTool === 'GEOLOGY_FAULT' && 'برداشت خط گسل'}
+                {activeTool === 'POLYGON' && 'ترسیم ساب‌بلوک'}
+                {activeTool === 'POLYLINE' && 'ترسیم خط مهندسی'}
+                {activeTool === 'MEASURE' && 'خط‌کش و اندازه‌گیری'}
+              </span>
+              <span className="px-1.5 py-0.5 rounded-md bg-cyan-950/90 text-cyan-300 border border-cyan-500/30 font-mono text-[10px]">
+                {drawingPoints.length} {activeTool === 'POLYLINE' || activeTool === 'GEOLOGY_FAULT' ? 'نقطه' : 'رأس'}
+              </span>
+              {activeTool === 'MEASURE' && measureResults && (
+                <span className="text-[10px] text-amber-300 mr-1 font-mono">
+                  ({measureResults.distance}m {measureResults.area ? `| ${measureResults.area.toLocaleString()} m²` : ''})
+                </span>
+              )}
+            </div>
+
+            {/* دکمه واگرد نقطه (Undo آخرین رأس / نقطه) */}
             <button
-              onClick={() => { setDrawingPoints([]); setMeasureResults(null); }}
-              className="px-2 py-0.5 rounded-md bg-amber-500/30 hover:bg-amber-500/50 text-amber-200 font-bold text-[10px]"
+              onClick={undoDrawingPoint}
+              disabled={drawingPoints.length === 0}
+              title="واگرد آخرین نقطه ترسیم شده (Ctrl+Z یا Backspace)"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 disabled:opacity-35 disabled:pointer-events-none text-slate-200 border border-slate-700/80 text-[11px] font-medium transition-all group active:scale-95"
             >
-              لغو
+              <ArrowUturnLeftIcon className="w-3.5 h-3.5 text-cyan-400 group-hover:-translate-x-0.5 transition-transform" />
+              <span>واگرد</span>
+              <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] bg-slate-800 text-slate-400 rounded font-mono border border-slate-700">
+                Ctrl+Z
+              </kbd>
+            </button>
+
+            {/* دکمه مجدد نقطه (Redo رأس واگرد شده) */}
+            <button
+              onClick={redoDrawingPoint}
+              disabled={drawingRedoPoints.length === 0}
+              title="اعمال مجدد نقطه واگرد شده (Ctrl+Y یا Ctrl+Shift+Z)"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 disabled:opacity-35 disabled:pointer-events-none text-slate-200 border border-slate-700/80 text-[11px] font-medium transition-all group active:scale-95"
+            >
+              <ArrowUturnRightIcon className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
+              <span>مجدد</span>
+              {drawingRedoPoints.length > 0 && (
+                <span className="text-[9px] px-1 rounded-full bg-cyan-950 text-cyan-300 font-mono border border-cyan-500/30">
+                  {drawingRedoPoints.length}
+                </span>
+              )}
+              <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] bg-slate-800 text-slate-400 rounded font-mono border border-slate-700">
+                Ctrl+Y
+              </kbd>
+            </button>
+
+            <div className="w-px h-4 bg-slate-800" />
+
+            {/* دکمه برجسته پایان و نهایی‌سازی ترسیم (Enter) */}
+            <button
+              onClick={finalizeDrawing}
+              title="پایان دادن به ترسیم و ثبت در نقشه (کلید Enter کیبورد یا دابل‌کلیک)"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-[11px] shadow-lg shadow-emerald-500/30 transition-all active:scale-95 cursor-pointer"
+            >
+              <CheckIcon className="w-4 h-4 stroke-[2.5]" />
+              <span>پایان ترسیم</span>
+              <kbd className="px-1.5 py-0.2 text-[9px] bg-slate-950/30 text-slate-950 rounded font-mono border border-emerald-700/30">
+                ↵ Enter
+              </kbd>
+            </button>
+
+            {/* دکمه لغو انصراف (Escape) */}
+            <button
+              onClick={cancelDrawing}
+              title="لغو ترسیم جاری (کلید Esc)"
+              className="p-1 rounded-xl bg-slate-900/90 hover:bg-rose-950/60 hover:border-rose-500/60 text-slate-400 hover:text-rose-300 border border-slate-800 transition-colors"
+            >
+              <XMarkIcon className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -1012,6 +1611,78 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
               <ViewfinderCircleIcon className="w-4 h-4" />
             </button>
           )}
+
+          <div className="w-px h-4 bg-slate-800 mx-0.5" />
+
+          {/* دکمه راهنمای کلیدهای میانبر CAD و ترسیم */}
+          <div className="relative">
+            <button
+              onClick={() => setShowShortcutsHelp(prev => !prev)}
+              title="کلیدهای میانبر ترسیم و ناوبری CAD"
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${showShortcutsHelp ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'text-slate-400 hover:text-cyan-400 hover:bg-slate-800'}`}
+            >
+              <QuestionMarkCircleIcon className="w-4 h-4" />
+            </button>
+
+            {/* پنجره راهنمای میانبرها */}
+            {showShortcutsHelp && (
+              <div 
+                className="absolute bottom-10 left-0 w-80 p-3 rounded-2xl bg-slate-950/95 backdrop-blur-xl border border-slate-700 shadow-2xl z-50 text-right animate-in fade-in zoom-in-95 duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                  <span className="font-bold text-xs text-cyan-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                    راهنمای میانبرهای کیبورد CAD
+                  </span>
+                  <button 
+                    onClick={() => setShowShortcutsHelp(false)}
+                    className="text-slate-500 hover:text-slate-300 p-0.5"
+                  >
+                    <XMarkIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5 text-[11px]">
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300">
+                    <span className="font-bold">پایان ترسیم المان</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-emerald-900/60 font-mono text-[10px] text-emerald-200 border border-emerald-700/50">Enter ↵</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-cyan-950/40 border border-cyan-500/20 text-cyan-200">
+                    <span>واگرد نقطه (Undo)</span>
+                    <div className="flex gap-1 font-mono text-[10px]">
+                      <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700">Ctrl+Z</kbd>
+                      <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700">Backspace</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-cyan-950/40 border border-cyan-500/20 text-cyan-200">
+                    <span>اعمال مجدد نقطه (Redo)</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-[10px]">Ctrl+Y</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-slate-900/60 text-slate-300">
+                    <span>لغو ترسیم / انصراف</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px]">Esc</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-slate-900/60 text-slate-300">
+                    <span>جابجایی نقشه (Pan)</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px]">کلید Space</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-slate-900/60 text-slate-300">
+                    <span>بزرگنمایی / کوچکنمایی</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px]">Scroll / +, -</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-slate-900/60 text-slate-300">
+                    <span>دید کامل نقشه (Fit)</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px]">Home / 0 / F</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-1.5 rounded-lg bg-slate-900/60 text-slate-300">
+                    <span>حذف المان انتخاب‌شده</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px]">Delete</kbd>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1093,6 +1764,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                     className="cursor-pointer group"
                     opacity={layerOpacity}
                   >
+                    {/* لایه پرکننده با pointerEvents all جهت انتخاب بدون نقص در هر مد رندر */}
                     <polygon
                       points={svgPoints}
                       fill={feat.style.fillColor || layerColor}
@@ -1102,6 +1774,17 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                       vectorEffect="non-scaling-stroke"
                       strokeDasharray={getStrokeDashArray(layerStrokeDash)}
                       className="transition-all duration-150"
+                      style={{ pointerEvents: 'all' }}
+                    />
+                    
+                    {/* لایه ضربه‌ای حاشیه چندضلعی برای کلیک آسان روی مرزها */}
+                    <polygon
+                      points={svgPoints}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={Math.max(14, strokeW * 3)}
+                      vectorEffect="non-scaling-stroke"
+                      style={{ pointerEvents: 'stroke' }}
                     />
                     
                     {/* برچسب کد ساب‌بلوک با پس‌زمینه خوانا */}
@@ -1167,6 +1850,17 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                     className="cursor-pointer group"
                     opacity={layerOpacity}
                   >
+                    {/* لایه نامرئی ضخیم برای کلیک بی‌نهایت نرم و سریع روی خطوط در تمام زوم‌ها */}
+                    <polyline
+                      points={svgPoints}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={Math.max(16, strokeW * 4)}
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ pointerEvents: 'stroke' }}
+                    />
                     <polyline
                       points={svgPoints}
                       fill="none"
@@ -1177,6 +1871,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       className="transition-all duration-150"
+                      style={{ pointerEvents: 'stroke' }}
                     />
                     
                     {/* برچسب خط یا باند */}
@@ -1225,6 +1920,15 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                     className="cursor-pointer group"
                     opacity={layerOpacity}
                   >
+                    {/* دایره نامرئی بزرگ برای انتخاب فوق‌العاده سریع و نرم نقاط و چال‌ها در هر زومی */}
+                    <circle
+                      cx={ptSvgX}
+                      cy={ptSvgY}
+                      r={Math.max(14, r * 2.5)}
+                      fill="transparent"
+                      stroke="none"
+                      style={{ pointerEvents: 'all' }}
+                    />
                     <circle
                       cx={ptSvgX}
                       cy={ptSvgY}
@@ -1234,6 +1938,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                       strokeWidth={isSelected ? 2 : 1}
                       vectorEffect="non-scaling-stroke"
                       className="transition-all duration-150"
+                      style={{ pointerEvents: 'all' }}
                     />
                     {showLabel && (
                       <text
@@ -1329,46 +2034,109 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
               return null;
             })}
 
-            {/* خطوط و نقاط در حال ترسیم (Active Drawing Preview) */}
+            {/* خطوط و نقاط در حال ترسیم (Active Drawing Preview & Rubber Band) */}
             {drawingPoints.length > 0 && (
-              <g>
-                {activeTool === 'POLYGON' && drawingPoints.length >= 2 && (
+              <g className="pointer-events-none">
+                {/* چندضلعی‌های در حال ترسیم: ساب‌بلوک، باند حفاری، باند جنس سنگ */}
+                {(activeTool === 'POLYGON' || activeTool === 'DRILLING_BAND' || activeTool === 'GEOLOGY_ROCK_BAND') && drawingPoints.length >= 2 && (
                   <polygon
                     points={drawingPoints.map(pt => utmToSvg(pt[0], pt[1])).map(p => `${p[0]},${p[1]}`).join(' ')}
-                    fill="#00D4FF"
-                    fillOpacity="0.15"
-                    stroke="#00D4FF"
-                    strokeWidth="1.5"
+                    fill={activeTool === 'DRILLING_BAND' ? '#F97316' : activeTool === 'GEOLOGY_ROCK_BAND' ? '#8B5CF6' : '#00D4FF'}
+                    fillOpacity="0.22"
+                    stroke={activeTool === 'DRILLING_BAND' ? '#F97316' : activeTool === 'GEOLOGY_ROCK_BAND' ? '#8B5CF6' : '#00D4FF'}
+                    strokeWidth="1.8"
                     vectorEffect="non-scaling-stroke"
                     strokeDasharray="4 4"
                   />
                 )}
 
-                {(activeTool === 'POLYLINE' || activeTool === 'MEASURE') && drawingPoints.length >= 2 && (
+                {/* خطوط در حال ترسیم: رمپ/مسیر، گسل ساختاری، اندازه‌گیری */}
+                {(activeTool === 'POLYLINE' || activeTool === 'GEOLOGY_FAULT' || activeTool === 'MEASURE') && drawingPoints.length >= 2 && (
                   <polyline
                     points={drawingPoints.map(pt => utmToSvg(pt[0], pt[1])).map(p => `${p[0]},${p[1]}`).join(' ')}
                     fill="none"
-                    stroke="#F59E0B"
-                    strokeWidth="2"
+                    stroke={activeTool === 'GEOLOGY_FAULT' ? '#DC2626' : activeTool === 'MEASURE' ? '#F59E0B' : '#38BDF8'}
+                    strokeWidth="2.2"
                     vectorEffect="non-scaling-stroke"
                     strokeDasharray="4 4"
                   />
                 )}
 
-                {/* نقاط رأس‌های در حال ترسیم */}
+                {/* خط راهنمای زنده لاستیکی (Rubber-Band Line) از آخرین رأس تا موقعیت نشانگر */}
+                {cursorCoords && drawingPoints.length > 0 && (
+                  (() => {
+                    const lastPt = drawingPoints[drawingPoints.length - 1];
+                    const [p1x, p1y] = utmToSvg(lastPt[0], lastPt[1]);
+                    const [p2x, p2y] = utmToSvg(cursorCoords.utmX, cursorCoords.utmY);
+                    return (
+                      <line
+                        x1={p1x}
+                        y1={p1y}
+                        x2={p2x}
+                        y2={p2y}
+                        stroke={activeTool === 'GEOLOGY_FAULT' ? '#DC2626' : activeTool === 'DRILLING_BAND' ? '#F97316' : '#00F0FF'}
+                        strokeWidth="1.2"
+                        strokeDasharray="3 3"
+                        vectorEffect="non-scaling-stroke"
+                        opacity="0.8"
+                      />
+                    );
+                  })()
+                )}
+
+                {/* نقاط رأس‌های در حال ترسیم و شماره ترتیب هر رأس */}
                 {drawingPoints.map((pt, idx) => {
                   const [sx, sy] = utmToSvg(pt[0], pt[1]);
+                  const isFirst = idx === 0;
+                  const isLast = idx === drawingPoints.length - 1;
                   return (
-                    <circle
-                      key={idx}
-                      cx={sx}
-                      cy={sy}
-                      r="3.5"
-                      fill="#00D4FF"
-                      stroke="#FFFFFF"
-                      strokeWidth="1"
-                      vectorEffect="non-scaling-stroke"
-                    />
+                    <g key={idx}>
+                      {/* حلقه بستن چندضلعی برای رأس اول در صورت داشتن بیش از ۲ رأس */}
+                      {isFirst && drawingPoints.length >= 2 && (activeTool === 'POLYGON' || activeTool === 'DRILLING_BAND' || activeTool === 'GEOLOGY_ROCK_BAND') && (
+                        <circle
+                          cx={sx}
+                          cy={sy}
+                          r="14"
+                          fill="rgba(16, 185, 129, 0.25)"
+                          stroke="#10B981"
+                          strokeWidth="2"
+                          vectorEffect="non-scaling-stroke"
+                          className="cursor-pointer animate-pulse"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            finalizeDrawing();
+                          }}
+                        />
+                      )}
+                      <circle
+                        cx={sx}
+                        cy={sy}
+                        r={isLast ? "5" : isFirst ? "6" : "3.5"}
+                        fill={isLast ? "#38BDF8" : isFirst ? "#10B981" : "#00D4FF"}
+                        stroke="#FFFFFF"
+                        strokeWidth="1.5"
+                        vectorEffect="non-scaling-stroke"
+                        className={isFirst && drawingPoints.length >= 2 ? "cursor-pointer hover:scale-125 transition-transform" : ""}
+                        onClick={(e) => {
+                          if (isFirst && drawingPoints.length >= 2) {
+                            e.stopPropagation();
+                            finalizeDrawing();
+                          }
+                        }}
+                      />
+                      {/* برچسب شماره رأس */}
+                      <text
+                        x={sx + 6}
+                        y={sy - 4}
+                        fill="#FFFFFF"
+                        fontSize="9"
+                        fontWeight="bold"
+                        className="select-none font-mono"
+                        style={{ textShadow: '0 0 4px #000000' }}
+                      >
+                        {idx + 1}
+                      </text>
+                    </g>
                   );
                 })}
               </g>

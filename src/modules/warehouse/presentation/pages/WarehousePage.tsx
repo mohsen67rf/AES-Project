@@ -161,9 +161,6 @@ export const WarehousePage: React.FC = () => {
                   مدیریت انبار مواد ناریه و لجستیک سوخت معدن
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                محاسبه آنلاین میزان مصرف ناریه بلوک‌ها، پایش لحظه‌ای موجودی زاغه‌ها، مخازن سوخت و ثبت حواله‌ها
-              </p>
             </div>
 
             <div className="flex items-center gap-2">

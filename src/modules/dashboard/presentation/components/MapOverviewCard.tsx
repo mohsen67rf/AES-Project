@@ -41,11 +41,11 @@ export const MapOverviewCard: React.FC = () => {
       nameFa: 'معدن چادرملو (A)',
       production: '2,450 ton',
       productionFa: '۲,۴۵۰ تن',
-      x: 22,
-      y: 48,
-      color: '#10B981', // green
-      pinBg: 'bg-emerald-500',
-      textColor: 'text-emerald-400',
+      x: 24,
+      y: 45,
+      color: '#00D2FF',
+      pinBg: 'bg-[#00D2FF]',
+      textColor: 'text-[#00D2FF]',
     },
     {
       id: 'mineB',
@@ -55,9 +55,9 @@ export const MapOverviewCard: React.FC = () => {
       productionFa: '۱,۸۹۰ تن',
       x: 48,
       y: 62,
-      color: '#F59E0B', // orange
-      pinBg: 'bg-amber-500',
-      textColor: 'text-amber-400',
+      color: '#FFB020',
+      pinBg: 'bg-[#FFB020]',
+      textColor: 'text-[#FFB020]',
     },
     {
       id: 'mineC',
@@ -67,9 +67,9 @@ export const MapOverviewCard: React.FC = () => {
       productionFa: '۳,۲۱۰ تن',
       x: 68,
       y: 35,
-      color: '#8B5CF6', // purple
-      pinBg: 'bg-purple-500',
-      textColor: 'text-purple-400',
+      color: '#38BDF8',
+      pinBg: 'bg-[#38BDF8]',
+      textColor: 'text-[#38BDF8]',
     },
     {
       id: 'mineD',
@@ -79,70 +79,69 @@ export const MapOverviewCard: React.FC = () => {
       productionFa: '۱,۵۶۰ تن',
       x: 85,
       y: 52,
-      color: '#3B82F6', // blue
-      pinBg: 'bg-blue-500',
-      textColor: 'text-blue-400',
+      color: '#6366F1',
+      pinBg: 'bg-[#6366F1]',
+      textColor: 'text-[#818CF8]',
     },
   ];
 
   return (
     <div 
-      className={`rounded-2xl p-5 border transition-all duration-300 flex flex-col justify-between ${
+      className={`rounded-[22px] p-5.5 border transition-all duration-300 flex flex-col justify-between ${
         isDark 
-          ? 'bg-[#111726]/80 border-[#1E293B] text-white shadow-lg backdrop-blur-xl' 
-          : 'bg-white border-slate-200/90 text-slate-900 shadow-sm'
+          ? 'bg-[#1A264F] border-[#24356B]/30 text-[#F1F5F9] shadow-[0_12px_32px_rgba(7,11,26,0.5)]' 
+          : 'bg-white border-slate-200 text-slate-900 shadow-sm'
       }`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <MapPinIcon className="w-4 h-4 text-[#00E5FF]" />
-          <h3 className="text-sm font-black tracking-tight">
-            {isRtl ? 'نمای کلی نقشه و موقعیت معادن (GIS)' : 'Map Overview'}
+          <MapPinIcon className="w-4 h-4 text-[#00D2FF]" />
+          <h3 className="text-sm font-black tracking-tight text-[#F1F5F9]">
+            {isRtl ? 'نمای کلی موقعیت و جبهه‌کارهای فعال' : 'Mine GIS Overview'}
           </h3>
         </div>
 
         <button 
           onClick={() => navigate('/mine/map')}
-          className="text-xs font-bold text-slate-400 hover:text-cyan-400 flex items-center gap-1 transition-colors"
+          className="px-3 py-1 rounded-full text-xs font-bold text-[#00D2FF] bg-[#141F42] hover:bg-[#1E2D5C] border border-[#24356B]/40 flex items-center gap-1.5 transition-all cursor-pointer"
         >
-          <span>{isRtl ? 'باز کردن نقشه سه‌بعدی کامل' : 'Full GIS Map'}</span>
-          <ArrowsPointingOutIcon className="w-3.5 h-3.5" />
+          <span>{isRtl ? 'مشاهده نقشه کامل' : 'Full GIS Map'}</span>
+          <ArrowsPointingOutIcon className="w-3 h-3" />
         </button>
       </div>
 
       {/* Map Terrain Canvas Container */}
       <div 
-        className="relative w-full h-[230px] rounded-xl overflow-hidden border border-slate-800/40 select-none group"
+        className="relative w-full h-[230px] rounded-[18px] overflow-hidden border border-[#24356B]/35 select-none group"
         style={{
           background: isDark
-            ? 'radial-gradient(ellipse at 40% 50%, #152238 0%, #0c1424 50%, #060a12 100%)'
+            ? 'radial-gradient(ellipse at 40% 50%, #17244B 0%, #101935 60%, #0C132B 100%)'
             : 'radial-gradient(ellipse at 40% 50%, #E2E8F0 0%, #CBD5E1 60%, #94A3B8 100%)'
         }}
       >
         {/* Topographic Contour Lines SVG Pattern */}
-        <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="absolute inset-0 w-full h-full opacity-35 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <pattern id="topoContour" width="120" height="120" patternUnits="userSpaceOnUse">
-              <path d="M 0 30 Q 30 10 60 30 T 120 30" fill="none" stroke={isDark ? '#38BDF8' : '#64748B'} strokeWidth="0.8" opacity="0.4" />
-              <path d="M 0 60 Q 40 40 80 70 T 120 50" fill="none" stroke={isDark ? '#38BDF8' : '#64748B'} strokeWidth="0.8" opacity="0.3" />
-              <path d="M 0 90 Q 50 110 90 80 T 120 100" fill="none" stroke={isDark ? '#38BDF8' : '#64748B'} strokeWidth="0.8" opacity="0.4" />
-              <ellipse cx="60" cy="60" rx="35" ry="20" fill="none" stroke={isDark ? '#818CF8' : '#475569'} strokeWidth="0.7" opacity="0.3" />
-              <ellipse cx="60" cy="60" rx="20" ry="10" fill="none" stroke={isDark ? '#C084FC' : '#334155'} strokeWidth="0.7" opacity="0.2" />
+            <pattern id="topoContourSoft" width="120" height="120" patternUnits="userSpaceOnUse">
+              <path d="M 0 30 Q 30 10 60 30 T 120 30" fill="none" stroke={isDark ? '#00D2FF' : '#64748B'} strokeWidth="0.8" opacity="0.3" />
+              <path d="M 0 60 Q 40 40 80 70 T 120 50" fill="none" stroke={isDark ? '#38BDF8' : '#64748B'} strokeWidth="0.8" opacity="0.25" />
+              <path d="M 0 90 Q 50 110 90 80 T 120 100" fill="none" stroke={isDark ? '#00D2FF' : '#64748B'} strokeWidth="0.8" opacity="0.3" />
+              <ellipse cx="60" cy="60" rx="35" ry="20" fill="none" stroke={isDark ? '#FFB020' : '#475569'} strokeWidth="0.7" opacity="0.25" />
+              <ellipse cx="60" cy="60" rx="20" ry="10" fill="none" stroke={isDark ? '#00D2FF' : '#334155'} strokeWidth="0.7" opacity="0.2" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#topoContour)" />
+          <rect width="100%" height="100%" fill="url(#topoContourSoft)" />
         </svg>
 
-        {/* Mountain Ridge Accents & Pit Terrains */}
-        <div className="absolute inset-0 pointer-events-none opacity-20">
-          <div className="absolute top-1/4 left-1/5 w-64 h-32 bg-emerald-500/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-40 bg-purple-500/20 rounded-full blur-3xl" />
+        {/* Mountain Ridge Soft Halos */}
+        <div className="absolute inset-0 pointer-events-none opacity-25">
+          <div className="absolute top-1/4 left-1/5 w-64 h-32 bg-[#00D2FF]/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-40 bg-[#FFB020]/15 rounded-full blur-3xl" />
         </div>
 
-        {/* Map Interactive Pins / Badges */}
+        {/* Map Interactive Pins */}
         {markers.map((marker) => {
-          const isSelected = selectedMarker === marker.id;
           return (
             <div
               key={marker.id}
@@ -154,17 +153,23 @@ export const MapOverviewCard: React.FC = () => {
               style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
             >
               <div className="flex items-center gap-2">
-                {/* Pin Head with Pulsing Halo */}
+                {/* Pin Head with Gentle Pulsing Halo */}
                 <div className="relative">
-                  <div className={`w-3.5 h-3.5 rounded-full ${marker.pinBg} border-2 border-white shadow-lg`} />
-                  <div className={`absolute -inset-1 rounded-full ${marker.pinBg} opacity-40 animate-ping`} />
+                  <div 
+                    className="w-3.5 h-3.5 rounded-full border-2 border-white shadow-md"
+                    style={{ backgroundColor: marker.color }}
+                  />
+                  <div 
+                    className="absolute -inset-1 rounded-full opacity-40 animate-ping"
+                    style={{ backgroundColor: marker.color }}
+                  />
                 </div>
 
                 {/* Floating Mine Details Badge */}
                 <div 
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border shadow-xl flex flex-col backdrop-blur-md transition-all ${
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border shadow-lg flex flex-col backdrop-blur-md transition-all ${
                     isDark 
-                      ? 'bg-[#0B101D]/90 border-[#1F293D] text-white' 
+                      ? 'bg-[#141F42]/90 border-[#24356B]/50 text-white' 
                       : 'bg-white/95 border-slate-200 text-slate-900 shadow-md'
                   }`}
                 >
@@ -183,7 +188,7 @@ export const MapOverviewCard: React.FC = () => {
           <button
             onClick={() => setZoomLevel((z) => Math.min(z + 0.2, 2))}
             className={`w-7 h-7 rounded-lg flex items-center justify-center border font-bold text-xs shadow-md transition-all ${
-              isDark ? 'bg-[#111726] border-[#1F293D] text-white hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+              isDark ? 'bg-[#141F42] border-[#24356B]/50 text-white hover:bg-[#1E2D5C]' : 'bg-white border-slate-200 text-slate-800'
             }`}
           >
             <PlusIcon className="w-3.5 h-3.5" />
@@ -191,7 +196,7 @@ export const MapOverviewCard: React.FC = () => {
           <button
             onClick={() => setZoomLevel((z) => Math.max(z - 0.2, 0.6))}
             className={`w-7 h-7 rounded-lg flex items-center justify-center border font-bold text-xs shadow-md transition-all ${
-              isDark ? 'bg-[#111726] border-[#1F293D] text-white hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+              isDark ? 'bg-[#141F42] border-[#24356B]/50 text-white hover:bg-[#1E2D5C]' : 'bg-white border-slate-200 text-slate-800'
             }`}
           >
             <MinusIcon className="w-3.5 h-3.5" />
@@ -199,11 +204,11 @@ export const MapOverviewCard: React.FC = () => {
           <button
             onClick={() => navigate('/mine/map')}
             className={`w-7 h-7 rounded-lg flex items-center justify-center border font-bold text-xs shadow-md transition-all ${
-              isDark ? 'bg-[#111726] border-[#1F293D] text-white hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+              isDark ? 'bg-[#141F42] border-[#24356B]/50 text-white hover:bg-[#1E2D5C]' : 'bg-white border-slate-200 text-slate-800'
             }`}
             title="لایه‌های نقشه"
           >
-            <Square3Stack3DIcon className="w-3.5 h-3.5 text-cyan-400" />
+            <Square3Stack3DIcon className="w-3.5 h-3.5 text-[#00D2FF]" />
           </button>
         </div>
       </div>

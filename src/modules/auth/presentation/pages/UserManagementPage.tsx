@@ -13,6 +13,10 @@ import {
   PERMISSION_LIST,
   SEED_USERS,
 } from '../../domain/roles';
+import { TaskService } from '../../../tasks/services/TaskService';
+import { TaskAssignmentModal } from '../../../tasks/presentation/components/TaskAssignmentModal';
+import { UnitTasksDrawer } from '../../../tasks/presentation/components/UnitTasksDrawer';
+import { UnitTask } from '../../../../core/domain/types/task.types';
 import {
   Users,
   UserPlus,
@@ -34,7 +38,11 @@ import {
   Layers,
   ChevronLeft,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  ClipboardList,
+  Send,
+  ArrowRightLeft,
+  RotateCw
 } from 'lucide-react';
 import {
   HomeIcon,
@@ -72,7 +80,25 @@ export function UserManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [activeTab, setActiveTab] = useState<'list' | 'roles' | 'matrix'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'roles' | 'matrix' | 'tasks'>('list');
+
+  // Tasks state
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isUnitTasksDrawerOpen, setIsUnitTasksDrawerOpen] = useState(false);
+  const [assignTargetUser, setAssignTargetUser] = useState<User | null>(null);
+  const [allTasks, setAllTasks] = useState<UnitTask[]>(() => TaskService.getAllTasks());
+  const [taskFilterRole, setTaskFilterRole] = useState<string>('ALL');
+  const [taskFilterStatus, setTaskFilterStatus] = useState<string>('ALL');
+
+  const refreshTasks = () => {
+    setAllTasks(TaskService.getAllTasks());
+  };
+
+  useEffect(() => {
+    const handleSync = () => refreshTasks();
+    window.addEventListener('taskUpdated', handleSync);
+    return () => window.removeEventListener('taskUpdated', handleSync);
+  }, []);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -534,6 +560,25 @@ export function UserManagementPage() {
               <Layers className="w-4 h-4" />
               <span>{isFa ? 'ماتریس دسترسی‌ها' : 'Permission Matrix'}</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'tasks'
+                  ? isDark
+                    ? 'bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/40'
+                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  : isDark
+                  ? 'text-[#8A9DB0] hover:text-white hover:bg-white/5'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4 text-indigo-400" />
+              <span>{isFa ? 'کارتابل و ارجاعات تسک‌های واحدها' : 'Tasks & Assignments Hub'}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 font-mono font-bold">
+                {allTasks.filter(t => t.status !== 'Completed').length}
+              </span>
+            </button>
           </div>
 
           {/* TAB 1: USERS DIRECTORY & TABLE */}
@@ -732,6 +777,32 @@ export function UserManagementPage() {
                               <td className="p-4 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <button
+                                    onClick={() => {
+                                      setAssignTargetUser(user);
+                                      setIsTaskModalOpen(true);
+                                    }}
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                      isDark ? 'hover:bg-indigo-500/20 text-indigo-400' : 'hover:bg-indigo-100 text-indigo-600'
+                                    }`}
+                                    title={isFa ? 'ارجاع تسک جدید به این کاربر' : 'Assign Task'}
+                                  >
+                                    <Send className="w-4 h-4" />
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      localStorage.setItem('aes_session', JSON.stringify(user));
+                                      window.location.href = '/dashboard';
+                                    }}
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                      isDark ? 'hover:bg-emerald-500/20 text-emerald-400' : 'hover:bg-emerald-100 text-emerald-600'
+                                    }`}
+                                    title={isFa ? 'ورود به میز کار این کاربر' : 'Switch Workspace'}
+                                  >
+                                    <ArrowRightLeft className="w-4 h-4" />
+                                  </button>
+
+                                  <button
                                     onClick={() => setDetailUser(user)}
                                     className={`p-1.5 rounded-lg transition-colors ${
                                       isDark ? 'hover:bg-white/10 text-cyan-400' : 'hover:bg-slate-200 text-cyan-600'
@@ -929,6 +1000,156 @@ export function UserManagementPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: TASKS & ASSIGNMENTS HUB */}
+          {activeTab === 'tasks' && (
+            <div className="space-y-4">
+              {/* Task filters and action bar */}
+              <div className={`p-4 rounded-2xl border flex flex-col md:flex-row gap-3 items-center justify-between ${
+                isDark ? 'bg-[#13203A]/60 border-[#2A3A5A]/40' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+                  <select
+                    value={taskFilterRole}
+                    onChange={e => setTaskFilterRole(e.target.value)}
+                    className={`text-xs px-3 py-2 rounded-xl border outline-none ${
+                      isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="ALL">{isFa ? 'تمام واحدهای سازمانی و نقش‌ها' : 'All Roles & Units'}</option>
+                    {SYSTEM_ROLES.map(r => (
+                      <option key={r.id} value={r.id}>
+                        {isFa ? `${r.nameFa} (${r.department})` : r.nameEn}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={taskFilterStatus}
+                    onChange={e => setTaskFilterStatus(e.target.value)}
+                    className={`text-xs px-3 py-2 rounded-xl border outline-none ${
+                      isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="ALL">{isFa ? 'تمام وضعیت‌های تسک' : 'All Statuses'}</option>
+                    <option value="Pending">{isFa ? 'در انتظار اقدام' : 'Pending'}</option>
+                    <option value="In_Progress">{isFa ? 'در حال انجام' : 'In Progress'}</option>
+                    <option value="Completed">{isFa ? 'تکمیل‌شده' : 'Completed'}</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                  <button
+                    onClick={() => setIsUnitTasksDrawerOpen(true)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                      isDark ? 'bg-white/5 hover:bg-white/10 border-white/10 text-indigo-300' : 'bg-white border-slate-200 text-indigo-600'
+                    }`}
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>{isFa ? 'مشاهده در دراور اختصاصی' : 'View in Drawer'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setAssignTargetUser(null);
+                      setIsTaskModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 hover:scale-[1.02] transition-all"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>{isFa ? 'ارجاع تسک جدید' : 'New Assignment'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Tasks List */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {allTasks
+                  .filter(t => (taskFilterRole === 'ALL' || t.targetRole === taskFilterRole) && (taskFilterStatus === 'ALL' || t.status === taskFilterStatus))
+                  .map(task => {
+                    const roleInfo = SYSTEM_ROLES.find(r => r.id.toLowerCase() === task.targetRole.toLowerCase()) || SYSTEM_ROLES[0];
+                    const priorityColor = task.priority === 'Critical' ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : task.priority === 'High' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-blue-500/20 text-blue-400 border-blue-500/40';
+                    const statusColor = task.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : task.status === 'In_Progress' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-slate-500/20 text-slate-300 border-slate-500/40';
+
+                    return (
+                      <div
+                        key={task.id}
+                        className={`p-4 rounded-2xl border transition-all ${
+                          isDark ? 'bg-[#13203A]/70 border-[#2A3A5A]/50 hover:border-indigo-500/40' : 'bg-white border-slate-200 shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${priorityColor}`}>
+                                {task.priority === 'Critical' ? 'بحرانی' : task.priority === 'High' ? 'فوری' : task.priority === 'Medium' ? 'متوسط' : 'عادی'}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${statusColor}`}>
+                                {task.status === 'Completed' ? 'تکمیل‌شده' : task.status === 'In_Progress' ? 'در حال انجام' : 'در انتظار اقدام'}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {new Date(task.createdAt).toLocaleDateString('fa-IR')}
+                              </span>
+                            </div>
+                            <h4 className={`text-sm font-bold mt-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                              {task.title}
+                            </h4>
+                          </div>
+
+                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border flex items-center gap-1 ${roleInfo.badgeColor}`}>
+                            <roleInfo.icon className="w-3.5 h-3.5" />
+                            <span>{roleInfo.nameFa}</span>
+                          </span>
+                        </div>
+
+                        <p className={`text-xs mt-2 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                          {task.description}
+                        </p>
+
+                        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2 flex-wrap text-xs">
+                          <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                            <span>ارجاع‌دهنده:</span>
+                            <span className="font-bold text-slate-300">{task.createdByName}</span>
+                            {task.targetUserName && (
+                              <>
+                                <span className="mx-1">•</span>
+                                <span>کاربر مستقیم:</span>
+                                <span className="font-bold text-indigo-300">{task.targetUserName}</span>
+                              </>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {task.status !== 'Completed' && (
+                              <button
+                                onClick={() => {
+                                  TaskService.updateTaskStatus(task.id, 'Completed');
+                                  refreshTasks();
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-bold border border-emerald-500/30 transition-colors"
+                              >
+                                ثبت تکمیل
+                              </button>
+                            )}
+                            {task.status === 'Pending' && (
+                              <button
+                                onClick={() => {
+                                  TaskService.updateTaskStatus(task.id, 'In_Progress');
+                                  refreshTasks();
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-bold border border-amber-500/30 transition-colors"
+                              >
+                                شروع کار
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -1360,6 +1581,26 @@ export function UserManagementPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Task Assignment Modal */}
+      <TaskAssignmentModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setAssignTargetUser(null);
+        }}
+        preselectedUserId={assignTargetUser?.id}
+        preselectedRole={assignTargetUser?.role}
+        onTaskCreated={() => {
+          refreshTasks();
+        }}
+      />
+
+      {/* Unit Tasks Drawer */}
+      <UnitTasksDrawer
+        isOpen={isUnitTasksDrawerOpen}
+        onClose={() => setIsUnitTasksDrawerOpen(false)}
+      />
     </div>
   );
 }

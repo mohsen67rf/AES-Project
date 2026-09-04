@@ -46,9 +46,6 @@ export const ExecutiveSlopeSafetyRadarWidget: React.FC = () => {
                 {isRtl ? 'وضعیت دیواره‌ها: پایدار' : 'Slopes: Stable'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'پایش لحظه‌ای منشورهای ژئوتکنیک، نرخ جابجایی دیواره‌ها و سوابق HSE' : 'Geotechnical prism displacement, pit radar & safety metrics'}
-            </p>
           </div>
         </div>
 

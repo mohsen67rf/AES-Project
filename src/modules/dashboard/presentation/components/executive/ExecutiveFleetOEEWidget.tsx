@@ -102,9 +102,6 @@ export const ExecutiveFleetOEEWidget: React.FC = () => {
                 OEE: {overallOEE}%
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'نرخ آمادگی مکانیکی، زمان رفت و برگشت بارگیری و مصرف سوخت' : 'Mechanical availability, cycle time & diesel consumption'}
-            </p>
           </div>
         </div>
 

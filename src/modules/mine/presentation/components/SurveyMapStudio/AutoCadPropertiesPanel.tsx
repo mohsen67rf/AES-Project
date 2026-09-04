@@ -3,31 +3,39 @@
 import React, { useState, useMemo } from 'react';
 import type { 
   MapLayer, 
-  MapFeature, 
-  FeatureCategory 
+  MapFeature 
 } from '../../../../../core/domain/types/survey-map.types';
 import type { DisplayOverlaySettings } from './MapLayersControlPanel';
 import {
-  Square2StackIcon,
-  InformationCircleIcon,
-  AdjustmentsHorizontalIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  LockClosedIcon,
-  LockOpenIcon,
-  TagIcon,
-  PaintBrushIcon,
-  TrashIcon,
-  PencilSquareIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  MagnifyingGlassIcon,
-  SparklesIcon,
-  SwatchIcon,
-  ArrowsPointingOutIcon,
-  XMarkIcon
-} from '@heroicons/react/24/outline';
+  Sliders,
+  Layers,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Tag,
+  Paintbrush,
+  Trash2,
+  Pencil,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  X,
+  Maximize2,
+  Ruler,
+  Mountain,
+  Scale,
+  FlaskConical,
+  Truck,
+  Grid,
+  Compass,
+  Crosshair,
+  Hexagon,
+  Spline,
+  CircleDot,
+  FileText
+} from 'lucide-react';
 
 interface AutoCadPropertiesPanelProps {
   layers: MapLayer[];
@@ -63,18 +71,18 @@ interface AutoCadPropertiesPanelProps {
 }
 
 const CAD_PALETTE = [
-  { name: 'سایان', hex: '#00D4FF' },
-  { name: 'آبی آسمانی', hex: '#38BDF8' },
-  { name: 'آبی کبالت', hex: '#3B82F6' },
-  { name: 'زمردی', hex: '#10B981' },
-  { name: 'سبز روشن', hex: '#22C55E' },
-  { name: 'زرد', hex: '#EAB308' },
-  { name: 'نارنجی', hex: '#F59E0B' },
-  { name: 'قرمز', hex: '#EF4444' },
-  { name: 'سرخابی', hex: '#EC4899' },
-  { name: 'بنفش', hex: '#A855F7' },
-  { name: 'سفید', hex: '#F8FAFC' },
-  { name: 'خاکستری', hex: '#94A3B8' }
+  { name: 'Cyan', hex: '#00D4FF' },
+  { name: 'Sky', hex: '#38BDF8' },
+  { name: 'Blue', hex: '#3B82F6' },
+  { name: 'Emerald', hex: '#10B981' },
+  { name: 'Green', hex: '#22C55E' },
+  { name: 'Yellow', hex: '#EAB308' },
+  { name: 'Amber', hex: '#F59E0B' },
+  { name: 'Red', hex: '#EF4444' },
+  { name: 'Pink', hex: '#EC4899' },
+  { name: 'Purple', hex: '#A855F7' },
+  { name: 'White', hex: '#F8FAFC' },
+  { name: 'Slate', hex: '#94A3B8' }
 ];
 
 export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
@@ -83,7 +91,7 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
   displaySettings,
   benchLevel,
   totalFeaturesCount,
-  activeRole,
+  activeRole: _activeRole,
   canEdit,
   onSelectFeature,
   onEditFeatureRequest,
@@ -91,9 +99,9 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
   onToggleLayerVisibility,
   onToggleLayerLock,
   onToggleLayerLabels,
-  onChangeLayerOpacity,
+  onChangeLayerOpacity: _onChangeLayerOpacity,
   onBatchToggleLayers,
-  onSetLayersLabelsVisibility,
+  onSetLayersLabelsVisibility: _onSetLayersLabelsVisibility,
   onUpdateLayersStyle,
   onChangeDisplaySettings,
   onClose,
@@ -103,33 +111,28 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
     selectedFeature ? 'PROPERTIES' : activeTabDefault
   );
 
-  // لایه‌های انتخاب‌شده برای استایل‌دهی گروهی
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [searchLayer, setSearchLayer] = useState<string>('');
   const [isStyleExpanded, setIsStyleExpanded] = useState<boolean>(true);
 
-  // مقادیر استایل انتخابی
   const [styleColor, setStyleColor] = useState<string>('#00D4FF');
   const [styleWidth, setStyleWidth] = useState<number>(2);
   const [styleDash, setStyleDash] = useState<'solid' | 'dashed' | 'dotted' | 'dashdot'>('solid');
   const [styleOpacity, setStyleOpacity] = useState<number>(0.85);
   const [applyToExisting, setApplyToExisting] = useState<boolean>(true);
 
-  // اگر المانی انتخاب شد به تب مشخصات سوییچ شود
   React.useEffect(() => {
     if (selectedFeature) {
       setActiveTab('PROPERTIES');
     }
   }, [selectedFeature]);
 
-  // فیلتر لایه‌ها
   const filteredLayers = useMemo(() => {
     if (!searchLayer.trim()) return layers;
     const q = searchLayer.toLowerCase();
     return layers.filter(l => l.name.toLowerCase().includes(q) || (l.description && l.description.toLowerCase().includes(q)));
   }, [layers, searchLayer]);
 
-  // انتخاب لایه برای ویرایش استایل
   const handleSelectLayerForStyle = (layer: MapLayer) => {
     setSelectedLayerIds([layer.id]);
     setStyleColor(layer.color || '#00D4FF');
@@ -139,7 +142,6 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
     setIsStyleExpanded(true);
   };
 
-  // اعمال استایل
   const handleApplyStyle = () => {
     if (selectedLayerIds.length === 0 || !onUpdateLayersStyle) return;
     onUpdateLayersStyle(
@@ -154,48 +156,60 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
     );
   };
 
+  // آیکون و برچسب فشرده نوع عارضه
+  const getFeatureIcon = (feature: MapFeature) => {
+    if (feature.category === 'SUB_BLOCK' || feature.type === 'POLYGON') {
+      return <Hexagon className="w-4 h-4 text-emerald-400" />;
+    }
+    if (feature.type === 'POLYLINE') {
+      return <Spline className="w-4 h-4 text-cyan-400" />;
+    }
+    if (feature.category === 'ANNOTATION') {
+      return <FileText className="w-4 h-4 text-amber-400" />;
+    }
+    return <CircleDot className="w-4 h-4 text-rose-400" />;
+  };
+
   return (
     <aside 
       className="w-80 h-full flex flex-col bg-[#070F1E]/95 backdrop-blur-xl border-l border-slate-800/90 text-slate-200 select-none shadow-2xl z-20 shrink-0"
       dir="rtl"
     >
-      {/* هدر بالایی پنل مشخصات CAD (AutoCAD Properties Palette Header) */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-slate-950/90 border-b border-slate-800 shrink-0">
+      {/* هدر بالایی پنل مشخصات */}
+      <div className="flex items-center justify-between px-3 py-2 bg-slate-950/90 border-b border-slate-800 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-black text-xs font-mono">
-            P
+          <div className="w-6 h-6 rounded-md bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+            <Sliders className="w-3.5 h-3.5" />
           </div>
-          <div>
-            <h3 className="text-xs font-bold text-white tracking-wider flex items-center gap-1.5 font-mono">
-              <span>PROPERTIES</span>
-              <span className="text-[10px] font-sans text-slate-400 font-normal">| مشخصات و لایه‌ها</span>
-            </h3>
-          </div>
+          <span className="text-xs font-bold text-white font-mono tracking-wider">
+            PROPERTIES
+          </span>
         </div>
 
         {onClose && (
           <button
             onClick={onClose}
             className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="بستن پنل"
+            title="بستن"
           >
-            <XMarkIcon className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* سربرگ‌های ناوبری داخل پنل مشخصات */}
-      <div className="flex items-center border-b border-slate-800 bg-slate-950/60 p-1 gap-1 shrink-0 text-[11px]">
+      {/* تب‌های سه‌گانه با آیکون‌های استاندارد */}
+      <div className="grid grid-cols-3 border-b border-slate-800 bg-slate-950/60 p-1 gap-1 shrink-0">
         <button
           onClick={() => setActiveTab('PROPERTIES')}
-          className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+          title="مشخصات عارضه"
+          className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold ${
             activeTab === 'PROPERTIES'
-              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-bold'
+              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
-          <InformationCircleIcon className="w-3.5 h-3.5" />
-          <span>مشخصات المان</span>
+          <Sliders className="w-3.5 h-3.5" />
+          <span>مشخصات</span>
           {selectedFeature && (
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
           )}
@@ -203,377 +217,349 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
 
         <button
           onClick={() => setActiveTab('LAYERS')}
-          className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+          title="لایه‌ها"
+          className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold ${
             activeTab === 'LAYERS'
-              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-bold'
+              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
-          <Square2StackIcon className="w-3.5 h-3.5" />
-          <span>لایه‌ها ({layers.length})</span>
+          <Layers className="w-3.5 h-3.5" />
+          <span>لایه‌ها</span>
+          <span className="text-[10px] px-1 rounded bg-slate-800 text-slate-300 font-mono">
+            {layers.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('VIEW')}
-          className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+          title="تنظیمات دید و بوم"
+          className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold ${
             activeTab === 'VIEW'
-              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-bold'
+              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
-          <AdjustmentsHorizontalIcon className="w-3.5 h-3.5" />
-          <span>دید و بوم</span>
+          <Eye className="w-3.5 h-3.5" />
+          <span>نمایش</span>
         </button>
       </div>
 
       {/* بدنه محتوا بر اساس تب فعال */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar text-xs">
         
-        {/* ======================= تب ۱: مشخصات المان انتخاب شده ======================= */}
+        {/* ======================= تب ۱: مشخصات المان (فرم بصری مبتنی بر آیکون و اشکال) ======================= */}
         {activeTab === 'PROPERTIES' && (
           selectedFeature ? (
-            <div className="space-y-3">
-              {/* کارت هدر عارضه انتخابی */}
+            <div className="space-y-2.5 animate-fade-in">
+              {/* کارت اصلی عارضه */}
               <div className="p-3 rounded-xl bg-slate-900/90 border border-cyan-500/40 shadow-lg space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                    {selectedFeature.category === 'SUB_BLOCK' ? 'ساب‌بلوک معدنی' :
-                     selectedFeature.category === 'HAUL_ROAD' ? 'خط مسیر / رمپ' :
-                     selectedFeature.category === 'BENCH_CREST' ? 'خط لبه پله (Crest)' :
-                     selectedFeature.category === 'BENCH_TOE' ? 'خط پای پله (Toe)' :
-                     selectedFeature.category === 'SURVEY_BENCHMARK' ? 'بنچ‌مارک نقشه‌برداری' :
-                     selectedFeature.category === 'ANNOTATION' ? 'یادداشت متنی' : 'عارضه هندسی'}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400 font-bold">
-                    {selectedFeature.type}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <h4 className="font-bold text-white text-sm">
-                    {selectedFeature.name}
-                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    {getFeatureIcon(selectedFeature)}
+                    <span className="font-bold text-white text-xs truncate max-w-[140px]">
+                      {selectedFeature.name}
+                    </span>
+                  </div>
                   {selectedFeature.properties?.code && (
-                    <span className="text-[11px] font-mono font-bold text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">
+                    <span className="text-[10px] font-mono font-bold text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">
                       {selectedFeature.properties.code}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* بخش مشخصات عمومی و لایه در AutoCAD */}
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono border-b border-slate-800 pb-1">
-                  GENERAL (مشخصات لایه و رنگ)
-                </div>
-
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">لایه (Layer):</span>
-                  <span className="font-mono text-cyan-300 font-bold">
-                    {layers.find(l => l.id === selectedFeature.layerId)?.name || 'پیش‌فرض'}
+              {/* مشخصات استایل و لایه (نمایش بصری با آیکون) */}
+              <div className="grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-slate-900/70 border border-slate-800">
+                {/* لایه */}
+                <div className="p-1.5 rounded-lg bg-slate-950/60 flex flex-col items-center justify-center gap-1 text-center" title="لایه">
+                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-[10px] font-bold text-slate-300 truncate w-full">
+                    {layers.find(l => l.id === selectedFeature.layerId)?.name || 'لایه'}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">رنگ ترسیم:</span>
-                  <div className="flex items-center gap-1.5">
-                    <span 
-                      className="w-3.5 h-3.5 rounded-full border border-white/40" 
-                      style={{ backgroundColor: selectedFeature.style?.strokeColor || selectedFeature.style?.fillColor || '#00D4FF' }} 
-                    />
-                    <span className="font-mono text-[10px] text-slate-300">
-                      {selectedFeature.style?.strokeColor || '#00D4FF'}
-                    </span>
-                  </div>
+                {/* رنگ عارضه */}
+                <div className="p-1.5 rounded-lg bg-slate-950/60 flex flex-col items-center justify-center gap-1 text-center" title="رنگ">
+                  <span 
+                    className="w-4 h-4 rounded-full border border-white/40 shadow-sm" 
+                    style={{ backgroundColor: selectedFeature.style?.strokeColor || selectedFeature.style?.fillColor || '#00D4FF' }} 
+                  />
+                  <span className="text-[9px] font-mono text-slate-400">
+                    {selectedFeature.style?.strokeColor || '#00D4FF'}
+                  </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">ضخامت خط (LineWeight):</span>
-                  <span className="font-mono text-slate-200">
-                    {selectedFeature.style?.strokeWidth || 2} px
+                {/* ضخامت خط */}
+                <div className="p-1.5 rounded-lg bg-slate-950/60 flex flex-col items-center justify-center gap-1 text-center" title="ضخامت">
+                  <div 
+                    className="w-6 bg-cyan-400 rounded-full" 
+                    style={{ height: `${Math.max(2, Math.min(selectedFeature.style?.strokeWidth || 2, 6))}px` }} 
+                  />
+                  <span className="text-[9px] font-mono text-slate-300">
+                    {selectedFeature.style?.strokeWidth || 2}px
                   </span>
                 </div>
               </div>
 
-              {/* بخش مختصات و ژئومتری CAD */}
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono border-b border-slate-800 pb-1">
-                  GEOMETRY (هندسه و مختصات)
-                </div>
-
-                {/* اگر ساب‌بلوک یا چندضلعی است: مساحت و محیط */}
+              {/* متریک‌های هندسی عارضه با آیکون‌های استاندارد */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* مساحت */}
                 {selectedFeature.type === 'POLYGON' && selectedFeature.properties?.area && (
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400">مساحت (Area):</span>
-                    <span className="font-mono font-bold text-cyan-400">
-                      {Math.round(selectedFeature.properties.area).toLocaleString()} m²
-                    </span>
+                  <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2" title="مساحت">
+                    <div className="w-7 h-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-mono font-black text-white text-xs block truncate">
+                        {Math.round(selectedFeature.properties.area).toLocaleString()}
+                      </span>
+                      <span className="text-[9px] text-slate-500 font-mono">m²</span>
+                    </div>
                   </div>
                 )}
 
-                {/* اگر خط یا رمپ است: طول کل */}
+                {/* طول */}
                 {selectedFeature.type === 'POLYLINE' && selectedFeature.properties?.length && (
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400">طول کل (Length):</span>
-                    <span className="font-mono font-bold text-cyan-400">
-                      {Math.round(selectedFeature.properties.length).toLocaleString()} m
-                    </span>
+                  <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2" title="طول کل">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                      <Ruler className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-mono font-black text-white text-xs block truncate">
+                        {Math.round(selectedFeature.properties.length).toLocaleString()}
+                      </span>
+                      <span className="text-[9px] text-slate-500 font-mono">m</span>
+                    </div>
                   </div>
                 )}
 
-                {/* تراز Z */}
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">تراز ارتفاعی (Elevation):</span>
-                  <span className="font-mono text-amber-400 font-bold">
-                    {selectedFeature.elevation || selectedFeature.coordinates?.[0]?.[2] || benchLevel} m
-                  </span>
+                {/* تراز ارتفاعی */}
+                <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2" title="تراز ارتفاعی">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                    <Mountain className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-mono font-black text-white text-xs block truncate">
+                      {selectedFeature.elevation || selectedFeature.coordinates?.[0]?.[2] || benchLevel}
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-mono">m (RL)</span>
+                  </div>
                 </div>
 
-                {/* تعداد رئوس مختصاتی */}
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">تعداد گره‌ها (Vertices):</span>
-                  <span className="font-mono text-slate-300 font-bold">
-                    {selectedFeature.coordinates?.length || 0} نقطه
-                  </span>
+                {/* تعداد گره‌ها */}
+                <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2" title="تعداد رئوس">
+                  <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                    <Crosshair className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-mono font-black text-white text-xs block truncate">
+                      {selectedFeature.coordinates?.length || 0}
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-mono">pts</span>
+                  </div>
                 </div>
               </div>
 
-              {/* بخش پارامترهای کیفی و معدنی ساب‌بلوک */}
+              {/* پارامترهای معدنی ساب‌بلوک */}
               {selectedFeature.category === 'SUB_BLOCK' && (
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono border-b border-slate-800 pb-1">
-                    MINING ATTRIBUTES (پارامترهای معدنی)
-                  </div>
-
+                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                  {/* عیار آهن با گیج بصری */}
                   {selectedFeature.properties?.feGrade !== undefined && (
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">عیار آهن (% Fe):</span>
-                      <span className="font-bold text-emerald-400 font-mono text-xs px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/50">
-                        {selectedFeature.properties.feGrade}%
-                      </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                          <FlaskConical className="w-3.5 h-3.5" />
+                          <span>Fe</span>
+                        </div>
+                        <span className="font-mono font-black text-emerald-400 text-xs">
+                          {selectedFeature.properties.feGrade}%
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                        <div 
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full" 
+                          style={{ width: `${Math.min(selectedFeature.properties.feGrade, 100)}%` }}
+                        />
+                      </div>
                     </div>
                   )}
 
-                  {selectedFeature.properties?.tonnage !== undefined && (
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">تناژ تخمینی:</span>
-                      <span className="font-bold text-cyan-300 font-mono">
-                        {selectedFeature.properties.tonnage.toLocaleString()} تن
-                      </span>
-                    </div>
-                  )}
+                  {/* تناژ و کانسنگ */}
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    {selectedFeature.properties?.tonnage !== undefined && (
+                      <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 flex items-center gap-1.5" title="تناژ">
+                        <Scale className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span className="font-mono font-bold text-slate-200 text-[11px] truncate">
+                          {selectedFeature.properties.tonnage.toLocaleString()} t
+                        </span>
+                      </div>
+                    )}
 
-                  {selectedFeature.properties?.rockType && (
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">نوع کانسنگ:</span>
-                      <span className="text-slate-200 font-semibold">
-                        {selectedFeature.properties.rockType}
-                      </span>
-                    </div>
-                  )}
-
-                  {selectedFeature.properties?.destination && (
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">مقصد تخلیه:</span>
-                      <span className="text-amber-300 font-semibold">
-                        {selectedFeature.properties.destination}
-                      </span>
-                    </div>
-                  )}
+                    {selectedFeature.properties?.destination && (
+                      <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 flex items-center gap-1.5" title="مقصد">
+                        <Truck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="font-bold text-amber-300 text-[10px] truncate">
+                          {selectedFeature.properties.destination}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* دکمه‌های عملیاتی برای عارضه انتخابی */}
-              {canEdit && (
-                <div className="flex items-center gap-2 pt-1">
-                  {onEditFeatureRequest && (
-                    <button
-                      onClick={() => onEditFeatureRequest(selectedFeature)}
-                      className="flex-1 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <PencilSquareIcon className="w-4 h-4" />
-                      <span>ویرایش مشخصات</span>
-                    </button>
-                  )}
+              {/* دکمه‌های عملیاتی فشرده با آیکون */}
+              <div className="flex items-center gap-1.5 pt-1">
+                {canEdit && onEditFeatureRequest && (
+                  <button
+                    onClick={() => onEditFeatureRequest(selectedFeature)}
+                    title="ویرایش عارضه"
+                    className="flex-1 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>ویرایش</span>
+                  </button>
+                )}
 
-                  {onDeleteFeatureRequest && (
-                    <button
-                      onClick={() => onDeleteFeatureRequest(selectedFeature)}
-                      className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 transition-all flex items-center justify-center"
-                      title="حذف المان"
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              )}
+                {canEdit && onDeleteFeatureRequest && (
+                  <button
+                    onClick={() => onDeleteFeatureRequest(selectedFeature)}
+                    title="حذف"
+                    className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 transition-all flex items-center justify-center"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
 
-              <button
-                onClick={() => onSelectFeature(null)}
-                className="w-full py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white text-[11px] font-bold transition-all text-center"
-              >
-                لغو انتخاب المان (Deselect)
-              </button>
+                <button
+                  onClick={() => onSelectFeature(null)}
+                  title="لغو انتخاب"
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="p-6 text-center space-y-4">
+            <div className="p-4 text-center space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
-                <InformationCircleIcon className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-300">عنصری انتخاب نشده است</h4>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  جهت مشاهده، بازرسی و ویرایش ویژگی‌ها، یک ساب‌بلوک، خط یا بنچ‌مارک را روی نقشه کلیک کنید.
-                </p>
+                <Crosshair className="w-6 h-6 animate-pulse text-cyan-400/80" />
               </div>
 
-              {/* خلاصه وضعیت کلی نقشه در حالت بدون انتخاب */}
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2 text-right text-[11px]">
-                <div className="text-[10px] font-bold text-cyan-400 font-mono border-b border-slate-800 pb-1">
-                  MAP SUMMARY (خلاصه نقشه)
+              {/* متریک‌های نقشه به صورت گرید ۴ تایی */}
+              <div className="grid grid-cols-2 gap-2 text-right">
+                <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2">
+                  <Mountain className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">پله</span>
+                    <span className="font-mono font-bold text-xs text-white">{benchLevel} m</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">تراز استخراج پله:</span>
-                  <span className="font-mono font-bold text-amber-400">{benchLevel} متر</span>
+
+                <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">لایه‌ها</span>
+                    <span className="font-mono font-bold text-xs text-white">{layers.length}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">تعداد کل لایه‌ها:</span>
-                  <span className="font-mono font-bold text-white">{layers.length}</span>
+
+                <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2">
+                  <Hexagon className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">عوارض</span>
+                    <span className="font-mono font-bold text-xs text-white">{totalFeaturesCount}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">تعداد کل ترسیمات:</span>
-                  <span className="font-mono font-bold text-cyan-400">{totalFeaturesCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">سیستم مختصات:</span>
-                  <span className="font-mono text-[10px] text-slate-300">UTM Zone 39N</span>
+
+                <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">مرجع</span>
+                    <span className="font-mono font-bold text-[10px] text-slate-300">UTM 39N</span>
+                  </div>
                 </div>
               </div>
             </div>
           )
         )}
 
-        {/* ======================= تب ۲: مدیریت لایه‌ها و تغییر استایل ======================= */}
+        {/* ======================= تب ۲: مدیریت لایه‌ها ======================= */}
         {activeTab === 'LAYERS' && (
-          <div className="space-y-3">
-            {/* ابزار استایل‌دهی سریع لایه‌ها (Layer Style Editor) */}
-            <div className="p-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 space-y-2.5">
+          <div className="space-y-2.5">
+            {/* استایل سریع */}
+            <div className="p-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 space-y-2">
               <div 
                 className="flex items-center justify-between cursor-pointer"
                 onClick={() => setIsStyleExpanded(!isStyleExpanded)}
               >
                 <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
-                  <PaintBrushIcon className="w-4 h-4" />
-                  <span>تغییر استایل لایه‌ها</span>
+                  <Paintbrush className="w-3.5 h-3.5" />
+                  <span>استایل</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    {selectedLayerIds.length > 0 ? `${selectedLayerIds.length} لایه` : 'انتخاب کنید'}
-                  </span>
-                  {isStyleExpanded ? <ChevronUpIcon className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400" />}
-                </div>
+                {isStyleExpanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
               </div>
 
               {isStyleExpanded && (
-                <div className="space-y-2.5 pt-1 text-[11px]">
-                  {/* انتخاب رنگ از پالت */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">رنگ لایه (Color):</label>
-                    <div className="grid grid-cols-6 gap-1.5">
-                      {CAD_PALETTE.map((c) => (
-                        <button
-                          key={c.hex}
-                          onClick={() => setStyleColor(c.hex)}
-                          style={{ backgroundColor: c.hex }}
-                          title={c.name}
-                          className={`h-5 rounded-md border transition-all ${
-                            styleColor.toLowerCase() === c.hex.toLowerCase()
-                              ? 'ring-2 ring-cyan-400 scale-110 border-white'
-                              : 'border-white/20 hover:scale-105'
-                          }`}
-                        />
-                      ))}
-                    </div>
+                <div className="space-y-2 pt-1 text-[11px]">
+                  {/* پالت رنگ */}
+                  <div className="grid grid-cols-6 gap-1">
+                    {CAD_PALETTE.map((c) => (
+                      <button
+                        key={c.hex}
+                        onClick={() => setStyleColor(c.hex)}
+                        style={{ backgroundColor: c.hex }}
+                        title={c.name}
+                        className={`h-5 rounded border transition-all ${
+                          styleColor.toLowerCase() === c.hex.toLowerCase()
+                            ? 'ring-2 ring-cyan-400 scale-110 border-white'
+                            : 'border-white/20 hover:scale-105'
+                        }`}
+                      />
+                    ))}
                   </div>
 
-                  {/* ضخامت خط و الگوی خط‌چین */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-1">ضخامت خط:</label>
-                      <select
-                        value={styleWidth}
-                        onChange={(e) => setStyleWidth(Number(e.target.value))}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-white font-mono text-[11px] focus:outline-none focus:border-cyan-400"
-                      >
-                        <option value={1}>1 px (باریک)</option>
-                        <option value={2}>2 px (استاندارد)</option>
-                        <option value={3}>3 px (برجسته)</option>
-                        <option value={4}>4 px (ضخیم)</option>
-                        <option value={6}>6 px (خیلی ضخیم)</option>
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <select
+                      value={styleWidth}
+                      onChange={(e) => setStyleWidth(Number(e.target.value))}
+                      className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-white font-mono text-[11px] focus:outline-none"
+                    >
+                      <option value={1}>1 px</option>
+                      <option value={2}>2 px</option>
+                      <option value={3}>3 px</option>
+                      <option value={4}>4 px</option>
+                      <option value={6}>6 px</option>
+                    </select>
 
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-1">الگوی خط:</label>
-                      <select
-                        value={styleDash}
-                        onChange={(e) => setStyleDash(e.target.value as any)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-white text-[11px] focus:outline-none focus:border-cyan-400"
-                      >
-                        <option value="solid">ممتد (Solid)</option>
-                        <option value="dashed">خط‌چین (Dashed)</option>
-                        <option value="dotted">نقطه‌چین (Dotted)</option>
-                        <option value="dashdot">خط و نقطه</option>
-                      </select>
-                    </div>
+                    <select
+                      value={styleDash}
+                      onChange={(e) => setStyleDash(e.target.value as any)}
+                      className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-white text-[11px] focus:outline-none"
+                    >
+                      <option value="solid">ممتد</option>
+                      <option value="dashed">خط‌چین</option>
+                      <option value="dotted">نقطه‌چین</option>
+                    </select>
                   </div>
 
-                  {/* اسلایدر شفافیت (Opacity) */}
-                  <div>
-                    <div className="flex justify-between text-[10px] text-slate-400 font-bold mb-1">
-                      <span>شفافیت (Opacity):</span>
-                      <span className="font-mono text-cyan-300">{Math.round(styleOpacity * 100)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0.1}
-                      max={1.0}
-                      step={0.05}
-                      value={styleOpacity}
-                      onChange={(e) => setStyleOpacity(parseFloat(e.target.value))}
-                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                    />
-                  </div>
-
-                  {/* چک‌باکس اعمال روی المان‌های موجود */}
-                  <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-slate-300 pt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={applyToExisting}
-                      onChange={(e) => setApplyToExisting(e.target.checked)}
-                      className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                    />
-                    <span>اعمال روی تمام ترسیم‌ها و عوارض لایه</span>
-                  </label>
-
-                  {/* دکمه اعمال استایل */}
                   <button
                     onClick={handleApplyStyle}
                     disabled={selectedLayerIds.length === 0}
-                    className={`w-full py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                    className={`w-full py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 ${
                       selectedLayerIds.length > 0
-                        ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20'
+                        ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'
                         : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                     }`}
                   >
-                    <CheckIcon className="w-4 h-4" />
-                    <span>اعمال استایل روی {selectedLayerIds.length || '...'} لایه</span>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>اعمال</span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* کادر جستجوی لایه‌ها */}
+            {/* جستجو */}
             <div className="relative">
               <input
                 type="text"
@@ -582,31 +568,11 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
                 onChange={(e) => setSearchLayer(e.target.value)}
                 className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 pr-8 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
               />
-              <MagnifyingGlassIcon className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* نوار اقدامات دسته‌جمعی لایه‌ها */}
-            <div className="flex items-center justify-between text-[11px] px-1 text-slate-400 font-bold">
-              <span>فهرست لایه‌ها ({filteredLayers.length})</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onBatchToggleLayers(layers.map(l => l.id), true)}
-                  className="hover:text-cyan-300 transition-colors"
-                >
-                  نمایش همه
-                </button>
-                <span>|</span>
-                <button
-                  onClick={() => onBatchToggleLayers(layers.map(l => l.id), false)}
-                  className="hover:text-rose-400 transition-colors"
-                >
-                  مخفی‌سازی همه
-                </button>
-              </div>
-            </div>
-
-            {/* فهرست کارت‌های لایه */}
-            <div className="space-y-1.5">
+            {/* لیست لایه‌ها */}
+            <div className="space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
               {filteredLayers.map((layer) => {
                 const isSelected = selectedLayerIds.includes(layer.id);
                 return (
@@ -618,75 +584,59 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
                         : 'bg-slate-900/60 border-slate-800/80 hover:bg-slate-900/90'
                     }`}
                   >
-                    {/* انتخاب لایه و رنگ */}
                     <div 
                       className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
                       onClick={() => handleSelectLayerForStyle(layer)}
                     >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectLayerForStyle(layer);
-                        }}
+                      <span
                         style={{ backgroundColor: layer.color || '#00D4FF' }}
-                        className="w-3.5 h-3.5 rounded-md shrink-0 border border-white/30 hover:scale-110 transition-transform"
-                        title="انتخاب برای تغییر استایل"
+                        className="w-3 h-3 rounded shrink-0 border border-white/30"
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold text-white text-xs truncate">
-                          {layer.name}
-                        </div>
-                        {layer.description && (
-                          <div className="text-[10px] text-slate-400 truncate">
-                            {layer.description}
-                          </div>
-                        )}
-                      </div>
+                      <span className="font-bold text-white text-xs truncate">
+                        {layer.name}
+                      </span>
                     </div>
 
-                    {/* دکمه‌های کنترل لایه (چشم، برچسب، قفل) */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {/* نمایش/مخفی برچسب */}
+                    {/* دکمه‌های آیکونی کنترل لایه */}
+                    <div className="flex items-center gap-0.5 shrink-0">
                       {onToggleLayerLabels && (
                         <button
                           onClick={() => onToggleLayerLabels(layer.id)}
                           className={`p-1 rounded-md transition-colors ${
                             layer.showLabels !== false
-                              ? 'text-cyan-400 bg-cyan-950/40 hover:bg-cyan-950/70'
-                              : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800'
+                              ? 'text-cyan-400 hover:bg-cyan-950/70'
+                              : 'text-slate-600 hover:text-slate-400'
                           }`}
-                          title={layer.showLabels !== false ? 'برچسب‌های لایه فعال است' : 'برچسب‌های لایه خاموش است'}
+                          title="برچسب"
                         >
-                          <TagIcon className="w-3.5 h-3.5" />
+                          <Tag className="w-3.5 h-3.5" />
                         </button>
                       )}
 
-                      {/* قفل لایه */}
                       {onToggleLayerLock && (
                         <button
                           onClick={() => onToggleLayerLock(layer.id)}
                           className={`p-1 rounded-md transition-colors ${
                             layer.locked
-                              ? 'text-amber-400 bg-amber-950/40 hover:bg-amber-950/70'
-                              : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800'
+                              ? 'text-amber-400 hover:bg-amber-950/70'
+                              : 'text-slate-600 hover:text-slate-400'
                           }`}
-                          title={layer.locked ? 'لایه قفل است' : 'لایه قابل ویرایش است'}
+                          title="قفل"
                         >
-                          {layer.locked ? <LockClosedIcon className="w-3.5 h-3.5" /> : <LockOpenIcon className="w-3.5 h-3.5" />}
+                          {layer.locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                         </button>
                       )}
 
-                      {/* مرئی/نامرئی بودن لایه */}
                       <button
                         onClick={() => onToggleLayerVisibility(layer.id)}
                         className={`p-1 rounded-md transition-colors ${
                           layer.visible
-                            ? 'text-emerald-400 bg-emerald-950/40 hover:bg-emerald-950/70'
-                            : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800'
+                            ? 'text-emerald-400 hover:bg-emerald-950/70'
+                            : 'text-slate-600 hover:text-slate-400'
                         }`}
-                        title={layer.visible ? 'لایه مرئی است' : 'لایه پنهان است'}
+                        title="دید"
                       >
-                        {layer.visible ? <EyeIcon className="w-3.5 h-3.5" /> : <EyeSlashIcon className="w-3.5 h-3.5" />}
+                        {layer.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
@@ -696,90 +646,73 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
           </div>
         )}
 
-        {/* ======================= تب ۳: تنظیمات دید و بوم نقشه ======================= */}
+        {/* ======================= تب ۳: تنظیمات نمایش (آیکون‌محور) ======================= */}
         {activeTab === 'VIEW' && (
-          <div className="space-y-2.5 text-xs">
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-              <div className="text-[10px] font-bold text-cyan-400 uppercase font-mono border-b border-slate-800 pb-1">
-                CAD GRID & CONTOURS (شبکه و ترازها)
+          <div className="space-y-1.5 text-xs">
+            <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:bg-slate-800/40 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Grid className="w-4 h-4 text-cyan-400" />
+                <span className="text-slate-200">شبکه CAD</span>
               </div>
+              <input
+                type="checkbox"
+                checked={displaySettings.showCadGrid}
+                onChange={(e) => onChangeDisplaySettings({ showCadGrid: e.target.checked })}
+                className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
+              />
+            </label>
 
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/40 cursor-pointer">
-                <span className="text-slate-300">شبکه شطرنجی CAD (Grid):</span>
-                <input
-                  type="checkbox"
-                  checked={displaySettings.showCadGrid}
-                  onChange={(e) => onChangeDisplaySettings({ showCadGrid: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/40 cursor-pointer">
-                <span className="text-slate-300">منحنی‌های میزان تراز پیت (Contours):</span>
-                <input
-                  type="checkbox"
-                  checked={displaySettings.showContourLines}
-                  onChange={(e) => onChangeDisplaySettings({ showContourLines: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                />
-              </label>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-              <div className="text-[10px] font-bold text-cyan-400 uppercase font-mono border-b border-slate-800 pb-1">
-                LABELS & VALUES (برچسب‌ها و مقادیر)
+            <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:bg-slate-800/40 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Mountain className="w-4 h-4 text-amber-400" />
+                <span className="text-slate-200">منحنی تراز (Contours)</span>
               </div>
+              <input
+                type="checkbox"
+                checked={displaySettings.showContourLines}
+                onChange={(e) => onChangeDisplaySettings({ showContourLines: e.target.checked })}
+                className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
+              />
+            </label>
 
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/40 cursor-pointer">
-                <span className="text-slate-300">برچسب کلی عوارض:</span>
-                <input
-                  type="checkbox"
-                  checked={displaySettings.showLabels}
-                  onChange={(e) => onChangeDisplaySettings({ showLabels: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                />
-              </label>
+            <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:bg-slate-800/40 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-indigo-400" />
+                <span className="text-slate-200">برچسب عمومی</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={displaySettings.showLabels}
+                onChange={(e) => onChangeDisplaySettings({ showLabels: e.target.checked })}
+                className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
+              />
+            </label>
 
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/40 cursor-pointer">
-                <span className="text-slate-300">برچسب ساب‌بلوک‌ها:</span>
-                <input
-                  type="checkbox"
-                  checked={displaySettings.showSubBlockLabels}
-                  onChange={(e) => onChangeDisplaySettings({ showSubBlockLabels: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                />
-              </label>
+            <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:bg-slate-800/40 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Hexagon className="w-4 h-4 text-emerald-400" />
+                <span className="text-slate-200">کد ساب‌بلوک</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={displaySettings.showSubBlockLabels}
+                onChange={(e) => onChangeDisplaySettings({ showSubBlockLabels: e.target.checked })}
+                className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
+              />
+            </label>
 
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/40 cursor-pointer">
-                <span className="text-slate-300">برچسب خطوط و رمپ‌ها:</span>
-                <input
-                  type="checkbox"
-                  checked={displaySettings.showLineLabels}
-                  onChange={(e) => onChangeDisplaySettings({ showLineLabels: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/40 cursor-pointer">
-                <span className="text-slate-300">برچسب بنچ‌مارک‌ها و نقاط:</span>
-                <input
-                  type="checkbox"
-                  checked={displaySettings.showPointLabels}
-                  onChange={(e) => onChangeDisplaySettings({ showPointLabels: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/40 cursor-pointer">
-                <span className="text-slate-300">نمایش عیار آهن روی ساب‌بلوک:</span>
-                <input
-                  type="checkbox"
-                  checked={displaySettings.showGradeValues}
-                  onChange={(e) => onChangeDisplaySettings({ showGradeValues: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
-                />
-              </label>
-            </div>
+            <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:bg-slate-800/40 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <FlaskConical className="w-4 h-4 text-teal-400" />
+                <span className="text-slate-200">عیار آهن (% Fe)</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={displaySettings.showGradeValues}
+                onChange={(e) => onChangeDisplaySettings({ showGradeValues: e.target.checked })}
+                className="rounded bg-slate-950 border-slate-700 text-cyan-400 focus:ring-0"
+              />
+            </label>
           </div>
         )}
 

@@ -32,18 +32,28 @@ import {
   IdentificationIcon
 } from '@heroicons/react/24/outline';
 
-export const ALL_EQUIPMENT_CATEGORIES: Array<{ id: EquipmentCategory; labelFa: string; color: string }> = [
-  { id: 'EXCAVATOR', labelFa: 'بیل مکانیکی و شاول', color: '#F59E0B' },
-  { id: 'LOADER', labelFa: 'لودر چرخ‌لاستیکی', color: '#EAB308' },
-  { id: 'DUMP_TRUCK_100T', labelFa: 'تراک ۱۰۰ تن', color: '#F97316' },
-  { id: 'DUMP_TRUCK_60T', labelFa: 'تراک ۶۰ تن', color: '#EA580C' },
-  { id: 'DUMP_TRUCK_35T', labelFa: 'تراک ۳۵ تن', color: '#FB923C' },
-  { id: 'DRILL_RIG', labelFa: 'دستگاه حفاری و دریل', color: '#06B6D4' },
-  { id: 'BULLDOZER', labelFa: 'بولدوزر سنگین', color: '#CA8A04' },
-  { id: 'HYDRAULIC_BREAKER', labelFa: 'چکش هیدرولیکی (پیکور)', color: '#EF4444' },
-  { id: 'MOTOR_GRADER', labelFa: 'گریدر تسطیح جاده', color: '#F59E0B' },
-  { id: 'WATER_TRUCK', labelFa: 'تانکر آب‌پاش', color: '#0284C7' },
-  { id: 'SERVICE_FUEL_TRUCK', labelFa: 'سوخت‌رسان و سرویس', color: '#D946EF' }
+export const ALL_EQUIPMENT_CATEGORIES: Array<{ id: EquipmentCategory; labelFa: string; color: string; group: string }> = [
+  { id: 'EXCAVATOR', labelFa: 'بیل مکانیکی و شاول', color: '#F59E0B', group: 'بارگیری' },
+  { id: 'LOADER', labelFa: 'لودر چرخ‌لاستیکی', color: '#EAB308', group: 'بارگیری' },
+  { id: 'HYDRAULIC_BREAKER', labelFa: 'چکش هیدرولیکی (پیکور)', color: '#EF4444', group: 'بارگیری' },
+  { id: 'DUMP_TRUCK_100T', labelFa: 'تراک ۱۰۰ تن', color: '#F97316', group: 'حمل' },
+  { id: 'DUMP_TRUCK_60T', labelFa: 'تراک ۶۰ تن', color: '#EA580C', group: 'حمل' },
+  { id: 'DUMP_TRUCK_35T', labelFa: 'تراک ۳۵ تن', color: '#FB923C', group: 'حمل' },
+  { id: 'DRILL_RIG', labelFa: 'دستگاه حفاری و دریل', color: '#06B6D4', group: 'حفاری' },
+  { id: 'BULLDOZER', labelFa: 'بولدوزر سنگین', color: '#CA8A04', group: 'پشتیبانی' },
+  { id: 'MOTOR_GRADER', labelFa: 'گریدر تسطیح جاده', color: '#F59E0B', group: 'پشتیبانی' },
+  { id: 'WATER_TRUCK', labelFa: 'تانکر آب‌پاش', color: '#0284C7', group: 'پشتیبانی' },
+  { id: 'COMPACTOR', labelFa: 'غلطک راه‌سازی', color: '#EAB308', group: 'پشتیبانی' },
+  { id: 'SERVICE_FUEL_TRUCK', labelFa: 'سوخت‌رسان و سرویس', color: '#D946EF', group: 'پشتیبانی' },
+  { id: 'DIESEL_GENERATOR', labelFa: 'دیزل ژنراتور', color: '#10B981', group: 'پشتیبانی' },
+  { id: 'PIT_WATER_PUMP', labelFa: 'پمپ تخلیه آب', color: '#06B6D4', group: 'پشتیبانی' }
+];
+
+export const CATEGORY_GROUP_PRESETS: Array<{ id: string; labelFa: string; categories: EquipmentCategory[] }> = [
+  { id: 'LOADING', labelFa: 'بارگیری', categories: ['EXCAVATOR', 'LOADER', 'HYDRAULIC_BREAKER'] },
+  { id: 'HAULING', labelFa: 'ناوگان حمل', categories: ['DUMP_TRUCK_100T', 'DUMP_TRUCK_60T', 'DUMP_TRUCK_35T'] },
+  { id: 'DRILLING', labelFa: 'حفاری', categories: ['DRILL_RIG'] },
+  { id: 'SUPPORT', labelFa: 'پشتیبانی و راه‌سازی', categories: ['BULLDOZER', 'MOTOR_GRADER', 'WATER_TRUCK', 'COMPACTOR', 'SERVICE_FUEL_TRUCK', 'DIESEL_GENERATOR', 'PIT_WATER_PUMP'] }
 ];
 
 export const STATUS_CONFIG: Record<EquipmentStatus, { labelFa: string; badgeClass: string; dotClass: string }> = {
@@ -89,6 +99,7 @@ interface EquipmentPropertiesSidebarProps {
   onToggleCategory: (cat: EquipmentCategory) => void;
   onSelectAllCategories: () => void;
   onClearCategories: () => void;
+  onSetCategories?: (cats: EquipmentCategory[]) => void;
   statusFilter: EquipmentStatus | 'ALL';
   onSelectStatusFilter: (status: EquipmentStatus | 'ALL') => void;
   searchQuery: string;
@@ -124,6 +135,7 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
   onToggleCategory,
   onSelectAllCategories,
   onClearCategories,
+  onSetCategories,
   statusFilter,
   onSelectStatusFilter,
   searchQuery,
@@ -139,6 +151,34 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
   fleetSummary
 }) => {
   const [activeTab, setActiveTab] = useState<'PROPERTIES' | 'FLEET_LIST' | 'KPIS'>('PROPERTIES');
+  const [categorySearch, setCategorySearch] = useState('');
+
+  // کنترل تغییر گروهی فیلترها (Preset Group Toggle)
+  const handleToggleGroupPreset = (preset: typeof CATEGORY_GROUP_PRESETS[0]) => {
+    const allInPresetSelected = preset.categories.every(cat => selectedCategories.includes(cat));
+    
+    if (allInPresetSelected) {
+      // حذف دسته‌های این گروه از انتخاب‌های جاری
+      const next = selectedCategories.filter(cat => !preset.categories.includes(cat));
+      if (onSetCategories) {
+        onSetCategories(next);
+      } else {
+        preset.categories.forEach(cat => onToggleCategory(cat));
+      }
+    } else {
+      // افزودن دسته‌های این گروه به انتخاب‌های جاری (Union)
+      const next = Array.from(new Set([...selectedCategories, ...preset.categories]));
+      if (onSetCategories) {
+        onSetCategories(next);
+      } else {
+        preset.categories.forEach(cat => {
+          if (!selectedCategories.includes(cat)) {
+            onToggleCategory(cat);
+          }
+        });
+      }
+    }
+  };
 
   // فیلتر کردن لیست ماشین‌آلات
   const filteredItems = items.filter(item => {
@@ -159,15 +199,15 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
 
   if (!isOpen) {
     return (
-      <div className="flex flex-col items-center justify-start py-3 px-1 border-r border-slate-800 bg-[#0B1323]/90 backdrop-blur-md z-20 w-9 h-full shadow-lg">
+      <div className="flex flex-col items-center justify-start py-4 px-1.5 border-l border-slate-800 bg-[#0B1323] z-20 w-11 h-full shadow-xl flex-shrink-0">
         <button
           onClick={onToggleOpen}
-          className="p-1 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/40 transition-all shadow-sm"
+          className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/40 transition-all shadow-md"
           title="باز کردن پنل مشخصات و موقعیت ناوگان"
         >
-          <ChevronRightIcon className="w-4 h-4 rotate-180" />
+          <ChevronLeftIcon className="w-4 h-4" />
         </button>
-        <div className="mt-8 [writing-mode:vertical-rl] text-[10px] font-extrabold tracking-widest text-slate-400 flex items-center gap-1.5 opacity-80 hover:opacity-100 cursor-pointer" onClick={onToggleOpen}>
+        <div className="mt-10 [writing-mode:vertical-rl] text-[11px] font-black tracking-widest text-slate-400 flex items-center gap-2 opacity-85 hover:opacity-100 cursor-pointer" onClick={onToggleOpen}>
           <span>مشخصات و وضعیت ناوگان</span>
         </div>
       </div>
@@ -176,30 +216,30 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
 
   return (
     <aside 
-      className={`w-60 sm:w-64 flex-shrink-0 flex flex-col h-full border-r z-20 shadow-2xl transition-all duration-200 ${
-        isDark ? 'bg-[#0B1323]/95 backdrop-blur-md border-[#1E293B] text-slate-100' : 'bg-white/95 backdrop-blur-md border-slate-200 text-slate-800'
+      className={`w-72 sm:w-80 flex-shrink-0 flex flex-col h-full border-l z-20 shadow-2xl transition-all duration-200 ${
+        isDark ? 'bg-[#0B1323] border-[#1E293B] text-slate-100' : 'bg-white border-slate-200 text-slate-800'
       }`}
     >
       {/* سربرگ سایدبار با دکمه بستن/جمع شدن */}
-      <div className={`p-2 border-b flex items-center justify-between ${
+      <div className={`p-3 border-b flex items-center justify-between ${
         isDark ? 'border-slate-800 bg-[#080E1B]' : 'border-slate-200 bg-slate-50'
       }`}>
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div className="p-1 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex-shrink-0">
-            <IdentificationIcon className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex-shrink-0">
+            <IdentificationIcon className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-[11px] font-black text-slate-100 truncate">مشخصات ناوگان</h2>
-            <p className="text-[9px] text-slate-400">فعال: {fleetSummary.activeCount} از {fleetSummary.totalCount}</p>
+            <h2 className="text-xs font-black text-slate-100 truncate">مشخصات و وضعیت ناوگان</h2>
+            <p className="text-[10px] text-slate-400">فعال: {fleetSummary.activeCount} از {fleetSummary.totalCount} دستگاه</p>
           </div>
         </div>
 
         <button
           onClick={onToggleOpen}
-          className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex-shrink-0"
-          title="جمع کردن پنل و افزایش وسعت دید نقشه"
+          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex-shrink-0"
+          title="جمع کردن پنل سایدبار"
         >
-          <ChevronRightIcon className="w-3.5 h-3.5" />
+          <ChevronRightIcon className="w-4 h-4" />
         </button>
       </div>
 
@@ -467,29 +507,68 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
             <div className={`p-2.5 rounded-2xl border ${
               isDark ? 'bg-[#0E172A] border-slate-800' : 'bg-slate-50 border-slate-200'
             }`}>
+              {/* سربرگ فیلتر و دکمه‌های کنترل کلی */}
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
-                  <FunnelIcon className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>فیلتر چندگانه نوع ماشین‌آلات</span>
-                </span>
-                <div className="flex items-center gap-1 text-[10px]">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <FunnelIcon className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                  <span className="text-[11px] font-black text-slate-200 truncate">
+                    فیلتر چندگانه انواع ناوگان
+                  </span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono font-bold ${
+                    selectedCategories.length > 0 
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {selectedCategories.length === 0 ? 'همه' : `${selectedCategories.length}/${ALL_EQUIPMENT_CATEGORIES.length}`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
                   <button 
                     onClick={onSelectAllCategories}
-                    className="text-cyan-400 hover:underline px-1"
+                    className="text-cyan-400 hover:underline px-1 font-bold"
+                    title="انتخاب همزمان تمام دسته‌ها"
                   >
                     همه
                   </button>
                   <span className="text-slate-600">|</span>
                   <button 
                     onClick={onClearCategories}
-                    className="text-slate-400 hover:underline px-1"
+                    className="text-rose-400 hover:underline px-1 font-bold"
+                    title="لغو انتخاب تمام دسته‌ها"
                   >
                     پاکسازی
                   </button>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1 max-h-36 overflow-y-auto pr-1">
+              {/* پیش‌تنظیم‌های دسته‌ای سریع (Quick Group Presets) */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1.5 mb-1.5 border-b border-slate-800/80">
+                {CATEGORY_GROUP_PRESETS.map((preset) => {
+                  const allSelected = preset.categories.every(cat => selectedCategories.includes(cat));
+                  const someSelected = preset.categories.some(cat => selectedCategories.includes(cat));
+                  
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => handleToggleGroupPreset(preset)}
+                      className={`text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all border flex items-center gap-1 ${
+                        allSelected
+                          ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm font-black'
+                          : someSelected
+                            ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                            : isDark ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200' : 'bg-white border-slate-200 text-slate-600'
+                      }`}
+                      title={`انتخاب / حذف گروه ${preset.labelFa}`}
+                    >
+                      <span>{preset.labelFa}</span>
+                      {allSelected && <CheckIcon className="w-2.5 h-2.5 stroke-[3]" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* شبکه انتخاب چندگانه تکی ماشین‌آلات (Multi-Select Items Grid) */}
+              <div className="grid grid-cols-2 gap-1 max-h-44 overflow-y-auto pr-0.5">
                 {ALL_EQUIPMENT_CATEGORIES.map((cat) => {
                   const isSelected = selectedCategories.includes(cat.id);
                   const count = items.filter(e => e.category === cat.id).length;
@@ -497,17 +576,31 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
                     <button
                       key={cat.id}
                       onClick={() => onToggleCategory(cat.id)}
-                      className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all flex items-center gap-1 ${
+                      className={`text-[10px] font-bold p-1.5 rounded-lg border transition-all flex items-center justify-between gap-1 text-right ${
                         isSelected
-                          ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 shadow-sm'
+                          ? 'bg-cyan-500/20 border-cyan-400/80 text-cyan-200 shadow-sm ring-1 ring-cyan-500/30'
                           : isDark 
-                            ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200' 
+                            ? 'bg-slate-900/90 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' 
                             : 'bg-white border-slate-200 text-slate-600'
                       }`}
+                      title={`کلیک برای فعال/غیرفعال کردن فیلتر ${cat.labelFa}`}
                     >
-                      <EquipmentVectorIcon category={cat.id} size={14} />
-                      <span>{cat.labelFa}</span>
-                      <span className="text-[9px] opacity-75 font-mono">({count})</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {/* آیکون وضعیت چک‌باکس چندگانه */}
+                        <span className={`w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 transition-colors border ${
+                          isSelected 
+                            ? 'bg-cyan-500 border-cyan-400 text-slate-950' 
+                            : 'border-slate-700 bg-slate-800/50'
+                        }`}>
+                          {isSelected && <CheckIcon className="w-2.5 h-2.5 stroke-[3]" />}
+                        </span>
+                        
+                        <EquipmentVectorIcon category={cat.id} size={14} className="flex-shrink-0" />
+                        <span className="truncate text-[10px]">{cat.labelFa}</span>
+                      </div>
+                      <span className="text-[9px] opacity-75 font-mono px-1 rounded bg-slate-800/60 flex-shrink-0">
+                        {count}
+                      </span>
                     </button>
                   );
                 })}

@@ -44,9 +44,6 @@ export const ExecutiveShiftWorkforceWidget: React.FC = () => {
                 ۳۲۸ پرسنل حاضر
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'تناژ استخراجی به ازای هر نفر-ساعت و پایش عملکرد شیفت‌های سه‌گانه' : 'Tonnage per man-hour & 3-shift performance tracking'}
-            </p>
           </div>
         </div>
       </div>

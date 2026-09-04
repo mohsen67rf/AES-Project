@@ -38,9 +38,6 @@ export const ExecutiveTailingsEnvironmentalWidget: React.FC = () => {
                 HSE Green
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'ظرفیت باقیمانده دپوهای باطله، مهار ریزگرد جاده‌ها و شاخص آب برگشتی' : 'Waste dump capacity, dust control & recycled water %'}
-            </p>
           </div>
         </div>
       </div>

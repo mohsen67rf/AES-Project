@@ -294,6 +294,57 @@ export const FuelTruckVector: React.FC<EquipmentIconProps> = ({
 );
 
 /**
+ * وکتور غلطک راهسازی معدن
+ */
+export const CompactorVector: React.FC<EquipmentIconProps> = ({
+  className = "w-5 h-5",
+  size = 24,
+  color = "#EAB308"
+}) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <circle cx="9" cy="23" r="5" fill="#475569" stroke="#94A3B8" strokeWidth="1.5" />
+    <circle cx="23" cy="24" r="4" fill="#1E293B" stroke="#64748B" strokeWidth="1.2" />
+    <rect x="10" y="14" width="13" height="7" rx="2" fill={color} />
+    <rect x="17" y="10" width="6" height="5" rx="1" fill="#334155" />
+    <rect x="19" y="11" width="3" height="3" rx="0.5" fill="#38BDF8" fillOpacity="0.8" />
+  </svg>
+);
+
+/**
+ * وکتور دیزل ژنراتور سیار
+ */
+export const GeneratorVector: React.FC<EquipmentIconProps> = ({
+  className = "w-5 h-5",
+  size = 24,
+  color = "#10B981"
+}) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect x="5" y="11" width="22" height="13" rx="2.5" fill={color} stroke="#059669" strokeWidth="1" />
+    <circle cx="10" cy="26" r="2.5" fill="#334155" />
+    <circle cx="22" cy="26" r="2.5" fill="#334155" />
+    <rect x="8" y="14" width="6" height="6" rx="1" fill="#1E293B" />
+    <path d="M 18 14 L 20 18 L 19 18 L 21 21" stroke="#FBBF24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/**
+ * وکتور پمپ تخلیه آب پیت
+ */
+export const WaterPumpVector: React.FC<EquipmentIconProps> = ({
+  className = "w-5 h-5",
+  size = 24,
+  color = "#06B6D4"
+}) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect x="6" y="24" width="20" height="3" rx="1" fill="#334155" />
+    <circle cx="16" cy="16" r="7" fill={color} stroke="#0891B2" strokeWidth="1" />
+    <circle cx="16" cy="16" r="3" fill="#1E293B" />
+    <path d="M 16 9 L 16 5 L 24 5" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+    <path d="M 9 16 L 4 16" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+/**
  * رندر کننده یکپارچه بر اساس دسته‌بندی
  */
 export const EquipmentVectorIcon: React.FC<{
@@ -323,6 +374,12 @@ export const EquipmentVectorIcon: React.FC<{
       return <WaterTruckVector className={className} size={size} color={color || "#0284C7"} />;
     case 'SERVICE_FUEL_TRUCK':
       return <FuelTruckVector className={className} size={size} color={color || "#D946EF"} />;
+    case 'COMPACTOR':
+      return <CompactorVector className={className} size={size} color={color || "#EAB308"} />;
+    case 'DIESEL_GENERATOR':
+      return <GeneratorVector className={className} size={size} color={color || "#10B981"} />;
+    case 'PIT_WATER_PUMP':
+      return <WaterPumpVector className={className} size={size} color={color || "#06B6D4"} />;
     default:
       return <ExcavatorVector className={className} size={size} color={color || "#F59E0B"} />;
   }

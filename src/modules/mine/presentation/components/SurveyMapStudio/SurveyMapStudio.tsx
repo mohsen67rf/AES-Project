@@ -10,7 +10,7 @@ import type { StakeholderRole } from '../../../../../core/domain/types/mine.type
 import { SurveyMapService } from '../../../services/SurveyMapService';
 import { SurveyPermissionService } from '../../../services/SurveyPermissionService';
 import { MapCanvasEditor, ActiveToolType } from './MapCanvasEditor';
-import { DisplayOverlaySettings } from './MapLayersControlPanel';
+import { MapLayersControlPanel, DisplayOverlaySettings } from './MapLayersControlPanel';
 import { AutoCadPropertiesPanel } from './AutoCadPropertiesPanel';
 import { MapImportModal } from './MapImportModal';
 import { FeatureEditModal } from './FeatureEditModal';
@@ -36,7 +36,11 @@ import {
   AdjustmentsVerticalIcon,
   HandRaisedIcon,
   ScaleIcon,
-  PencilIcon
+  PencilIcon,
+  WrenchScrewdriverIcon,
+  GlobeAltIcon,
+  BoltIcon,
+  FireIcon
 } from '@heroicons/react/24/outline';
 
 interface SurveyMapStudioProps {
@@ -76,6 +80,9 @@ export function SurveyMapStudio({
 
   // وضعیت باز بودن پنل مشخصات اتوکد در سمت چپ
   const [isPropertiesOpen, setIsPropertiesOpen] = useState<boolean>(true);
+
+  // وضعیت باز بودن کشوی اختصاصی لایه‌های سازمانی
+  const [isLayersDrawerOpen, setIsLayersDrawerOpen] = useState<boolean>(false);
 
   // وضعیت باز بودن مودال‌ها
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
@@ -220,6 +227,19 @@ export function SurveyMapStudio({
     setDisplaySettings(prev => ({ ...prev, ...settings }));
   };
 
+  // ایجاد سریع عوارض و باندهای تخصصی واحدها از داخل پنل لایه‌ها
+  const handleQuickCreateUnitFeature = (featureType: 'DRILLING_BAND' | 'GEOLOGY_ROCK_BAND' | 'GEOLOGY_FAULT') => {
+    setActiveTool(featureType);
+    setIsLayersDrawerOpen(false);
+    if (featureType === 'DRILLING_BAND') {
+      showToast('حالت ترسیم باند حفاری فعال گردید. رئوس چندضلعی را کلیک کرده و با دابل‌کلیک ترسیم را نهایی کنید.', 'info');
+    } else if (featureType === 'GEOLOGY_ROCK_BAND') {
+      showToast('حالت ترسیم باند جنس سنگ فعال گردید. پس از رسم چندضلعی، نام لیتولوژی را ثبت نمایید.', 'info');
+    } else if (featureType === 'GEOLOGY_FAULT') {
+      showToast('حالت برداشت خط گسل فعال گردید. مسیر گسل را با کلیک روی بوم رسم نمایید.', 'info');
+    }
+  };
+
   // تصویب رسمی نسخه نقشه
   const handleApproveRevision = () => {
     if (!currentMap) return;
@@ -333,7 +353,8 @@ export function SurveyMapStudio({
             }}
             onFeatureCreated={() => {
               refreshMaps();
-              showToast('عارضه با موفقیت روی نقشه ترسیم و ثبت شد.', 'success');
+              setActiveTool('SELECT');
+              showToast('عارضه با موفقیت روی نقشه ترسیم و ذخیره شد.', 'success');
             }}
             onEditFeatureRequest={(feat) => {
               setSelectedFeature(feat);
@@ -346,138 +367,203 @@ export function SurveyMapStudio({
 
           {/* ۳. ستون ابزارهای ترسیم راست (CAD Drawing Toolbar) */}
           <div className="absolute right-2.5 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-1.5 p-1.5 rounded-2xl bg-slate-950/90 backdrop-blur-md border border-slate-800/90 shadow-2xl">
-            {/* انتخاب و بازرسی */}
+            {/* انتخاب و بازرسی المان‌ها */}
             <button
               onClick={() => setActiveTool('SELECT')}
-              title="انتخاب و بازرسی المان‌ها (Select)"
-              className={`p-2.5 rounded-xl transition-all relative group flex items-center justify-center ${
+              title="انتخاب و بازرسی (Select)"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
                 activeTool === 'SELECT'
                   ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <CursorArrowRaysIcon className="w-5 h-5" />
-              <span className="absolute right-12 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                انتخاب و بازرسی
-              </span>
             </button>
 
-            {/* ساب‌بلوک چندضلعی */}
+            <div className="w-full h-px bg-slate-800/80 my-0.5" />
+
+            {/* ابزار واحد حفاری: ترسیم باند حفاری */}
+            <button
+              onClick={() => {
+                if (!permissions.canEditFeatures) {
+                  showToast('عدم دسترسی ثبت باند حفاری', 'warning');
+                  return;
+                }
+                setActiveTool('DRILLING_BAND');
+                showToast('ترسیم باند حفاری فعال شد. با دابل‌کلیک ترسیم پایان می‌یابد.', 'info');
+              }}
+              title="ترسیم باند حفاری"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
+                activeTool === 'DRILLING_BAND'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/40 ring-1 ring-amber-300'
+                  : 'text-amber-400/90 hover:text-amber-300 hover:bg-amber-950/30'
+              }`}
+            >
+              <WrenchScrewdriverIcon className="w-5 h-5" />
+            </button>
+
+            {/* ابزار واحد زمین‌شناسی: ترسیم باند جنس سنگ و لیتولوژی */}
+            <button
+              onClick={() => {
+                if (!permissions.canEditFeatures) {
+                  showToast('عدم دسترسی ثبت باندهای زمین‌شناسی', 'warning');
+                  return;
+                }
+                setActiveTool('GEOLOGY_ROCK_BAND');
+                showToast('ترسیم باند جنس سنگ فعال شد.', 'info');
+              }}
+              title="ترسیم باند جنس سنگ"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
+                activeTool === 'GEOLOGY_ROCK_BAND'
+                  ? 'bg-purple-500 text-white shadow-md shadow-purple-500/40 ring-1 ring-purple-300'
+                  : 'text-purple-400/90 hover:text-purple-300 hover:bg-purple-950/30'
+              }`}
+            >
+              <GlobeAltIcon className="w-5 h-5" />
+            </button>
+
+            {/* ابزار واحد زمین‌شناسی: برداشت خط گسل */}
+            <button
+              onClick={() => {
+                if (!permissions.canEditFeatures) {
+                  showToast('عدم دسترسی برداشت خطوط گسل', 'warning');
+                  return;
+                }
+                setActiveTool('GEOLOGY_FAULT');
+                showToast('برداشت خط گسل فعال شد.', 'info');
+              }}
+              title="برداشت خط گسل"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
+                activeTool === 'GEOLOGY_FAULT'
+                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/40 ring-1 ring-rose-300'
+                  : 'text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/30'
+              }`}
+            >
+              <BoltIcon className="w-5 h-5" />
+            </button>
+
+            <div className="w-full h-px bg-slate-800/80 my-0.5" />
+
+            {/* ساب‌بلوک چندضلعی (واحد استخراج) */}
             <button
               onClick={() => {
                 if (!permissions.canCreateSubBlocksOnMap) {
-                  showToast('نقش شما دسترسی تفکیک ساب‌بلوک را ندارد.', 'warning');
+                  showToast('عدم دسترسی تفکیک ساب‌بلوک', 'warning');
                   return;
                 }
                 setActiveTool('POLYGON');
+                showToast('ترسیم ساب‌بلوک استخراجی فعال شد.', 'info');
               }}
-              title="ترسیم محدوده ساب‌بلوک"
-              className={`p-2.5 rounded-xl transition-all relative group flex items-center justify-center ${
+              title="ترسیم ساب‌بلوک (استخراج)"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
                 activeTool === 'POLYGON'
-                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30 font-bold'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <Square2StackIcon className="w-5 h-5" />
-              <span className="absolute right-12 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                ترسیم ساب‌بلوک
-              </span>
             </button>
 
             {/* رمپ و خط تراز پله */}
             <button
               onClick={() => {
                 if (!permissions.canEditFeatures) {
-                  showToast('شما دسترسی ویرایش خطوط مهندسی را ندارید.', 'warning');
+                  showToast('عدم دسترسی ویرایش خطوط مهندسی', 'warning');
                   return;
                 }
                 setActiveTool('POLYLINE');
+                showToast('ترسیم خطوط مهندسی و رمپ فعال شد.', 'info');
               }}
               title="ترسیم رمپ / لبه پله"
-              className={`p-2.5 rounded-xl transition-all relative group flex items-center justify-center ${
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
                 activeTool === 'POLYLINE'
-                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
+                  ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <PencilIcon className="w-5 h-5" />
-              <span className="absolute right-12 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                ترسیم رمپ / لبه پله
-              </span>
             </button>
 
             {/* نقطه بنچ‌مارک ژئودزی */}
             <button
               onClick={() => {
                 if (!permissions.canEditFeatures) {
-                  showToast('شما دسترسی ثبت بنچ‌مارک ندارید.', 'warning');
+                  showToast('عدم دسترسی ثبت بنچ‌مارک', 'warning');
                   return;
                 }
                 setActiveTool('POINT');
+                showToast('ثبت نقطه بنچ‌مارک فعال شد.', 'info');
               }}
               title="ثبت بنچ‌مارک نقشه‌برداری"
-              className={`p-2.5 rounded-xl transition-all relative group flex items-center justify-center ${
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
                 activeTool === 'POINT'
                   ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <AdjustmentsVerticalIcon className="w-5 h-5" />
-              <span className="absolute right-12 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                ثبت بنچ‌مارک
-              </span>
             </button>
+
+            <div className="w-full h-px bg-slate-800/80 my-0.5" />
 
             {/* ابزار خط‌کش و اندازه‌گیری */}
             <button
               onClick={() => setActiveTool('MEASURE')}
-              title="خط‌کش و اندازه‌گیری مساحت و طول"
-              className={`p-2.5 rounded-xl transition-all relative group flex items-center justify-center ${
+              title="اندازه‌گیری طول و مساحت"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
                 activeTool === 'MEASURE'
                   ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <ScaleIcon className="w-5 h-5" />
-              <span className="absolute right-12 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                ابزار اندازه‌گیری
-              </span>
             </button>
 
             {/* جابجایی دست Pan */}
             <button
               onClick={() => setActiveTool('PAN')}
-              title="جابجایی نقشه (Pan)"
-              className={`p-2.5 rounded-xl transition-all relative group flex items-center justify-center ${
+              title="جابجایی دید (Pan)"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${
                 activeTool === 'PAN'
                   ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <HandRaisedIcon className="w-5 h-5" />
-              <span className="absolute right-12 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                جابجایی دید (Pan)
-              </span>
             </button>
           </div>
 
           {/* ۴. نوار ابزار افقی در پایین کادر نقشه (Horizontal Action Toolbar) */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-950/90 backdrop-blur-md border border-slate-800/90 shadow-2xl pointer-events-auto max-w-[calc(100%-24px)] overflow-x-auto">
             
-            {/* دکمه کادر Properties و مدیریت لایه‌ها */}
+            {/* دکمه اختصاصی لایه‌های سازمانی (حفاری، زمین‌شناسی، استخراج) */}
+            <button
+              onClick={() => setIsLayersDrawerOpen(!isLayersDrawerOpen)}
+              title="لایه‌های سازمانی"
+              className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold ${
+                isLayersDrawerOpen
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/40 ring-1 ring-amber-300'
+                  : 'bg-slate-900/90 text-amber-300 border border-amber-500/30 hover:bg-amber-950/30 hover:border-amber-500/50'
+              }`}
+            >
+              <WrenchScrewdriverIcon className="w-4 h-4 text-amber-400" />
+              <span>لایه‌ها</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-amber-300 font-mono">
+                {currentMap.layers?.length || 0}
+              </span>
+            </button>
+
+            {/* دکمه کادر Properties و استایل لایه‌ها */}
             <button
               onClick={() => setIsPropertiesOpen(!isPropertiesOpen)}
-              title="کادر مشخصات و لایه‌ها (AutoCAD Properties)"
-              className={`p-2 rounded-xl transition-all relative group flex items-center justify-center ${
+              title="مشخصات و استایل لایه‌ها (Properties)"
+              className={`p-2 rounded-xl transition-all flex items-center justify-center ${
                 isPropertiesOpen
                   ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30 font-bold'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <Square2StackIcon className="w-4 h-4" />
-              <span className="absolute bottom-11 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                مشخصات و لایه‌ها
-              </span>
             </button>
 
             {/* مشخصات المان */}
@@ -485,29 +571,23 @@ export function SurveyMapStudio({
               onClick={() => {
                 setIsPropertiesOpen(true);
               }}
-              title="مشخصات فنی و پارامترهای المان"
-              className={`p-2 rounded-xl transition-all relative group flex items-center justify-center ${
+              title="مشخصات المان انتخاب‌شده"
+              className={`p-2 rounded-xl transition-all flex items-center justify-center ${
                 selectedFeature
                   ? 'text-cyan-400 bg-cyan-950/40 hover:bg-cyan-950/70 ring-1 ring-cyan-500/40'
                   : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
             >
               <InformationCircleIcon className="w-4 h-4" />
-              <span className="absolute bottom-11 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                مشخصات المان
-              </span>
             </button>
 
             {/* تاریخچه ممیزی نقشه */}
             <button
               onClick={() => setIsAuditModalOpen(true)}
               title="تاریخچه ممیزی و بازنگری‌ها"
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-all relative group flex items-center justify-center"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-all flex items-center justify-center"
             >
               <ClockIcon className="w-4 h-4" />
-              <span className="absolute bottom-11 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                تاریخچه ممیزی
-              </span>
             </button>
 
             <div className="w-px h-4 bg-slate-800 mx-0.5" />
@@ -517,12 +597,9 @@ export function SurveyMapStudio({
               <button
                 onClick={() => setIsImportModalOpen(true)}
                 title="بارگذاری نقشه (DXF / GeoJSON)"
-                className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 transition-all relative group flex items-center justify-center"
+                className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 transition-all flex items-center justify-center"
               >
                 <ArrowUpTrayIcon className="w-4 h-4" />
-                <span className="absolute bottom-11 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                  بارگذاری نقشه
-                </span>
               </button>
             )}
 
@@ -531,12 +608,9 @@ export function SurveyMapStudio({
               <button
                 onClick={handleApproveRevision}
                 title="تصویب و ابلاغ رسمی نقشه"
-                className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 transition-all relative group flex items-center justify-center"
+                className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 transition-all flex items-center justify-center"
               >
                 <CheckBadgeIcon className="w-4 h-4" />
-                <span className="absolute bottom-11 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                  تصویب رسمی نقشه
-                </span>
               </button>
             )}
 
@@ -544,24 +618,18 @@ export function SurveyMapStudio({
             <button
               onClick={() => setIsPermissionsModalOpen(true)}
               title="ماتریس سطوح دسترسی (RBAC)"
-              className="p-2 rounded-xl text-purple-400 hover:text-purple-300 hover:bg-purple-950/40 transition-all relative group flex items-center justify-center"
+              className="p-2 rounded-xl text-purple-400 hover:text-purple-300 hover:bg-purple-950/40 transition-all flex items-center justify-center"
             >
               <ShieldCheckIcon className="w-4 h-4" />
-              <span className="absolute bottom-11 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                سطوح دسترسی
-              </span>
             </button>
 
             {/* صدور خروجی */}
             <button
               onClick={() => setIsExportModalOpen(true)}
-              title="صدور خروجی از نقشه (DXF / GeoJSON / PDF)"
-              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition-all relative group flex items-center justify-center"
+              title="صدور خروجی (DXF / GeoJSON / PDF)"
+              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition-all flex items-center justify-center"
             >
               <ArrowDownTrayIcon className="w-4 h-4" />
-              <span className="absolute bottom-11 px-2 py-1 bg-slate-900 border border-slate-700 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg">
-                صدور خروجی
-              </span>
             </button>
 
             <div className="w-px h-4 bg-slate-800 mx-0.5" />
@@ -762,6 +830,34 @@ export function SurveyMapStudio({
           map={currentMap}
           onClose={() => setIsExportModalOpen(false)}
         />
+      )}
+
+      {/* کشوی تخصصی لایه‌های سازمانی واحدهای معدنی */}
+      {isLayersDrawerOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-end p-2 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in" 
+          dir="rtl"
+          onClick={() => setIsLayersDrawerOpen(false)}
+        >
+          <div 
+            className="w-full sm:w-[480px] h-[92vh] rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-700/80 bg-[#070F1E]/95 backdrop-blur-2xl flex flex-col overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MapLayersControlPanel
+              layers={currentMap.layers || []}
+              displaySettings={displaySettings}
+              onToggleLayerVisibility={handleToggleLayerVisibility}
+              onToggleLayerLock={handleToggleLayerLock}
+              onToggleLayerLabels={handleToggleLayerLabels}
+              onChangeLayerOpacity={handleChangeLayerOpacity}
+              onBatchToggleLayers={handleBatchToggleLayers}
+              onSetLayersLabelsVisibility={handleSetLayersLabelsVisibility}
+              onChangeDisplaySettings={handleChangeDisplaySettings}
+              onQuickCreateUnitFeature={handleQuickCreateUnitFeature}
+              onClose={() => setIsLayersDrawerOpen(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

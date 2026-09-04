@@ -24,11 +24,22 @@ export type MapFeatureType =
   | 'TEXT_ANNOTATION'
   | 'CIRCLE_ZONE';
 
+export type OperationalUnitType = 
+  | 'ALL'
+  | 'DRILLING'      // واحد حفاری و آتشباری
+  | 'GEOLOGY'       // واحد زمین‌شناسی و مدلسازی کانسار
+  | 'SURVEY'        // واحد نقشه‌برداری و ژئودزی
+  | 'MINING'        // واحد استخراج و دفتر فنی
+  | 'SAFETY';       // واحد ایمنی و ژئوتکنیک
+
 export type FeatureCategory = 
   | 'SUB_BLOCK'              // ساب‌بلوک استخراجی (SA, SB, SC, SD)
   | 'MINING_BLOCK'           // بلوک کامل معدنی
   | 'BLAST_BOUNDARY'         // مرز آتشباری
   | 'BLAST_HOLE'             // سرچال و گمانه حفاری
+  | 'DRILLING_BAND'          // باند حفاری و مرز چال‌پاشی (واحد حفاری)
+  | 'GEOLOGY_ROCK_BAND'      // باند و زون جنس سنگ و لیتولوژی (واحد زمین‌شناسی)
+  | 'GEOLOGY_FAULT'          // موقعیت گسل و درزه ساختاری معدن (واحد زمین‌شناسی)
   | 'BENCH_CREST'            // لبه بالای پله (Crest)
   | 'BENCH_TOE'              // پای پله (Toe)
   | 'SURVEY_BENCHMARK'       // بنچ‌مارک و نقاط مبنای ژئودزی
@@ -77,8 +88,10 @@ export interface MapFeature {
     destination?: string;
     notes?: string;
     hazardLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+    unit?: OperationalUnitType;
     [key: string]: any;
   };
+  unit?: OperationalUnitType;
   style: FeatureStyle;
   createdBy: string;
   createdRole: string;
@@ -92,6 +105,7 @@ export interface MapLayer {
   mapId: string;
   name: string;
   category: FeatureCategory | 'GENERAL';
+  unit?: OperationalUnitType;   // واحد عملیاتی صاحب لایه (حفاری، زمین‌شناسی، نقشه‌برداری، استخراج، ایمنی)
   color: string;
   strokeWidth?: number;
   strokeDash?: 'solid' | 'dashed' | 'dotted' | 'dashdot';

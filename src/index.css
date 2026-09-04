@@ -17,8 +17,8 @@
   }
 
   body.dark, html.dark {
-    background-color: #0B0F19;
-    color: #ffffff;
+    background-color: #101935;
+    color: #F1F5F9;
   }
 
   body:not(.dark), html:not(.dark) {
@@ -27,10 +27,86 @@
   }
 }
 
+/* 🌙 Dark Soft UI Component Styling (Matching ui1.jpg) */
+.dark body, 
+.dark {
+  background-color: #101935 !important;
+}
+
+/* Primary Page Canvas Background */
+.dark .bg-\[\#0B0F19\],
+.dark .bg-\[\#02040a\],
+.dark .bg-\[\#050814\],
+.dark .bg-\[\#090D16\],
+.dark .bg-\[\#0A0E1A\],
+.dark .bg-slate-950 {
+  background-color: #101935 !important;
+}
+
+/* Soft Navy Card Surfaces */
+.dark .bg-\[\#111726\],
+.dark .bg-\[\#0E1524\],
+.dark .bg-\[\#0E1726\],
+.dark .bg-\[\#10172B\],
+.dark .bg-\[\#13233C\],
+.dark .bg-slate-900,
+.dark .bg-slate-900\/80,
+.dark .bg-slate-900\/60,
+.dark .bg-slate-900\/50,
+.dark .bg-slate-900\/40 {
+  background-color: #1A264F !important;
+}
+
+/* Elevated Card / Hover Surface */
+.dark .hover\:bg-slate-800:hover,
+.dark .hover\:bg-slate-900:hover {
+  background-color: #1F2E5D !important;
+}
+
+/* Non-harsh, tone-on-tone borders */
+.dark .border-\[\#1F293D\],
+.dark .border-\[\#1E293B\],
+.dark .border-\[\#182030\],
+.dark .border-\[\#1B2333\],
+.dark .border-slate-800,
+.dark .border-slate-700,
+.dark .border-slate-700\/70,
+.dark .border-slate-700\/60,
+.dark .border-slate-700\/50 {
+  border-color: rgba(36, 53, 107, 0.35) !important;
+}
+
+/* Soft Cards Radius & Deep Navy Shadows */
+.dark .rounded-2xl,
+.dark .rounded-3xl,
+.dark .rounded-xl.border {
+  border-radius: 22px;
+  box-shadow: 0 12px 32px rgba(7, 11, 26, 0.45);
+}
+
+/* Soft Pill Dropdowns, Badges, Buttons */
+.pill-badge {
+  border-radius: 9999px;
+  background: rgba(30, 45, 92, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+/* Text Colors */
+.dark .text-slate-400,
+.dark .text-slate-500 {
+  color: #8E9EB8;
+}
+
+.dark .text-white,
+.dark .text-slate-200,
+.dark .text-slate-100 {
+  color: #F1F5F9;
+}
+
 /* Custom Sleek Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -38,11 +114,21 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.25);
+  background: rgba(36, 53, 107, 0.6);
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 255, 0.4);
+  background: #00D2FF;
 }
+
+/* Soft Glow Utilities */
+.glow-cyan-subtle {
+  filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.3));
+}
+
+.glow-gold-subtle {
+  filter: drop-shadow(0 0 8px rgba(255, 176, 32, 0.3));
+}
+
 

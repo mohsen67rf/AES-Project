@@ -239,9 +239,6 @@ export const ActivityAuditTrailHub: React.FC<ActivityAuditTrailHubProps> = ({
                   Live Sync
                 </span>
               </div>
-              <p className={`text-xs mt-1 ${isDark ? 'text-[#8A9DB0]' : 'text-slate-500'}`}>
-                رهگیری جامع و بی‌درنگ تغییرات بلوک‌ها، نشست‌های ورود کاربران، پیمایش‌های نقشه معدن و خطوط فرآوری
-              </p>
             </div>
           </div>
 

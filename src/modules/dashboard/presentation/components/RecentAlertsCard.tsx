@@ -27,8 +27,8 @@ export const RecentAlertsCard: React.FC = () => {
       time: '2 min ago',
       timeFa: '۲ دقیقه پیش',
       icon: BoltIcon,
-      bgColor: 'bg-rose-500/20 text-rose-500 border-rose-500/30',
-      dotColor: 'bg-rose-500',
+      bgColor: 'bg-rose-500/15 text-rose-400 border-rose-500/25',
+      dotColor: 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.6)]',
     },
     {
       id: 'alert-2',
@@ -39,8 +39,8 @@ export const RecentAlertsCard: React.FC = () => {
       time: '15 min ago',
       timeFa: '۱۵ دقیقه پیش',
       icon: ExclamationCircleIcon,
-      bgColor: 'bg-amber-500/20 text-amber-500 border-amber-500/30',
-      dotColor: 'bg-amber-500',
+      bgColor: 'bg-[#FFB020]/15 text-[#FFB020] border-[#FFB020]/25',
+      dotColor: 'bg-[#FFB020] shadow-[0_0_8px_rgba(255,176,32,0.6)]',
     },
     {
       id: 'alert-3',
@@ -51,8 +51,8 @@ export const RecentAlertsCard: React.FC = () => {
       time: '1 hour ago',
       timeFa: '۱ ساعت پیش',
       icon: WrenchIcon,
-      bgColor: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
-      dotColor: 'bg-yellow-500',
+      bgColor: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
+      dotColor: 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.6)]',
     },
     {
       id: 'alert-4',
@@ -63,34 +63,34 @@ export const RecentAlertsCard: React.FC = () => {
       time: '3 hours ago',
       timeFa: '۳ ساعت پیش',
       icon: ShieldExclamationIcon,
-      bgColor: 'bg-cyan-500/20 text-cyan-500 border-cyan-500/30',
-      dotColor: 'bg-cyan-500',
+      bgColor: 'bg-[#00D2FF]/15 text-[#00D2FF] border-[#00D2FF]/25',
+      dotColor: 'bg-[#00D2FF] shadow-[0_0_8px_rgba(0,210,255,0.6)]',
     },
   ];
 
   return (
     <div 
-      className={`rounded-2xl p-5 border transition-all duration-300 flex flex-col justify-between h-[340px] ${
+      className={`rounded-[22px] p-5.5 border transition-all duration-300 flex flex-col justify-between h-[350px] ${
         isDark 
-          ? 'bg-[#111726]/80 border-[#1E293B] text-white shadow-lg backdrop-blur-xl' 
-          : 'bg-white border-slate-200/90 text-slate-900 shadow-sm'
+          ? 'bg-[#1A264F] border-[#24356B]/30 text-[#F1F5F9] shadow-[0_12px_32px_rgba(7,11,26,0.5)]' 
+          : 'bg-white border-slate-200 text-slate-900 shadow-sm'
       }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-black tracking-tight">
-          {isRtl ? 'هشدارها و رخدادهای اخیر' : 'Recent Alerts'}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-black tracking-tight text-[#F1F5F9]">
+          {isRtl ? 'هشدارها و وقایع جاری' : 'Recent Alerts'}
         </h3>
         <button 
           onClick={() => navigate('/alerts')}
-          className="text-xs font-bold text-[#7C3AED] hover:text-[#9333EA] dark:text-[#A78BFA] transition-colors"
+          className="px-3 py-1 rounded-full text-xs font-bold text-[#00D2FF] bg-[#141F42] hover:bg-[#1E2D5C] border border-[#24356B]/40 transition-all cursor-pointer"
         >
-          {isRtl ? 'مشاهده همه >' : 'View All >'}
+          {isRtl ? 'مشاهده همه' : 'View All'}
         </button>
       </div>
 
       {/* Alert List Items */}
-      <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+      <div className="space-y-2 flex-1 overflow-y-auto pr-1">
         {alerts.map((item) => {
           const IconComp = item.icon;
           return (
@@ -98,29 +98,29 @@ export const RecentAlertsCard: React.FC = () => {
               key={item.id}
               className={`flex items-center justify-between p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
                 isDark 
-                  ? 'bg-[#090D16]/60 border-[#1E293B] hover:bg-[#151D2F] hover:border-slate-700' 
-                  : 'bg-slate-50 border-slate-100 hover:bg-slate-100 hover:border-slate-200'
+                  ? 'bg-[#141F42] border-[#24356B]/25 hover:bg-[#1E2D5C] hover:border-[#00D2FF]/30' 
+                  : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${item.bgColor}`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center border ${item.bgColor}`}>
                   <IconComp className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold leading-tight">
+                  <h4 className="text-xs font-bold leading-tight text-[#F1F5F9]">
                     {isRtl ? item.titleFa : item.title}
                   </h4>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                  <span className="text-[10px] text-[#8E9EB8] block mt-0.5">
                     {isRtl ? item.targetFa : item.target}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400 font-medium">
+                <span className="text-[10px] text-[#8E9EB8] font-medium">
                   {isRtl ? item.timeFa : item.time}
                 </span>
-                <span className={`w-2 h-2 rounded-full ${item.dotColor} shadow-sm animate-pulse`} />
+                <span className={`w-2 h-2 rounded-full ${item.dotColor}`} />
               </div>
             </div>
           );

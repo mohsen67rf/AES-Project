@@ -37,114 +37,152 @@ export const DashboardKPIs: React.FC = () => {
     {
       id: 'production',
       title: 'Total Production',
-      titleFa: 'مجموع تولید',
+      titleFa: 'مجموع تولید استخراجی',
       value: '12,650',
       unit: 'Ton',
       unitFa: 'تن',
-      change: '↑ 12.3% vs last week',
-      changeFa: '↑ ۱۲.۳٪ نسبت به هفته قبل',
+      change: '↑ 12.3%',
+      changeFa: '↑ ۱۲.۳٪',
       isPositive: true,
       icon: CubeTransparentIcon,
-      gradient: 'from-blue-600/30 to-indigo-600/30 border-blue-500/30',
-      iconColor: '#38BDF8',
+      gradient: 'from-[#00D2FF]/20 to-[#0077FE]/10',
+      iconColor: '#00D2FF',
     },
     {
       id: 'availability',
-      title: 'Equipment Availability',
-      titleFa: 'آمادگی تجهیزات',
+      title: 'Equipment Readiness',
+      titleFa: 'آمادگی ناوگان معدن',
       value: '87%',
-      change: '↑ 5.3% vs last week',
-      changeFa: '↑ ۵.۳٪ نسبت به هفته قبل',
+      change: '↑ 5.3%',
+      changeFa: '↑ ۵.۳٪',
       isPositive: true,
       icon: WrenchScrewdriverIcon,
-      gradient: 'from-amber-600/30 to-orange-600/30 border-amber-500/30',
-      iconColor: '#F59E0B',
+      gradient: 'from-[#FFB020]/20 to-[#F97316]/10',
+      iconColor: '#FFB020',
     },
     {
       id: 'mines',
-      title: 'Active Mines',
-      titleFa: 'معادن فعال',
+      title: 'Active Mine Pits',
+      titleFa: 'پیت‌ها و جبهه‌کارهای فعال',
       value: '7',
-      change: '↑ 2 vs last week',
-      changeFa: '↑ ۲ نسبت به هفته قبل',
+      change: '↑ 2',
+      changeFa: '↑ ۲ جبهه‌کار',
       isPositive: true,
       icon: BuildingOffice2Icon,
-      gradient: 'from-teal-600/30 to-emerald-600/30 border-teal-500/30',
-      iconColor: '#10B981',
+      gradient: 'from-[#38BDF8]/20 to-[#0284C7]/10',
+      iconColor: '#38BDF8',
     },
     {
       id: 'safety',
-      title: 'Safety Index',
-      titleFa: 'شاخص ایمنی (HSE)',
+      title: 'HSE Safety Index',
+      titleFa: 'شاخص ایمنی و بهداشت',
       value: '98%',
-      change: '↑ 2.1% vs last week',
-      changeFa: '↑ ۲.۱٪ نسبت به هفته قبل',
+      change: '↑ 2.1%',
+      changeFa: '↑ ۲.۱٪',
       isPositive: true,
       icon: ShieldCheckIcon,
-      gradient: 'from-purple-600/30 to-violet-600/30 border-purple-500/30',
-      iconColor: '#A855F7',
+      gradient: 'from-[#22D3EE]/20 to-[#0D9488]/10',
+      iconColor: '#22D3EE',
     },
     {
       id: 'revenue',
-      title: 'Total Revenue',
-      titleFa: 'درآمد تخمینی کل',
+      title: 'Estimated Revenue',
+      titleFa: 'ارزش تخمینی بار ارسالی',
       value: '$ 4.26M',
-      change: '↑ 15.7% vs last week',
-      changeFa: '↑ ۱۵.۷٪ نسبت به هفته قبل',
+      change: '↑ 15.7%',
+      changeFa: '↑ ۱۵.۷٪',
       isPositive: true,
       icon: CurrencyDollarIcon,
-      gradient: 'from-yellow-600/30 to-amber-600/30 border-yellow-500/30',
-      iconColor: '#EAB308',
+      gradient: 'from-[#FFB020]/20 to-[#D97706]/10',
+      iconColor: '#FFB020',
     },
+  ];
+
+  // SVG sparkline path helper
+  const sparklinePaths = [
+    'M 0 25 Q 30 5, 60 20 T 120 10 T 180 15 T 220 5',
+    'M 0 20 Q 35 30, 70 12 T 140 22 T 220 8',
+    'M 0 28 Q 40 10, 80 25 T 150 15 T 220 6',
+    'M 0 22 Q 45 28, 90 14 T 160 18 T 220 4',
+    'M 0 26 Q 35 8, 75 22 T 145 10 T 220 5',
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      {kpis.map((kpi) => {
+      {kpis.map((kpi, idx) => {
         const IconComponent = kpi.icon;
+        const sparkPath = sparklinePaths[idx % sparklinePaths.length];
+        const isGold = idx === 1 || idx === 4;
+        const accentColor = isGold ? '#FFB020' : '#00D2FF';
+
         return (
           <div
             key={kpi.id}
-            className={`relative rounded-2xl p-4.5 border transition-all duration-300 group ${
+            className={`relative rounded-[22px] p-4.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group ${
               isDark
-                ? 'bg-[#111726]/80 border-[#1E293B] hover:border-[#6366F1]/50 hover:shadow-lg hover:shadow-[#6366F1]/10 text-white backdrop-blur-xl'
-                : 'bg-white border-slate-200/90 hover:border-indigo-300 hover:shadow-md text-slate-900 shadow-sm'
+                ? 'bg-[#1A264F] text-[#F1F5F9] shadow-[0_12px_32px_rgba(7,11,26,0.5)] border border-[#24356B]/30 hover:border-[#00D2FF]/40'
+                : 'bg-white text-slate-900 shadow-sm border border-slate-200 hover:shadow-md'
             }`}
           >
-            {/* Header: Icon Container + Title + Menu */}
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div 
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center border bg-gradient-to-br ${kpi.gradient} transition-transform group-hover:scale-105`}
-                >
-                  <IconComponent className="w-5 h-5" style={{ color: kpi.iconColor }} />
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-slate-400 block leading-tight">
-                    {isRtl ? kpi.titleFa : kpi.title}
+            {/* Header: Title + Icon */}
+            <div className="flex items-start justify-between relative z-10">
+              <div>
+                <span className={`text-[11px] font-bold block leading-tight ${isDark ? 'text-[#8E9EB8]' : 'text-slate-500'}`}>
+                  {isRtl ? kpi.titleFa : kpi.title}
+                </span>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-2xl font-black tracking-tight font-sans text-white">
+                    {kpi.value}
                   </span>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="text-xl font-black tracking-tight font-sans">
-                      {kpi.value}
+                  {kpi.unit && (
+                    <span className={`text-[10px] font-bold ${isDark ? 'text-[#8E9EB8]' : 'text-slate-400'}`}>
+                      {isRtl ? kpi.unitFa : kpi.unit}
                     </span>
-                    {kpi.unit && (
-                      <span className="text-[11px] text-slate-400 font-semibold">
-                        {isRtl ? kpi.unitFa : kpi.unit}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
 
-              <button className="text-slate-400 hover:text-slate-200 transition-colors p-1 -mr-1">
-                <EllipsisVerticalIcon className="w-4 h-4" />
-              </button>
+              <div 
+                className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${
+                  isDark
+                    ? `bg-[#141F42] border-[#24356B]/50 text-[${accentColor}]`
+                    : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <IconComponent className="w-4 h-4" style={{ color: accentColor }} />
+              </div>
             </div>
 
-            {/* Sub-row: Trend / Delta */}
-            <div className="mt-3 pt-2.5 border-t border-slate-800/20 dark:border-slate-800/40 flex items-center gap-1.5 text-[11px] font-bold text-emerald-500">
-              <ArrowTrendingUpIcon className="w-3.5 h-3.5" />
-              <span>{isRtl ? kpi.changeFa : kpi.change}</span>
+            {/* Sparkline Curve matching reference image */}
+            <div className="w-full h-8 mt-2 relative z-0">
+              <svg viewBox="0 0 220 35" className="w-full h-full overflow-visible">
+                <path
+                  d={sparkPath}
+                  fill="none"
+                  stroke={accentColor}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  className="transition-all duration-500 group-hover:opacity-100 opacity-85"
+                />
+              </svg>
+            </div>
+
+            {/* Sub-row: Pill Trend / Delta */}
+            <div className={`mt-1 pt-2 border-t flex items-center justify-between text-[10px] font-bold ${
+              isDark ? 'border-[#24356B]/30' : 'border-slate-100'
+            }`}>
+              <span className={isDark ? 'text-[#8E9EB8]' : 'text-slate-500'}>
+                {isRtl ? 'نسبت به هفته پیش' : 'vs last week'}
+              </span>
+              <span 
+                className="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold"
+                style={{ 
+                  backgroundColor: isGold ? 'rgba(255, 176, 32, 0.15)' : 'rgba(0, 210, 255, 0.15)',
+                  color: accentColor 
+                }}
+              >
+                {isRtl ? kpi.changeFa : kpi.change}
+              </span>
             </div>
           </div>
         );

@@ -64,9 +64,6 @@ export const ExecutiveWidgetsToolbar: React.FC<ExecutiveWidgetsToolbarProps> = (
               {activeCount} / {totalCount} ویجت فعال
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {isRtl ? 'امکان فعال/غیرفعال‌سازی اختصاصی ویجت‌ها بر اساس اولویت تصمیم‌گیری' : 'Customizable KPI widgets tailored for client manager decision-making'}
-          </p>
         </div>
       </div>
 

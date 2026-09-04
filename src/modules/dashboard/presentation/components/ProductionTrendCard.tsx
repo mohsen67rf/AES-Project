@@ -14,30 +14,36 @@ export const ProductionTrendCard: React.FC = () => {
   const isRtl = language === 'fa';
 
   const dataPoints = [
-    { day: 'Mon', dayFa: 'دوشنبه', value: 4200, label: '4.2K' },
-    { day: 'Tue', dayFa: 'سه‌شنبه', value: 7500, label: '7.5K' },
-    { day: 'Wed', dayFa: 'چهارشنبه', value: 6300, label: '6.3K' },
-    { day: 'Thu', dayFa: 'پنج‌شنبه', value: 10200, label: '10.2K' },
-    { day: 'Fri', dayFa: 'جمعه', value: 9400, label: '9.4K' },
-    { day: 'Sat', dayFa: 'شنبه', value: 11800, label: '11.8K' },
-    { day: 'Sun', dayFa: 'یکشنبه', value: 14500, label: '14.5K' },
+    { day: 'Mon', dayFa: 'دوشنبه', actual: 4200, target: 5000 },
+    { day: 'Tue', dayFa: 'سه‌شنبه', actual: 7500, target: 6800 },
+    { day: 'Wed', dayFa: 'چهارشنبه', actual: 6300, target: 7200 },
+    { day: 'Thu', dayFa: 'پنج‌شنبه', actual: 10200, target: 8900 },
+    { day: 'Fri', dayFa: 'جمعه', actual: 9400, target: 9100 },
+    { day: 'Sat', dayFa: 'شنبه', actual: 11800, target: 10500 },
+    { day: 'Sun', dayFa: 'یکشنبه', actual: 14500, target: 12000 },
   ];
 
   // SVG Chart Geometry
   const width = 600;
-  const height = 220;
-  const paddingX = 40;
-  const paddingY = 25;
-  const maxY = 15000;
+  const height = 230;
+  const paddingX = 42;
+  const paddingY = 28;
+  const maxY = 16000;
 
-  const points = dataPoints.map((dp, i) => {
+  const actualPoints = dataPoints.map((dp, i) => {
     const x = paddingX + (i * (width - paddingX * 2)) / (dataPoints.length - 1);
-    const y = height - paddingY - (dp.value / maxY) * (height - paddingY * 2);
-    return { x, y, ...dp };
+    const y = height - paddingY - (dp.actual / maxY) * (height - paddingY * 2);
+    return { x, y, value: dp.actual, ...dp };
+  });
+
+  const targetPoints = dataPoints.map((dp, i) => {
+    const x = paddingX + (i * (width - paddingX * 2)) / (dataPoints.length - 1);
+    const y = height - paddingY - (dp.target / maxY) * (height - paddingY * 2);
+    return { x, y, value: dp.target, ...dp };
   });
 
   // Generate cubic bezier smooth curve path
-  const makeSmoothPath = (pts: typeof points) => {
+  const makeSmoothPath = (pts: { x: number; y: number }[]) => {
     if (pts.length === 0) return '';
     let d = `M ${pts[0].x} ${pts[0].y}`;
     for (let i = 0; i < pts.length - 1; i++) {
@@ -56,67 +62,79 @@ export const ProductionTrendCard: React.FC = () => {
     return d;
   };
 
-  const linePath = makeSmoothPath(points);
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
+  const actualPath = makeSmoothPath(actualPoints);
+  const targetPath = makeSmoothPath(targetPoints);
+  const areaPath = `${actualPath} L ${actualPoints[actualPoints.length - 1].x} ${height - paddingY} L ${actualPoints[0].x} ${height - paddingY} Z`;
 
-  const lineColor = isDark ? '#00E5FF' : '#7C3AED';
-  const glowFilter = isDark ? 'url(#cyanGlow)' : 'url(#purpleGlow)';
+  const cyanColor = '#00D2FF';
+  const goldColor = '#FFB020';
 
   return (
     <div 
-      className={`rounded-2xl p-5 border transition-all duration-300 flex flex-col justify-between h-[340px] ${
+      className={`rounded-[22px] p-5.5 border transition-all duration-300 flex flex-col justify-between h-[350px] ${
         isDark 
-          ? 'bg-[#111726]/80 border-[#1E293B] text-white shadow-lg backdrop-blur-xl' 
-          : 'bg-white border-slate-200/90 text-slate-900 shadow-sm'
+          ? 'bg-[#1A264F] border-[#24356B]/30 text-[#F1F5F9] shadow-[0_12px_32px_rgba(7,11,26,0.5)]' 
+          : 'bg-white border-slate-200 text-slate-900 shadow-sm'
       }`}
     >
-      {/* Card Header: Title + Timeframe Selector */}
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-black tracking-tight">
-          {isRtl ? 'روند تولید استخراجی' : 'Production Trend'}
-        </h3>
+      {/* Card Header: Title + Legend + Timeframe Pill */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-4">
+          <h3 className="text-sm font-black tracking-tight text-[#F1F5F9]">
+            {isRtl ? 'روند تولید و استخراج' : 'Extraction & Production Trend'}
+          </h3>
 
+          {/* Minimalist Legend */}
+          <div className="hidden sm:flex items-center gap-3 text-[11px] font-bold">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00D2FF] shadow-[0_0_8px_rgba(0,210,255,0.4)]" />
+              <span className={isDark ? 'text-[#8E9EB8]' : 'text-slate-500'}>
+                {isRtl ? 'استخراج واقعی' : 'Actual'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FFB020] shadow-[0_0_8px_rgba(255,176,32,0.4)]" />
+              <span className={isDark ? 'text-[#8E9EB8]' : 'text-slate-500'}>
+                {isRtl ? 'هدف برنامه' : 'Target'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Rounded Pill Selector matching ui1.jpg */}
         <div className="relative">
           <button 
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-colors ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
               isDark 
-                ? 'bg-[#090D16] border-[#1E293B] text-slate-300 hover:text-white' 
-                : 'bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-950'
+                ? 'bg-[#141F42] border border-[#24356B]/40 text-[#8E9EB8] hover:text-[#F1F5F9]' 
+                : 'bg-slate-100 border border-slate-200 text-slate-700'
             }`}
           >
             <span>{isRtl ? 'این هفته' : 'This Week'}</span>
-            <ChevronDownIcon className="w-3 h-3 text-slate-400" />
+            <ChevronDownIcon className="w-3.5 h-3.5 text-[#8E9EB8]" />
           </button>
         </div>
       </div>
 
-      {/* Interactive Vector Curve Chart */}
+      {/* Interactive Vector Curves Chart */}
       <div className="relative flex-1 w-full flex items-center">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
           <defs>
-            {/* Dark mode gradient */}
-            <linearGradient id="areaGradientDark" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00E5FF" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#00E5FF" stopOpacity="0.0" />
+            <linearGradient id="cyanAreaSoft" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.30" />
+              <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.0" />
             </linearGradient>
 
-            {/* Light mode gradient */}
-            <linearGradient id="areaGradientLight" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#7C3AED" stopOpacity="0.0" />
-            </linearGradient>
-
-            <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#00E5FF" floodOpacity="0.5" />
+            <filter id="softCyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#00D2FF" floodOpacity="0.4" />
             </filter>
-
-            <filter id="purpleGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#7C3AED" floodOpacity="0.4" />
+            <filter id="softGoldGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#FFB020" floodOpacity="0.4" />
             </filter>
           </defs>
 
-          {/* Horizontal Grid lines & Y-axis labels */}
-          {[15000, 12000, 9000, 6000, 3000, 0].map((val) => {
+          {/* Horizontal Dotted Grid Lines */}
+          {[16000, 12000, 8000, 4000, 0].map((val) => {
             const y = height - paddingY - (val / maxY) * (height - paddingY * 2);
             return (
               <g key={val}>
@@ -125,15 +143,16 @@ export const ProductionTrendCard: React.FC = () => {
                   y1={y} 
                   x2={width - paddingX} 
                   y2={y} 
-                  stroke={isDark ? '#1E293B' : '#E2E8F0'} 
-                  strokeDasharray={val === 0 ? '0' : '4 4'}
-                  strokeWidth="1"
+                  stroke={isDark ? '#24356B' : '#E2E8F0'} 
+                  strokeDasharray={val === 0 ? '0' : '3 3'}
+                  strokeWidth="0.8"
+                  strokeOpacity={isDark ? '0.45' : '0.8'}
                 />
                 <text 
                   x={paddingX - 10} 
-                  y={y + 4} 
+                  y={y + 3.5} 
                   textAnchor="end" 
-                  className={`text-[10px] font-mono ${isDark ? 'fill-slate-500' : 'fill-slate-400'}`}
+                  className={`text-[9px] font-mono ${isDark ? 'fill-[#8E9EB8]' : 'fill-slate-400'}`}
                 >
                   {val === 0 ? '0' : `${val / 1000}K`}
                 </text>
@@ -141,23 +160,33 @@ export const ProductionTrendCard: React.FC = () => {
             );
           })}
 
-          {/* Gradient Area Fill */}
+          {/* Cyan Gradient Area Fill */}
+          <path d={areaPath} fill="url(#cyanAreaSoft)" />
+
+          {/* Secondary Target Curve (Gold/Orange) */}
           <path
-            d={areaPath}
-            fill={isDark ? 'url(#areaGradientDark)' : 'url(#areaGradientLight)'}
+            d={targetPath}
+            fill="none"
+            stroke={goldColor}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray="4 4"
+            filter="url(#softGoldGlow)"
+            opacity="0.85"
           />
 
-          {/* Main Curve Stroke */}
+          {/* Primary Actual Curve (Cyan) */}
           <path
-            d={linePath}
+            d={actualPath}
             fill="none"
-            stroke={lineColor}
-            strokeWidth="3"
-            filter={glowFilter}
+            stroke={cyanColor}
+            strokeWidth="3.2"
+            strokeLinecap="round"
+            filter="url(#softCyanGlow)"
           />
 
           {/* Data Points */}
-          {points.map((pt, idx) => (
+          {actualPoints.map((pt, idx) => (
             <g 
               key={idx} 
               onMouseEnter={() => setHoveredIndex(idx)}
@@ -168,21 +197,20 @@ export const ProductionTrendCard: React.FC = () => {
                 cx={pt.x}
                 cy={pt.y}
                 r={hoveredIndex === idx ? 6 : 4}
-                fill={lineColor}
-                stroke={isDark ? '#090D16' : '#FFFFFF'}
+                fill={cyanColor}
+                stroke={isDark ? '#141F42' : '#FFFFFF'}
                 strokeWidth="2.5"
                 className="transition-all duration-150"
               />
 
-              {/* X-axis Day Label */}
               <text
                 x={pt.x}
-                y={height - 5}
+                y={height - 6}
                 textAnchor="middle"
-                className={`text-[11px] font-semibold ${
+                className={`text-[10px] font-semibold transition-colors ${
                   hoveredIndex === idx 
-                    ? (isDark ? 'fill-cyan-400 font-bold' : 'fill-purple-600 font-bold') 
-                    : (isDark ? 'fill-slate-400' : 'fill-slate-500')
+                    ? 'fill-[#00D2FF] font-bold' 
+                    : (isDark ? 'fill-[#8E9EB8]' : 'fill-slate-500')
                 }`}
               >
                 {isRtl ? pt.dayFa : pt.day}
@@ -191,21 +219,21 @@ export const ProductionTrendCard: React.FC = () => {
           ))}
         </svg>
 
-        {/* Floating Tooltip when hovering over a point */}
+        {/* Floating Tooltip */}
         {hoveredIndex !== null && (
           <div 
             className="absolute -top-3 pointer-events-none px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xl transition-all duration-200"
             style={{
-              left: `${(points[hoveredIndex].x / width) * 100}%`,
+              left: `${(actualPoints[hoveredIndex].x / width) * 100}%`,
               transform: 'translateX(-50%)',
-              backgroundColor: isDark ? '#111726' : '#FFFFFF',
-              borderColor: isDark ? '#00E5FF' : '#7C3AED',
-              color: isDark ? '#00E5FF' : '#7C3AED',
+              backgroundColor: '#141F42',
+              borderColor: '#00D2FF',
+              color: '#00D2FF',
             }}
           >
-            <div className="flex items-center gap-1.5">
-              <span>{points[hoveredIndex].value.toLocaleString()}</span>
-              <span className="text-[10px] text-slate-400">{isRtl ? 'تن' : 'Ton'}</span>
+            <div className="flex items-center gap-2">
+              <span>{actualPoints[hoveredIndex].value.toLocaleString()}</span>
+              <span className="text-[10px] text-[#8E9EB8]">{isRtl ? 'تن واقعی' : 'Ton'}</span>
             </div>
           </div>
         )}

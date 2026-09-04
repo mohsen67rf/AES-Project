@@ -62,9 +62,6 @@ export const ExecutiveCostRevenueWidget: React.FC = () => {
                 ${totalCostPerTonOre} / Ton Ore
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isRtl ? 'تحلیل بهای تمام‌شده بر تن کانسنگ، تفکیک هزینه‌های فرآیندی و حاشیه سود' : 'Unit OPEX per ton ore, process cost breakdown & EBITDA'}
-            </p>
           </div>
         </div>
 

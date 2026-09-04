@@ -20,8 +20,10 @@ import {
   MoonIcon,
   ChevronUpDownIcon,
   SparklesIcon,
-  CubeIcon
+  CubeIcon,
+  BriefcaseIcon
 } from '@heroicons/react/24/outline';
+import { Zap } from 'lucide-react';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -29,7 +31,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, setTheme, isDark } = useTheme();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
 
   // Navigation Items matching the reference image + existing project modules
   const menuItems = [
+    { id: 'workspace', label: isRtl ? 'میز کار اختصاصی واحد' : 'Role & Unit Desk', path: '/workspace', icon: BriefcaseIcon, badge: isRtl ? 'تخصصی' : 'Live' },
     { id: 'dashboard', label: isRtl ? 'داشبورد عمومی' : 'General Dashboard', path: '/dashboard', icon: Squares2X2Icon },
     { id: 'management-kpi', label: isRtl ? 'مدیریت و شاخص‌ها (KPI)' : 'Executive Management (KPIs)', path: '/management-dashboard', icon: ChartBarIcon },
     { id: 'mines', label: isRtl ? 'معادن' : 'Mines', path: '/mine', icon: BuildingOffice2Icon },
@@ -75,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
     <aside
       className={`w-64 flex-shrink-0 flex flex-col justify-between select-none transition-all duration-300 z-40 ${
         isDark 
-          ? 'bg-[#090D16] border-[#182030] text-slate-200' 
+          ? 'bg-[#0C132B] border-[#24356B]/30 text-[#8E9EB8]' 
           : 'bg-white border-slate-200/80 text-slate-700 shadow-sm'
       } ${isRtl ? 'border-l' : 'border-r'}`}
       style={{ minHeight: '100vh' }}
@@ -102,11 +105,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
               <button
                 key={item.id}
                 onClick={() => handleNav(item.path)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group ${
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 group cursor-pointer ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-lg shadow-[#6366F1]/25 font-bold'
+                    ? 'bg-[#1A264F] border border-[#00D2FF]/30 text-[#00D2FF] shadow-[0_4px_16px_rgba(0,210,255,0.15)] font-bold'
                     : isDark
-                    ? 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'text-[#8E9EB8] hover:text-[#F1F5F9] hover:bg-[#141F42]'
                     : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/80'
                 }`}
               >
@@ -114,17 +117,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
                   <item.icon
                     className={`w-4 h-4 transition-colors ${
                       isActive 
-                        ? 'text-white' 
+                        ? 'text-[#00D2FF]' 
                         : isDark 
-                        ? 'text-slate-400 group-hover:text-cyan-400' 
-                        : 'text-slate-500 group-hover:text-purple-600'
+                        ? 'text-[#8E9EB8] group-hover:text-[#00D2FF]' 
+                        : 'text-slate-500 group-hover:text-[#00D2FF]'
                     }`}
                   />
                   <span>{item.label}</span>
                 </div>
 
                 {item.badge && !isActive && (
-                  <span className="w-5 h-5 rounded-full bg-[#7C3AED]/20 text-[#A78BFA] border border-[#7C3AED]/40 text-[10px] flex items-center justify-center font-bold">
+                  <span className="w-5 h-5 rounded-full bg-[#00D2FF]/15 text-[#00D2FF] border border-[#00D2FF]/30 text-[10px] flex items-center justify-center font-bold">
                     {item.badge}
                   </span>
                 )}
@@ -135,40 +138,65 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
       </div>
 
       {/* Bottom Section: Theme Mode Pill & User Profile */}
-      <div className="p-4 space-y-3 border-t border-slate-800/40 dark:border-slate-800/60">
-        {/* Dark / Light Mode Toggle Switcher as shown in the reference image */}
+      <div className="p-4 space-y-3 border-t border-[#24356B]/30">
+        {/* 3-Way Theme Mode Switcher (Light | Dark | Cyber Neon) */}
         <div 
-          onClick={toggleTheme}
-          className={`flex items-center justify-between p-1.5 rounded-2xl cursor-pointer border transition-all ${
-            isDark 
-              ? 'bg-[#111726] border-[#1F293D] text-slate-300' 
-              : 'bg-slate-100 border-slate-200 text-slate-700'
+          className={`grid grid-cols-3 p-1 rounded-full border transition-all gap-1 ${
+            theme === 'cyber'
+              ? 'bg-[#080E24] border-cyan-400/40 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+              : isDark 
+                ? 'bg-[#141F42] border-[#24356B]/40 text-[#8E9EB8]' 
+                : 'bg-slate-100 border-slate-200 text-slate-700'
           }`}
         >
-          <div className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            !isDark 
-              ? 'bg-white text-amber-500 shadow-sm' 
-              : 'text-slate-400 hover:text-white'
-          }`}>
-            <SunIcon className="w-4 h-4" />
-            <span className="text-[11px]">{isRtl ? 'روز' : 'Light'}</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setTheme('light')}
+            className={`flex items-center justify-center gap-1 py-1 px-1 rounded-full text-xs font-bold transition-all ${
+              theme === 'light'
+                ? 'bg-white text-amber-500 shadow-sm' 
+                : 'text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+            title="تم روز"
+          >
+            <SunIcon className="w-3.5 h-3.5" />
+            <span className="text-[10px]">{isRtl ? 'روز' : 'Light'}</span>
+          </button>
 
-          <div className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            isDark 
-              ? 'bg-[#6366F1] text-white shadow-md shadow-[#6366F1]/30' 
-              : 'text-slate-400 hover:text-slate-900'
-          }`}>
-            <MoonIcon className="w-4 h-4" />
-            <span className="text-[11px]">{isRtl ? 'شب' : 'Dark'}</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setTheme('dark')}
+            className={`flex items-center justify-center gap-1 py-1 px-1 rounded-full text-xs font-bold transition-all ${
+              theme === 'dark' 
+                ? 'bg-[#1A264F] text-[#00D2FF] shadow-[0_0_10px_rgba(0,210,255,0.2)] border border-[#00D2FF]/30' 
+                : 'text-[#8E9EB8] hover:text-white'
+            }`}
+            title="تم شب"
+          >
+            <MoonIcon className="w-3.5 h-3.5" />
+            <span className="text-[10px]">{isRtl ? 'شب' : 'Dark'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTheme('cyber')}
+            className={`flex items-center justify-center gap-1 py-1 px-1 rounded-full text-xs font-black transition-all ${
+              theme === 'cyber' 
+                ? 'bg-gradient-to-r from-cyan-500 to-pink-500 text-slate-950 shadow-[0_0_12px_rgba(0,240,255,0.6)] font-black' 
+                : 'text-cyan-400/70 hover:text-cyan-300'
+            }`}
+            title="تم نئونی سایبر"
+          >
+            <Zap className={`w-3.5 h-3.5 ${theme === 'cyber' ? 'fill-slate-950' : 'fill-cyan-400'}`} />
+            <span className="text-[10px]">{isRtl ? 'سایبر' : 'Cyber'}</span>
+          </button>
         </div>
 
         {/* User Card */}
         <div 
           onClick={() => navigate('/users')}
-          className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${
-            isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-100'
+          className={`flex items-center justify-between p-2 rounded-2xl cursor-pointer transition-colors ${
+            isDark ? 'hover:bg-[#141F42] text-[#F1F5F9]' : 'hover:bg-slate-100'
           }`}
         >
           <div className="flex items-center gap-2.5">
