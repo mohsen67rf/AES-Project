@@ -154,9 +154,9 @@ export const UnitTasksDashboardWidget: React.FC<UnitTasksDashboardWidgetProps> =
             <p className="text-xs font-bold text-[#F1F5F9]">وظیفه فعالی وجود ندارد</p>
           </div>
         ) : (
-          pendingTasks.slice(0, 3).map((task) => (
+          pendingTasks.slice(0, 3).map((task, idx) => (
             <div
-              key={task.id}
+              key={`widget-task-${task.id}-${idx}`}
               onClick={onOpenTasksDrawer}
               className={`p-3.5 rounded-[16px] border cursor-pointer transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
                 isDark 

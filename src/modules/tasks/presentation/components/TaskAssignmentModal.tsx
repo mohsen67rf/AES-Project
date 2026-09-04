@@ -7,8 +7,9 @@ import { useLanguage } from '../../../../shared/context/LanguageContext';
 import { SYSTEM_ROLES } from '../../../auth/domain/roles';
 import { UserRepository } from '../../../../core/infrastructure/repositories';
 import { TaskService } from '../../services/TaskService';
-import { TaskPriority, UnitTask } from '../../../../core/domain/types/task.types';
+import { TaskPriority, UnitTask, TaskMapLocation } from '../../../../core/domain/types/task.types';
 import type { User } from '../../../../core/domain/types/mine.types';
+import { TaskInteractiveMapSelector, MINE_MAP_BLOCKS } from './TaskInteractiveMapSelector';
 import {
   ClipboardList,
   X,
@@ -23,6 +24,7 @@ import {
   Building2,
   Sparkles,
   CheckCircle2,
+  MapPin,
 } from 'lucide-react';
 
 interface TaskAssignmentModalProps {
@@ -33,6 +35,7 @@ interface TaskAssignmentModalProps {
   defaultRelatedModule?: 'BLOCKS' | 'EQUIPMENT' | 'GIS' | 'LAB' | 'WAREHOUSE' | 'HSE' | 'GENERAL';
   defaultEntityId?: string;
   defaultEntityCode?: string;
+  defaultBench?: string;
 }
 
 export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
@@ -43,6 +46,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   defaultRelatedModule = 'GENERAL',
   defaultEntityId,
   defaultEntityCode,
+  defaultBench = '1040',
 }) => {
   const { isDark } = useTheme();
   const { lang } = useLanguage();
@@ -57,6 +61,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   const [dueDateDays, setDueDateDays] = useState<number>(2);
   const [relatedModule, setRelatedModule] = useState<'BLOCKS' | 'EQUIPMENT' | 'GIS' | 'LAB' | 'WAREHOUSE' | 'HSE' | 'GENERAL'>(defaultRelatedModule);
   const [customActionUrl, setCustomActionUrl] = useState('');
+  const [mapLocation, setMapLocation] = useState<TaskMapLocation | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
 
@@ -72,8 +77,44 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
       else if (defaultRelatedModule === 'GIS') setCustomActionUrl('/mine/map');
       else if (defaultRelatedModule === 'WAREHOUSE') setCustomActionUrl('/warehouse');
       else if (defaultRelatedModule === 'HSE') setCustomActionUrl('/equipment');
+
+      // Auto preset map location if block specified (e.g. 1040 B 33)
+      if (defaultEntityCode) {
+        const found = MINE_MAP_BLOCKS.find(b => b.code.replace(/\s+/g, '') === defaultEntityCode.replace(/\s+/g, ''));
+        if (found) {
+          setMapLocation({
+            type: 'BENCH_ZONE',
+            bench: found.bench,
+            blockCode: found.code,
+            blockId: found.id,
+            zoneName: `محدوده پله ${found.bench} - بلوک ${found.code} (${found.gradeText})`,
+            x: found.center[0],
+            y: found.center[1],
+            polygonPoints: found.polygon,
+            areaM2: found.areaM2,
+            eastingUTM: found.eastingUTM,
+            northingUTM: found.northingUTM,
+            elevation: parseInt(found.bench, 10),
+            notes: `ارجاع مستقیم برای بلوک ${found.code}`,
+          });
+          if (!title) {
+            setTitle(`اقدام میدانی و نظارت بر بلوک ${found.code} (پله ${found.bench})`);
+          }
+        } else {
+          setMapLocation({
+            type: 'BENCH_ZONE',
+            bench: defaultBench || '1040',
+            blockCode: defaultEntityCode,
+            zoneName: `پله ${defaultBench || '1040'} - بلوک ${defaultEntityCode}`,
+            x: 58,
+            y: 54,
+            areaM2: 1850,
+            elevation: parseInt(defaultBench || '1040', 10),
+          });
+        }
+      }
     }
-  }, [isOpen, defaultRelatedModule]);
+  }, [isOpen, defaultRelatedModule, defaultEntityCode, defaultBench]);
 
   // Filter users matching selected role
   const roleUsers = allUsers.filter(u => u.role.toLowerCase() === selectedRole.toLowerCase());
@@ -134,7 +175,10 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
           priority,
           dueDate,
           relatedModule,
+          relatedEntityId: defaultEntityId || mapLocation?.blockId,
+          relatedEntityCode: defaultEntityCode || mapLocation?.blockCode,
           actionUrl: customActionUrl.trim() || undefined,
+          mapLocation: mapLocation || undefined,
         },
         currentUser
       );
@@ -266,8 +310,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   }`}
                 >
                   <option value="">همه کارشناسان این واحد (عمومی)</option>
-                  {roleUsers.map((u) => (
-                    <option key={u.id} value={u.code || u.id}>
+                  {roleUsers.map((u, idx) => (
+                    <option key={`assign-u-${u.id}-${u.code || idx}`} value={u.code || u.id}>
                       {u.fullName} ({u.code})
                     </option>
                   ))}
@@ -337,6 +381,26 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Interactive Mine Map & Zone Selection */}
+            <div className="space-y-2">
+              <label className="block font-bold text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#00D2FF]" />
+                  <span>جانمایی و ثبت محدوده مورد نظر در نقشه آنلاین و تعاملی معدن <span className="text-[#00D2FF] font-black">*</span></span>
+                </span>
+                <span className="text-[10px] text-[#00D2FF] font-mono">
+                  {mapLocation?.blockCode ? `محدوده انتخابی: ${mapLocation.blockCode}` : 'پله‌های ۱۰۴۰، ۱۰۵۰، ۱۰۶۰'}
+                </span>
+              </label>
+
+              <TaskInteractiveMapSelector
+                value={mapLocation}
+                onChange={setMapLocation}
+                selectedBench={defaultBench || '1040'}
+                isDark={isDark}
+              />
             </div>
 
             {/* Description & Technical Instructions */}

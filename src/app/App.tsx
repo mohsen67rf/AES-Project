@@ -291,11 +291,11 @@ function App() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {allSeedUsers.map((u) => {
+                {allSeedUsers.map((u, idx) => {
                   const roleDef = SYSTEM_ROLES.find(r => r.id.toLowerCase() === u.role.toLowerCase()) || SYSTEM_ROLES[0];
                   return (
                     <button
-                      key={u.id}
+                      key={`seed-user-${u.id}-${u.code || idx}`}
                       onClick={() => handleQuickRoleLogin(u)}
                       className="p-3 rounded-2xl border border-slate-700/70 bg-slate-900/60 hover:bg-indigo-950/40 hover:border-indigo-500/70 text-right transition-all group flex flex-col justify-between gap-2 shadow-sm"
                     >

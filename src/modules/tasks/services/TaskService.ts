@@ -1,12 +1,60 @@
 // src/modules/tasks/services/TaskService.ts
 
-import { UnitTask, TaskStatus, TaskPriority } from '../../../core/domain/types/task.types';
+import { UnitTask, TaskStatus, TaskPriority, TaskMapLocation } from '../../../core/domain/types/task.types';
 import { LocalStorageRepository } from '../../../core/infrastructure/repositories/LocalStorageRepository';
 import type { User } from '../../../core/domain/types/mine.types';
 
 export const TaskRepository = new LocalStorageRepository<UnitTask>('aes_unit_tasks');
 
 const INITIAL_TASKS: UnitTask[] = [
+  {
+    id: 'tsk-000',
+    code: 'TSK-100',
+    title: 'نظارت بر چال‌زنی و نمونه‌گیری پودر بلوک 1040 B 33 در پله ۱۰۴۰',
+    description: 'کنترل امتداد ردیف چال‌ها و شبکه ۳×۳.۵ متر در بلوک 1040 B 33 و تحویل کیسه‌های نمونه پودری چال‌های فرد به آزمایشگاه عیارسنجی.',
+    department: 'مهندسی استخراج',
+    assignedRole: 'MiningEngineer',
+    assignedUserId: 'AES-1002',
+    assignedUserName: 'مهندس علی کریمی',
+    createdByUserId: 'AES-1001',
+    createdByUserName: 'مهندس محمدرضا رضایی (مدیر کل)',
+    createdByUserRole: 'Manager',
+    priority: 'URGENT',
+    status: 'IN_PROGRESS',
+    dueDate: new Date(Date.now() + 86400000 * 1).toISOString(),
+    relatedModule: 'BLOCKS',
+    relatedEntityId: 'block-1040-b33',
+    relatedEntityCode: '1040 B 33',
+    actionUrl: '/mining-lifecycle?blockId=block-1040-b33',
+    mapLocation: {
+      type: 'BENCH_ZONE',
+      bench: '1040',
+      blockCode: '1040 B 33',
+      blockId: 'block-1040-b33',
+      zoneName: 'محدوده شرقی پله ۱۰۴۰ (زون سنگ‌آهن مگنتیت)',
+      x: 58,
+      y: 46,
+      polygonPoints: [[54, 42], [62, 42], [62, 50], [54, 50]],
+      areaM2: 1850,
+      eastingUTM: 642450,
+      northingUTM: 3584320,
+      elevation: 1040,
+      notes: 'پایش مستمر دیواره شمالی و عدم پرتاب بولدر به رمپ پایین‌دست',
+    },
+    createdAt: new Date(Date.now() - 86400000 * 0.8).toISOString(),
+    updatedAt: new Date().toISOString(),
+    history: [
+      {
+        id: 'h-0',
+        action: 'CREATED',
+        byUserId: 'AES-1001',
+        byUserName: 'مهندس محمدرضا رضایی',
+        byUserRole: 'Manager',
+        timestamp: new Date(Date.now() - 86400000 * 0.8).toISOString(),
+        comment: 'ارجاع مستقیم با مشخص‌سازی محدوده عملیاتی در نقشه تعاملی معدن',
+      }
+    ]
+  },
   {
     id: 'tsk-001',
     code: 'TSK-101',
@@ -26,6 +74,19 @@ const INITIAL_TASKS: UnitTask[] = [
     relatedEntityId: 'blk-b12',
     relatedEntityCode: 'B-12',
     actionUrl: '/blocks-management',
+    mapLocation: {
+      type: 'POINT',
+      bench: '1040',
+      blockCode: '1040 B 12',
+      blockId: 'blk-b12',
+      zoneName: 'جبهه‌کار میانی پله ۱۰۴۰',
+      x: 35,
+      y: 48,
+      areaM2: 1200,
+      eastingUTM: 641950,
+      northingUTM: 3584100,
+      elevation: 1040,
+    },
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
     updatedAt: new Date().toISOString(),
     history: [
@@ -353,7 +414,10 @@ export class TaskService {
       priority: TaskPriority;
       dueDate: string;
       relatedModule?: 'BLOCKS' | 'EQUIPMENT' | 'GIS' | 'LAB' | 'WAREHOUSE' | 'HSE' | 'GENERAL';
+      relatedEntityId?: string;
+      relatedEntityCode?: string;
       actionUrl?: string;
+      mapLocation?: TaskMapLocation;
     },
     user: User
   ): UnitTask {
@@ -375,7 +439,10 @@ export class TaskService {
       status: 'PENDING',
       dueDate: data.dueDate,
       relatedModule: data.relatedModule || 'GENERAL',
+      relatedEntityId: data.relatedEntityId,
+      relatedEntityCode: data.relatedEntityCode,
       actionUrl: data.actionUrl,
+      mapLocation: data.mapLocation,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       history: [

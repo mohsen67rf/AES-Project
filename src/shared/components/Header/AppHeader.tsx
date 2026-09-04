@@ -14,6 +14,9 @@ import { UserProfileModal } from '../../../modules/auth/presentation/components/
 import { SYSTEM_ROLES, getRoleDefinition } from '../../../modules/auth/domain/roles';
 import { UserRepository } from '../../../core/infrastructure/repositories';
 import type { User } from '../../../core/domain/types/mine.types';
+import type { UnitTask } from '../../../core/domain/types/task.types';
+import { BlockLifecycleSearchDropdown } from './BlockLifecycleSearchDropdown';
+import { TaskMapViewerModal } from '../../../modules/tasks/presentation/components/TaskMapViewerModal';
 import { 
   Bars3Icon, 
   MagnifyingGlassIcon, 
@@ -24,6 +27,7 @@ import {
   Plus,
   User as UserIcon,
   LogOut,
+  X,
 } from 'lucide-react';
 
 interface AppHeaderProps {
@@ -36,6 +40,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
   const { isDark } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -45,8 +50,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
 
   // Modals
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignModalBlockCode, setAssignModalBlockCode] = useState<string | undefined>(undefined);
+  const [assignModalBench, setAssignModalBench] = useState<string | undefined>('1040');
   const [isTasksDrawerOpen, setIsTasksDrawerOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [selectedTaskForMap, setSelectedTaskForMap] = useState<UnitTask | null>(null);
+  const [isMapViewerModalOpen, setIsMapViewerModalOpen] = useState(false);
 
   const isRtl = language === 'fa';
 
@@ -162,14 +171,44 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
               type="text"
               value={searchQuery}
               onChange={handleSearchChange}
-              placeholder={isRtl ? 'جستجو در سامانه، بلوک‌ها، تجهیزات، تسک‌ها...' : 'Search anything...'}
+              onFocus={() => setIsSearchOpen(true)}
+              placeholder={isRtl ? 'جستجو: مثلا 1040 B33 یا نام ماژول...' : 'Search block e.g. 1040 B33...'}
               className={`w-full text-xs py-2 rounded-full border font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[#00D2FF]/40 ${
-                isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'
+                isRtl ? 'pr-10 pl-9' : 'pl-10 pr-9'
               } ${
                 isDark 
                   ? 'bg-[#141F42] border-[#24356B]/40 text-[#F1F5F9] placeholder-[#8E9EB8]' 
                   : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
               }`}
+            />
+
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  if (onSearch) onSearch('');
+                }}
+                className={`absolute ${isRtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors`}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Block Lifecycle Dropdown Panel */}
+            <BlockLifecycleSearchDropdown
+              searchQuery={searchQuery}
+              isOpen={isSearchOpen}
+              onClose={() => setIsSearchOpen(false)}
+              onOpenAssignModalForBlock={(blockCode, bench) => {
+                setAssignModalBlockCode(blockCode);
+                setAssignModalBench(bench);
+                setIsAssignModalOpen(true);
+              }}
+              onViewTaskOnMap={(task) => {
+                setSelectedTaskForMap(task);
+                setIsMapViewerModalOpen(true);
+              }}
             />
           </div>
         </div>
@@ -326,12 +365,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
                 <div className="pt-2 border-t border-slate-700/50">
                   <p className="px-3 text-[10px] font-bold text-slate-400 mb-1">ورود سریع با نقش‌های سازمانی:</p>
                   <div className="max-h-36 overflow-y-auto custom-scrollbar space-y-0.5">
-                    {UserRepository.getAll().slice(0, 6).map((u) => {
+                    {UserRepository.getAll().slice(0, 6).map((u, idx) => {
                       const r = getRoleDefinition(u.role);
                       const isCurrent = currentUser?.id === u.id || currentUser?.code === u.code;
                       return (
                         <button
-                          key={u.id}
+                          key={`user-switch-${u.id}-${u.code || idx}`}
                           onClick={() => handleSwitchUser(u)}
                           className={`w-full px-2.5 py-1.5 rounded-lg text-[11px] text-right flex items-center justify-between transition-colors ${
                             isCurrent 
@@ -363,17 +402,32 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
         </div>
       </header>
 
-      {/* Task Assignment Modal */}
+      {/* Task Assignment Modal with Interactive Map */}
       <TaskAssignmentModal
         isOpen={isAssignModalOpen}
         onClose={() => {
           setIsAssignModalOpen(false);
+          setAssignModalBlockCode(undefined);
           loadSessionAndTasks();
         }}
         currentUser={currentUser}
+        defaultEntityCode={assignModalBlockCode}
+        defaultBench={assignModalBench}
+        defaultRelatedModule={assignModalBlockCode ? 'BLOCKS' : 'GENERAL'}
         onTaskCreated={() => {
           loadSessionAndTasks();
         }}
+      />
+
+      {/* Live Map Viewer Modal for Task */}
+      <TaskMapViewerModal
+        task={selectedTaskForMap}
+        isOpen={isMapViewerModalOpen}
+        onClose={() => {
+          setIsMapViewerModalOpen(false);
+          setSelectedTaskForMap(null);
+        }}
+        isDark={isDark}
       />
 
       {/* Unit Tasks Drawer */}

@@ -22,6 +22,21 @@ export class LocalStorageRepository<T extends { id: string }> {
     return items.find((item) => item.id === id) || null;
   }
 
+  getByBlockId(blockId: string): T[] {
+    return this.getAll().filter((item: any) => item.blockId === blockId);
+  }
+
+  update(id: string, updatedFields: Partial<T> | T): T | null {
+    const items = this.getAll();
+    const index = items.findIndex((i) => i.id === id);
+    if (index >= 0) {
+      items[index] = { ...items[index], ...updatedFields };
+      this.persist(items);
+      return items[index];
+    }
+    return null;
+  }
+
   save(item: T): T {
     const items = this.getAll();
     const index = items.findIndex((i) => i.id === item.id);

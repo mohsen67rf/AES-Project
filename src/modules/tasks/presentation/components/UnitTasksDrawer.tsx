@@ -29,7 +29,9 @@ import {
   Tag,
   Check,
   RotateCw,
+  MapPin,
 } from 'lucide-react';
+import { TaskMapViewerModal } from './TaskMapViewerModal';
 
 interface UnitTasksDrawerProps {
   isOpen: boolean;
@@ -55,6 +57,7 @@ export const UnitTasksDrawer: React.FC<UnitTasksDrawerProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [activeTab, setActiveTab] = useState<'MY_UNIT' | 'ALL_TASKS'>('MY_UNIT');
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
   // Referral Modal
   const [isReferModalOpen, setIsReferModalOpen] = useState(false);
@@ -322,12 +325,12 @@ export const UnitTasksDrawer: React.FC<UnitTasksDrawerProps> = ({
                   <p className="text-xs font-bold">تسکی با این مشخصات یافت نشد.</p>
                 </div>
               ) : (
-                filteredTasks.map((t) => {
+                filteredTasks.map((t, idx) => {
                   const isSelected = selectedTask?.id === t.id;
 
                   return (
                     <div
-                      key={t.id}
+                      key={`drawer-task-${t.id || 'tsk'}-${idx}`}
                       onClick={() => setSelectedTask(t)}
                       className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                         isSelected
@@ -416,6 +419,16 @@ export const UnitTasksDrawer: React.FC<UnitTasksDrawerProps> = ({
                         <ArrowRightLeft className="w-3.5 h-3.5" />
                         <span>ارجاع به واحد دیگر</span>
                       </button>
+
+                      {/* View Online Map Location Button */}
+                      <button
+                        onClick={() => setIsMapModalOpen(true)}
+                        className="px-3 py-1.5 rounded-xl font-bold bg-[#00D2FF]/15 hover:bg-[#00D2FF]/25 border border-[#00D2FF]/40 text-[#00D2FF] flex items-center gap-1.5 transition-colors"
+                        title="مشاهده موقعیت آنلاین و محدوده تعیین‌شده روی نقشه"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>موقعیت روی نقشه آنلاین</span>
+                      </button>
                     </div>
 
                     {selectedTask.actionUrl && (
@@ -430,6 +443,35 @@ export const UnitTasksDrawer: React.FC<UnitTasksDrawerProps> = ({
                         <span>ورود به صفحه عملیات</span>
                       </button>
                     )}
+                  </div>
+
+                  {/* Map Location Badge & Quick View */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#101935] to-[#142247] border border-[#00D2FF]/40 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#00D2FF]/20 text-[#00D2FF] flex items-center justify-center">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white">
+                            موقعیت و محدوده میدانی تسک:
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#00D2FF]/20 text-[#00D2FF]">
+                            پله {selectedTask.mapLocation?.bench || '1040'}m
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#8E9EB8] mt-0.5">
+                          {selectedTask.mapLocation?.zoneName || `بلوک ${selectedTask.relatedEntityCode || '1040 B 33'}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setIsMapModalOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-[#00D2FF] hover:bg-[#00c0ea] text-[#070F1E] text-xs font-black transition-all flex items-center gap-1 shadow-md shadow-[#00D2FF]/20"
+                    >
+                      <span>مشاهده زنده نقشه</span>
+                    </button>
                   </div>
 
                   {/* Metadata Grid */}
@@ -488,9 +530,9 @@ export const UnitTasksDrawer: React.FC<UnitTasksDrawerProps> = ({
                       <span>سوابق گردش کار و ارجاعات (Audit Trail)</span>
                     </h4>
                     <div className="space-y-2">
-                      {selectedTask.history?.map((h) => (
+                      {selectedTask.history?.map((h, idx) => (
                         <div
-                          key={h.id}
+                          key={`hist-${h.id || 'h'}-${idx}`}
                           className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 flex items-start justify-between gap-3 text-[11px]"
                         >
                           <div className="space-y-0.5">
@@ -626,6 +668,14 @@ export const UnitTasksDrawer: React.FC<UnitTasksDrawerProps> = ({
               </div>
             </div>
           )}
+
+          {/* Interactive Map Location Viewer Modal */}
+          <TaskMapViewerModal
+            task={selectedTask}
+            isOpen={isMapModalOpen}
+            onClose={() => setIsMapModalOpen(false)}
+            isDark={isDark}
+          />
         </motion.div>
       </div>
     </AnimatePresence>
