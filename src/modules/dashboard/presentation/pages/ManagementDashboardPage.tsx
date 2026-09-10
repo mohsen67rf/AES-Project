@@ -41,7 +41,7 @@ export const ManagementDashboardPage: React.FC = () => {
   const { language } = useLanguage();
   const isRtl = language === 'fa';
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [timeRange, setTimeRange] = useState('today');
 
@@ -125,7 +125,7 @@ export const ManagementDashboardPage: React.FC = () => {
         <AppHeader onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
         {/* Inner Container */}
-        <main className="p-6 md:p-8 space-y-6 max-w-[1700px] mx-auto w-full">
+        <main className="p-3.5 sm:p-5 md:p-8 space-y-4 sm:space-y-6 max-w-[1700px] mx-auto w-full">
           {/* Top Title Banner */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>

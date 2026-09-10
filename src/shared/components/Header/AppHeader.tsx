@@ -17,6 +17,7 @@ import type { User } from '../../../core/domain/types/mine.types';
 import type { UnitTask } from '../../../core/domain/types/task.types';
 import { BlockLifecycleSearchDropdown } from './BlockLifecycleSearchDropdown';
 import { TaskMapViewerModal } from '../../../modules/tasks/presentation/components/TaskMapViewerModal';
+import { ShiftStatusHeaderPill } from './ShiftStatusHeaderPill';
 import { 
   Bars3Icon, 
   MagnifyingGlassIcon, 
@@ -213,16 +214,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
           </div>
         </div>
 
-        {/* Right side: Task Assignment Button, Unit Inbox, Alert Bell, Language, Theme, User Profile */}
+        {/* Right side: Shift Handover Status, Task Assignment Button, Unit Inbox, Alert Bell, Language, Theme, User Profile */}
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Smart Shift Handover Status Pill */}
+          <ShiftStatusHeaderPill currentUser={currentUser} />
+
           {/* Quick Assign Task Button */}
           <button
             onClick={() => setIsAssignModalOpen(true)}
             className="hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black text-slate-950 bg-gradient-to-r from-[#00D2FF] to-[#38BDF8] hover:brightness-110 shadow-[0_0_12px_rgba(0,210,255,0.3)] transition-all active:scale-95 cursor-pointer"
-            title="ارجاع تسک جدید به واحدها"
+            title="ارجاع تسک جدید"
           >
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            <span>{isRtl ? 'ارجاع تسک به واحدها' : 'Assign Task'}</span>
+            <span>{isRtl ? 'ارجاع تسک' : 'Assign Task'}</span>
           </button>
 
           {/* Unit Tasks Inbox with live Badge */}

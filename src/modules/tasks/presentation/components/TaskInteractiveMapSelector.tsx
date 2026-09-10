@@ -17,6 +17,7 @@ import {
   Crosshair,
 } from 'lucide-react';
 import type { TaskMapLocation } from '../../../../core/domain/types/task.types';
+import { useActiveMasterSurveyMap } from '../../../mine/presentation/hooks/useActiveMasterSurveyMap';
 
 export interface MineMapBench {
   level: string;
@@ -137,12 +138,49 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
   onBenchSelect,
   isDark = true,
 }) => {
+  const { masterMap, hasNewUpdateAlert, lastSyncTime } = useActiveMasterSurveyMap();
+
   const [zoom, setZoom] = useState<number>(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectionMode, setSelectionMode] = useState<'POINT' | 'BLOCK_ZONE'>('BLOCK_ZONE');
   const [activeBench, setActiveBench] = useState<string>(selectedBench);
   const [hoveredBlock, setHoveredBlock] = useState<MineMapBlock | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // استخراج بلوک‌ها به صورت مستقیم از آخرین نقشه فعال برداشت‌شده واحد نقشه‌برداری
+  const activeBlocks = useMemo<MineMapBlock[]>(() => {
+    if (!masterMap?.features) return MINE_MAP_BLOCKS;
+    const subBlockFeatures = masterMap.features.filter(f => f.category === 'SUB_BLOCK' || f.category === 'MINING_BLOCK');
+    if (subBlockFeatures.length === 0) return MINE_MAP_BLOCKS;
+
+    return subBlockFeatures.map((f, idx) => {
+      const code = f.properties.code || f.name || `SB-${idx + 1}`;
+      const bench = f.properties.benchLevel?.toString() || masterMap.benchLevel?.toString() || '1040';
+      const fe = f.properties.feGrade || 58.0;
+      const type: MineMapBlock['type'] = fe >= 60 ? 'ORE_HIGH' : fe >= 50 ? 'ORE_MED' : fe >= 40 ? 'ORE_LOW' : 'WASTE';
+      const gradeText = f.properties.gradeType || (fe >= 50 ? `سنگ‌آهن مگنتیت Fe ${fe}%` : `باطله Fe ${fe}%`);
+
+      const col = idx % 3;
+      const row = Math.floor(idx / 3);
+      const x1 = 22 + col * 20;
+      const x2 = x1 + 17;
+      const y1 = 44 + row * 15;
+      const y2 = y1 + 12;
+
+      return {
+        id: f.id,
+        code,
+        bench,
+        type,
+        gradeText,
+        polygon: [[x1, y1], [x2, y1], [x2 - 2, y2], [x1 - 2, y2]],
+        center: [(x1 + x2) / 2, (y1 + y2) / 2],
+        areaM2: f.properties.areaM2 || 1900,
+        eastingUTM: f.properties.easting || 642300 + idx * 50,
+        northingUTM: f.properties.northing || 3584200 + idx * 40,
+      };
+    });
+  }, [masterMap]);
 
   const handleBenchChange = (bench: string) => {
     setActiveBench(bench);
@@ -164,7 +202,7 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
       eastingUTM: block.eastingUTM,
       northingUTM: block.northingUTM,
       elevation: parseInt(block.bench, 10),
-      notes: `تعیین شده به عنوان زون عملیاتی دستور کار در بلوک ${block.code}`,
+      notes: `تعیین شده به عنوان زون عملیاتی دستور کار در بلوک ${block.code} (مبنا: آخرین نقشه واحد نقشه‌برداری ${masterMap?.version || 'Rev 1.0'})`,
     };
     onChange(newLoc);
   };
@@ -209,6 +247,24 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
 
   return (
     <div className="space-y-3 rounded-2xl border p-3.5 bg-[#0C1427]/80 border-[#223366] text-white">
+      {/* بنر وضعیت اتصال به آخرین نقشه مرجع واحد نقشه‌برداری */}
+      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#09152E] border border-cyan-500/30 text-[11px]">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="font-bold text-cyan-300">
+            {masterMap ? `مبنای استخراج: ${masterMap.title} (${masterMap.version})` : 'مبنای استخراج: نقشه پیش‌فرض پیت مرکزی'}
+          </span>
+          <span className="text-[10px] text-slate-400 hidden sm:inline">
+            • واحد نقشه‌برداری (مرجع اصلی سامانه)
+          </span>
+        </div>
+        {hasNewUpdateAlert && (
+          <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2 py-0.5 rounded-md animate-pulse">
+            نقشه آپدیت شد
+          </span>
+        )}
+      </div>
+
       {/* Top Controls: Mode Switcher + Bench Selector + Clear */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#223366]/60 pb-3">
         <div className="flex items-center gap-1.5">
@@ -353,7 +409,7 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
         </div>
 
         {/* Interactive Block Polygons on the Map */}
-        {MINE_MAP_BLOCKS.map((block) => {
+        {activeBlocks.map((block) => {
           const isSelected = value?.blockCode === block.code || value?.blockId === block.id;
           const isTarget1040B33 = block.code === '1040 B 33';
 

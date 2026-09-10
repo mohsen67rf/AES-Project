@@ -4,10 +4,8 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { 
   EquipmentItem, 
   EquipmentCategory, 
-  EquipmentStatus, 
-  MineMapZone 
+  EquipmentStatus 
 } from '../../domain/types/equipment.types';
-import { MINE_MAP_ZONES } from '../../services/EquipmentService';
 import { SurveyMapService } from '../../../mine/services/SurveyMapService';
 import type { SurveyMap, MapFeature } from '../../../../core/domain/types/survey-map.types';
 import { EquipmentVectorIcon } from './EquipmentVectorIcons';
@@ -17,18 +15,11 @@ import {
   MagnifyingGlassMinusIcon, 
   ArrowsPointingOutIcon, 
   CursorArrowRaysIcon,
-  CheckIcon,
-  EyeIcon,
-  InformationCircleIcon,
-  WrenchScrewdriverIcon,
   UserIcon,
   ClockIcon,
   FireIcon,
-  BoltIcon,
   MapIcon,
-  ChevronDownIcon,
-  AdjustmentsHorizontalIcon,
-  SparklesIcon
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 interface EquipmentMapCanvasProps {
@@ -65,12 +56,21 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // دریافت لیست کلیه نقشه‌های بارگذاری شده از ماژول GIS و نقشه
+  // دریافت لیست کلیه نقشه‌ها و نقشه مرجع فعال تعیین‌شده توسط واحد نقشه‌برداری
   const [availableMaps, setAvailableMaps] = useState<SurveyMap[]>(() => SurveyMapService.getAllMaps());
-  const [activeMapId, setActiveMapId] = useState<string>(() => {
-    const maps = SurveyMapService.getAllMaps();
-    return maps.length > 0 ? maps[0].id : '';
-  });
+  const [activeMapId, setActiveMapId] = useState<string>(() => SurveyMapService.getActiveMasterMapId());
+
+  // هماهنگی بلادرنگ با به‌روزرسانی نقشه مرجع توسط واحد نقشه‌برداری
+  useEffect(() => {
+    const unsubscribe = SurveyMapService.subscribeToMasterMapUpdates((masterMap) => {
+      setAvailableMaps(SurveyMapService.getAllMaps());
+      if (masterMap?.id) {
+        setActiveMapId(masterMap.id);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const activeSurveyMap = useMemo(() => {
     return availableMaps.find(m => m.id === activeMapId) || availableMaps[0] || null;
@@ -82,8 +82,8 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // ضریب اندازه پایه آیکون‌های ماشین‌آلات (جهت تنظیم کاربر)
-  const [markerScaleMultiplier, setMarkerScaleMultiplier] = useState<number>(1);
+  // سایز قابل تنظیم آیکون ماشین‌آلات (بر حسب پیکسل)
+  const [iconSize, setIconSize] = useState<number>(36);
 
   // وضعیت کشیدن و رها کردن تجهیزات (Drag & Drop)
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
@@ -91,65 +91,86 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
 
   // مودال داینامیک هاور با تاخیر ۲ ثانیه‌ای (2-Second Delay Dynamic Hover Modal)
   const [hoveredItem, setHoveredItem] = useState<EquipmentItem | null>(null);
-  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const popoverCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // فیلتر لایه‌های نقشه
+  // سوئیچ لایه‌های نمایش نقشه مرجع
   const [showSurveyFeatures, setShowSurveyFeatures] = useState(true);
-  const [showContours, setShowContours] = useState(true);
-  const [showZones, setShowZones] = useState(true);
-  const [showRoads, setShowRoads] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [showEquipmentLabels, setShowEquipmentLabels] = useState(true);
 
-  // ابعاد پایه بوم
+  // ابعاد پایه بوم وکتوری SVG
   const CANVAS_WIDTH = 1200;
   const CANVAS_HEIGHT = 800;
+  const PADDING = 40;
 
-  // محاسبه ابعاد و بازه مختصات نقشه فعال
+  // محاسبه ابعاد و محدوده مختصاتی نقشه مرجع واقعی
   const mapBounds = useMemo(() => {
+    if (activeSurveyMap?.bounds && 
+        activeSurveyMap.bounds.maxX > activeSurveyMap.bounds.minX && 
+        activeSurveyMap.bounds.maxY > activeSurveyMap.bounds.minY) {
+      return {
+        minX: activeSurveyMap.bounds.minX,
+        maxX: activeSurveyMap.bounds.maxX,
+        minY: activeSurveyMap.bounds.minY,
+        maxY: activeSurveyMap.bounds.maxY,
+        width: activeSurveyMap.bounds.maxX - activeSurveyMap.bounds.minX,
+        height: activeSurveyMap.bounds.maxY - activeSurveyMap.bounds.minY
+      };
+    }
+
     if (activeSurveyMap?.features && activeSurveyMap.features.length > 0) {
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       let hasValid = false;
       activeSurveyMap.features.forEach(f => {
-        if (f.geometry?.coordinates) {
-          const coords = Array.isArray(f.geometry.coordinates[0]) 
-            ? f.geometry.coordinates as [number, number][] 
-            : [f.geometry.coordinates as [number, number]];
-          coords.forEach(([x, y]) => {
-            if (!isNaN(x) && !isNaN(y)) {
-              if (x < minX) minX = x;
-              if (x > maxX) maxX = x;
-              if (y < minY) minY = y;
-              if (y > maxY) maxY = y;
-              hasValid = true;
-            }
-          });
-        }
+        const coords = f.coordinates || (f as any).geometry?.coordinates || [];
+        coords.forEach((pt: any) => {
+          const x = Number(pt[0]);
+          const y = Number(pt[1]);
+          if (!isNaN(x) && !isNaN(y)) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            hasValid = true;
+          }
+        });
       });
       if (hasValid && maxX > minX && maxY > minY) {
         return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
       }
     }
-    return { minX: 584000, maxX: 585000, minY: 3512500, maxY: 3513500, width: 1000, height: 1000 };
+
+    // پیش‌فرض UTM استاندارد معدن
+    return { minX: 584000, maxX: 585500, minY: 3512000, maxY: 3513500, width: 1500, height: 1500 };
   }, [activeSurveyMap]);
 
-  // تبدیل مختصات واقعی نقشه به پیکسل بوم
-  const transformToCanvas = useCallback((utmX: number, utmY: number): [number, number] => {
-    const PADDING = 40;
-    const drawWidth = CANVAS_WIDTH - PADDING * 2;
-    const drawHeight = CANVAS_HEIGHT - PADDING * 2;
-
-    const normX = (utmX - mapBounds.minX) / (mapBounds.width || 1);
-    const normY = 1 - (utmY - mapBounds.minY) / (mapBounds.height || 1);
-
-    const canvasX = PADDING + normX * drawWidth;
-    const canvasY = PADDING + normY * drawHeight;
-    return [canvasX, canvasY];
+  // مقیاس یکنواخت و همسانگرد (Isotropic Projection) بدون دفرمه شدن نقشه مرجع
+  const { uniformScale, offsetX, offsetY, drawnWidth, drawnHeight } = useMemo(() => {
+    const availW = CANVAS_WIDTH - PADDING * 2;
+    const availH = CANVAS_HEIGHT - PADDING * 2;
+    const scale = Math.min(availW / (mapBounds.width || 1), availH / (mapBounds.height || 1));
+    const dW = (mapBounds.width || 1) * scale;
+    const dH = (mapBounds.height || 1) * scale;
+    const oX = PADDING + (availW - dW) / 2;
+    const oY = PADDING + (availH - dH) / 2;
+    return {
+      uniformScale: scale,
+      offsetX: oX,
+      offsetY: oY,
+      drawnWidth: dW,
+      drawnHeight: dH
+    };
   }, [mapBounds]);
 
-  // فیلتر آیتم‌ها بر اساس فیلتر چندگانه دسته‌بندی، وضعیت و جستجو
+  // تبدیل مختصات UTM نقشه مرجع به پیکسل بوم SVG
+  const utmToSvg = useCallback((utmX: number, utmY: number): [number, number] => {
+    const svgX = offsetX + (utmX - mapBounds.minX) * uniformScale;
+    const svgY = offsetY + (mapBounds.maxY - utmY) * uniformScale; // معکوس Y در سیستم استاندارد کارتوگرافی
+    return [svgX, svgY];
+  }, [mapBounds, uniformScale, offsetX, offsetY]);
+
+  // فیلتر آیتم‌ها بر اساس فیلترهای فعال در سایدبار
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) return false;
@@ -168,48 +189,70 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
     });
   }, [items, selectedCategories, statusFilter, searchQuery]);
 
-  // محاسبه موقعیت ماوس نسبت به نقشه به درصد (0 تا 100) با در نظر گرفتن Pan و Zoom
+  // تبدیل موقعیت کلیک ماوس به مختصات درصد نقشه (0 تا 100)
   const getMapCoordinatesFromMouseEvent = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!mapContainerRef.current) return { x: 50, y: 50 };
     const rect = mapContainerRef.current.getBoundingClientRect();
-    
-    // موقعیت خام ماوس داخل کانتینر
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    // معکوس کردن ماتریس ترنسفرم Pan و Zoom
-    const centerOffsetX = (rect.width * (1 - zoomLevel)) / 2;
-    const centerOffsetY = (rect.height * (1 - zoomLevel)) / 2;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
 
-    const unscaledX = (mouseX - panOffset.x - centerOffsetX) / zoomLevel;
-    const unscaledY = (mouseY - panOffset.y - centerOffsetY) / zoomLevel;
+    const unzoomedX = (mouseX - centerX - panOffset.x) / zoomLevel + centerX;
+    const unzoomedY = (mouseY - centerY - panOffset.y) / zoomLevel + centerY;
 
-    const xPct = Math.max(2, Math.min(98, (unscaledX / rect.width) * 100));
-    const yPct = Math.max(2, Math.min(98, (unscaledY / rect.height) * 100));
-    
-    return { x: Number(xPct.toFixed(1)), y: Number(yPct.toFixed(1)) };
-  }, [zoomLevel, panOffset]);
+    const pctX = Math.max(0, Math.min(100, (unzoomedX / rect.width) * 100));
+    const pctY = Math.max(0, Math.min(100, (unzoomedY / rect.height) * 100));
 
-  // شروع کشیدن یک ماشین
-  const handleItemMouseDown = (e: React.MouseEvent, item: EquipmentItem) => {
-    e.stopPropagation();
-    if (!isPlacementMode) {
-      onSelectEquipment(item);
-      return;
+    return { 
+      x: Number(pctX.toFixed(2)), 
+      y: Number(pctY.toFixed(2)) 
+    };
+  }, [panOffset, zoomLevel]);
+
+  // کلیک روی بوم نقشه
+  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isPlacementMode) {
+      const targetId = activePlacementItemId || selectedEquipmentId;
+      if (targetId) {
+        const coords = getMapCoordinatesFromMouseEvent(e);
+        const benchLevel = activeSurveyMap?.benchLevel || 1040;
+        const zoneName = activeSurveyMap?.title || 'نقشه مرجع معدن';
+        onUpdatePosition(targetId, coords.x, coords.y, benchLevel, zoneName);
+      }
     }
-    setDraggingItemId(item.id);
-    const coords = getMapCoordinatesFromMouseEvent(e as unknown as React.MouseEvent<HTMLDivElement>);
-    setDragCurrentPos(coords);
   };
 
-  // حرکت ماوس روی نقشه
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    setMousePos({ x: e.clientX, y: e.clientY });
+  // شروع Drag یک ماشین
+  const handleItemMouseDown = (e: React.MouseEvent, item: EquipmentItem) => {
+    e.stopPropagation();
+    if (e.button !== 0) return; // فقط کلیک چپ
+    setDraggingItemId(item.id);
+    setDragCurrentPos({ x: item.position.x, y: item.position.y });
+    onSelectEquipment(item);
 
-    if (draggingItemId && isPlacementMode) {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+    setHoveredItem(null);
+  };
+
+  // رویداد کلیک روی آیکون ماشین
+  const handleMarkerClick = (e: React.MouseEvent, item: EquipmentItem) => {
+    e.stopPropagation();
+    onSelectEquipment(item);
+  };
+
+  // مدیریت رویداد حرکت ماوس روی کانتینر برای Dragging یا Pan
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (draggingItemId) {
       const coords = getMapCoordinatesFromMouseEvent(e);
       setDragCurrentPos(coords);
-    } else if (isPanning) {
+      return;
+    }
+
+    if (isPanning) {
       setPanOffset({
         x: e.clientX - panStart.x,
         y: e.clientY - panStart.y
@@ -217,76 +260,22 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
     }
   };
 
-  // رها کردن ماوس
+  // اتمام حرکت ماوس / رها کردن
   const handleMouseUp = () => {
-    if (draggingItemId && dragCurrentPos && isPlacementMode) {
-      // ذخیره موقعیت جدید
-      onUpdatePosition(draggingItemId, dragCurrentPos.x, dragCurrentPos.y);
+    if (draggingItemId && dragCurrentPos) {
+      const benchLevel = activeSurveyMap?.benchLevel || 1040;
+      const zoneName = activeSurveyMap?.title || 'نقشه مرجع معدن';
+      onUpdatePosition(draggingItemId, dragCurrentPos.x, dragCurrentPos.y, benchLevel, zoneName);
       setDraggingItemId(null);
       setDragCurrentPos(null);
     }
-    setIsPanning(false);
-  };
 
-  // کلیک روی نقشه در حالت جانمایی
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isPlacementMode && activePlacementItemId) {
-      const coords = getMapCoordinatesFromMouseEvent(e);
-      onUpdatePosition(activePlacementItemId, coords.x, coords.y);
+    if (isPanning) {
+      setIsPanning(false);
     }
   };
 
-  // مدیریت هاور با تاخیر ۲ ثانیه و تعاملی بودن پاپ‌اور
-  const handleMarkerMouseEnter = (item: EquipmentItem, e: React.MouseEvent) => {
-    if (draggingItemId) return;
-    if (popoverCloseTimerRef.current) {
-      clearTimeout(popoverCloseTimerRef.current);
-      popoverCloseTimerRef.current = null;
-    }
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-    }
-
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-
-    hoverTimerRef.current = setTimeout(() => {
-      setHoveredItem(item);
-      setPopoverPos({ x: clientX, y: clientY });
-    }, 2000);
-  };
-
-  const handleMarkerMouseLeave = () => {
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-    popoverCloseTimerRef.current = setTimeout(() => {
-      setHoveredItem(null);
-    }, 350);
-  };
-
-  const handlePopoverMouseEnter = () => {
-    if (popoverCloseTimerRef.current) {
-      clearTimeout(popoverCloseTimerRef.current);
-      popoverCloseTimerRef.current = null;
-    }
-  };
-
-  const handlePopoverMouseLeave = () => {
-    setHoveredItem(null);
-  };
-
-  const handleMarkerClick = (e: React.MouseEvent, item: EquipmentItem) => {
-    e.stopPropagation();
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-    onSelectEquipment(item);
-  };
-
-  // شروع Pan با کشیدن پس‌زمینه
+  // شروع Pan روی بوم
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button === 0 && !isPlacementMode) {
       setIsPanning(true);
@@ -310,39 +299,61 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
     setPanOffset({ x: 0, y: 0 });
   };
 
-  // کنترل اسکرول ماوس برای زوم
+  // اسکرول ماوس برای زوم
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.15 : 0.15;
     handleZoom(delta);
   };
 
-  // محاسبه اندازه بصری آیکون ماشین بر اساس زوم
-  // در زوم اوت کوچک‌تر و در زوم این بزرگ‌تر می‌شود
-  const computedMarkerDimension = useMemo(() => {
-    // پایه ۲۶ پیکسل، متناسب با ریشه زوم مقیاس می‌گیرد تا نه خیلی ریز شود نه خیلی غول‌پیکر
-    const base = 26 * markerScaleMultiplier;
-    const scaled = base * Math.pow(zoomLevel, 0.75);
-    return Math.max(16, Math.min(64, scaled));
-  }, [zoomLevel, markerScaleMultiplier]);
+  // مدیریت هاور ۲ ثانیه‌ای برای نمایش پاپ‌اور
+  const handleMarkerMouseEnter = (item: EquipmentItem, e: React.MouseEvent) => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const containerRect = mapContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+    
+    setHoverPosition({
+      x: rect.left - containerRect.left + rect.width / 2,
+      y: rect.top - containerRect.top
+    });
+
+    hoverTimerRef.current = setTimeout(() => {
+      setHoveredItem(item);
+    }, 1800);
+  };
+
+  const handleMarkerMouseLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoveredItem(null);
+  };
+
+  // پیدا کردن ماشین در حال جانمایی
+  const activePlacementItem = useMemo(() => {
+    const id = activePlacementItemId || selectedEquipmentId;
+    return items.find(e => e.id === id) || null;
+  }, [items, activePlacementItemId, selectedEquipmentId]);
 
   return (
     <div 
-      className={`relative w-full h-full min-h-[550px] flex-1 rounded-3xl border overflow-hidden select-none flex flex-col ${
-        isDark ? 'bg-[#080E1B] border-[#1E293B]' : 'bg-slate-100 border-slate-300'
+      className={`relative w-full h-full min-h-[550px] flex-1 rounded-2xl border overflow-hidden select-none flex flex-col ${
+        isDark ? 'bg-[#060B14] border-slate-800' : 'bg-slate-100 border-slate-300'
       }`}
     >
-      {/* ======================================================== */}
-      {/* نوار ابزار بالای نقشه: انتخاب نقشه GIS، زوم، لایه‌ها */}
-      {/* ======================================================== */}
+      {/* نوار ابزار بالای نقشه: انتخاب نقشه مرجع، زوم، لایه‌ها و سایز آیکون */}
       <div className={`p-2.5 sm:p-3 border-b flex flex-wrap items-center justify-between gap-2 z-10 backdrop-blur-md ${
-        isDark ? 'bg-[#0B1323]/90 border-slate-800 text-white' : 'bg-white/90 border-slate-200 text-slate-900'
+        isDark ? 'bg-[#0B1323]/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
       }`}>
-        {/* سمت راست: انتخاب نقشه GIS آپلود شده + تراز و وضعیت */}
+        {/* سمت راست: انتخاب نقشه مرجع معتبر */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
             <MapIcon className="w-4 h-4" />
-            <span className="text-xs font-black">نقشه معدن:</span>
+            <span className="text-xs font-black">نقشه مرجع معدن:</span>
           </div>
 
           {availableMaps.length > 0 ? (
@@ -353,40 +364,54 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
                 isDark ? 'bg-[#0E172A] border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
-              {availableMaps.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.title} ({m.version}) - تراز {m.benchLevel}m
+              {availableMaps.map((m, idx) => (
+                <option key={m.id || `map-${idx}`} value={m.id}>
+                  {m.isMasterMap ? '⭐ [نقشه مرجع مصوب] ' : ''}{m.title} ({m.code || 'CAD'}) - تراز {m.benchLevel}m
                 </option>
               ))}
             </select>
           ) : (
-            <span className="text-xs text-slate-400">نقشه پیش‌فرض پیت مرکزی</span>
+            <span className="text-xs text-slate-400">نقشه مرجع پیت معدن</span>
           )}
 
           {activeSurveyMap && (
-            <span className="text-[10px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-amber-300 border border-slate-700">
-              تراز {activeSurveyMap.benchLevel}m
-            </span>
+            <div className="flex items-center gap-1.5">
+              {activeSurveyMap.isMasterMap && (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-500/50 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span>نقشه مرجع رسمی</span>
+                </span>
+              )}
+              <span className="text-[10px] font-mono px-2 py-1 rounded-lg bg-slate-800 text-amber-300 border border-slate-700">
+                تراز {activeSurveyMap.benchLevel}m
+              </span>
+            </div>
           )}
         </div>
 
-        {/* سمت چپ: کنترل‌های زوم، حالت جانمایی، لایه‌ها و مقیاس آیکون‌ها */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {/* دکمه سوئیچ حالت جانمایی (Placement Mode) */}
-          <button
-            onClick={onTogglePlacementMode}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
-              isPlacementMode 
-                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md animate-pulse font-black' 
-                : isDark ? 'bg-[#0E172A] border-slate-700 text-slate-300 hover:text-white' : 'bg-white border-slate-300 text-slate-700'
-            }`}
-            title="فعال/غیرفعال کردن حالت جابجایی و جانمایی دستی ماشین‌آلات"
-          >
-            <CursorArrowRaysIcon className="w-4 h-4" />
-            <span>{isPlacementMode ? 'حالت جانمایی فعال' : 'جانمایی ماشین‌آلات'}</span>
-          </button>
+        {/* سمت چپ: کنترل سایز آیکون، زوم، لایه‌ها و تاگل جانمایی */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* اسلایدر تنظیم سایز آیکون ماشین‌آلات */}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs ${
+            isDark ? 'bg-[#0E172A] border-slate-700' : 'bg-white border-slate-300'
+          }`}>
+            <span className="text-[11px] text-slate-400 whitespace-nowrap">سایز آیکون:</span>
+            <input 
+              type="range" 
+              min="20" 
+              max="60" 
+              step="2"
+              value={iconSize} 
+              onChange={(e) => setIconSize(Number(e.target.value))} 
+              className="w-16 sm:w-20 accent-cyan-400 h-1.5 cursor-pointer bg-slate-700 rounded-lg"
+              title={`تنظیم اندازه آیکون ماشین‌آلات (${iconSize}px)`}
+            />
+            <span className="text-[10px] font-mono font-bold text-cyan-400 w-7 text-center">
+              {iconSize}px
+            </span>
+          </div>
 
-          {/* ابزار زوم */}
+          {/* ابزار زوم و ریست */}
           <div className={`flex items-center rounded-xl border p-0.5 ${
             isDark ? 'bg-[#0E172A] border-slate-700' : 'bg-white border-slate-300'
           }`}>
@@ -410,55 +435,86 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
             <button
               onClick={handleResetView}
               className="p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-300 hover:text-white transition-colors border-r border-slate-700/50"
-              title="بازنشانی زاویه دید (Reset 100%)"
+              title="بازنشانی زاویه دید (Reset View)"
             >
               <ArrowsPointingOutIcon className="w-4 h-4" />
             </button>
           </div>
 
-          {/* کنترل مقیاس اندازه وکتورها */}
-          <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs ${
-            isDark ? 'bg-[#0E172A] border-slate-700' : 'bg-white border-slate-300'
-          }`}>
-            <span className="text-[10px] text-slate-400">اندازه آیکون:</span>
-            <button 
-              onClick={() => setMarkerScaleMultiplier(0.8)} 
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${markerScaleMultiplier === 0.8 ? 'bg-cyan-500 text-slate-950' : 'text-slate-400'}`}
-            >
-              ریز
-            </button>
-            <button 
-              onClick={() => setMarkerScaleMultiplier(1.0)} 
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${markerScaleMultiplier === 1.0 ? 'bg-cyan-500 text-slate-950' : 'text-slate-400'}`}
-            >
-              عادی
-            </button>
-            <button 
-              onClick={() => setMarkerScaleMultiplier(1.3)} 
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${markerScaleMultiplier === 1.3 ? 'bg-cyan-500 text-slate-950' : 'text-slate-400'}`}
-            >
-              درشت
-            </button>
-          </div>
+          {/* تاگل نمایش عوارض نقشه و شبکه */}
+          <button
+            onClick={() => setShowSurveyFeatures(!showSurveyFeatures)}
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
+              showSurveyFeatures 
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
+                : isDark ? 'bg-[#0E172A] border-slate-700 text-slate-400' : 'bg-white border-slate-300 text-slate-600'
+            }`}
+            title="نمایش / پنهان‌سازی عوارض وکتوری نقشه مرجع (پله‌ها، پیت، راه‌ها)"
+          >
+            عوارض نقشه
+          </button>
 
-          {/* تاگل نمایش برچسب‌ها */}
+          <button
+            onClick={() => setShowGrid(!showGrid)}
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
+              showGrid 
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
+                : isDark ? 'bg-[#0E172A] border-slate-700 text-slate-400' : 'bg-white border-slate-300 text-slate-600'
+            }`}
+            title="نمایش / پنهان‌سازی شبکه مختصاتی UTM"
+          >
+            شبکه UTM
+          </button>
+
+          {/* تاگل نمایش برچسب کد ماشین */}
           <button
             onClick={() => setShowEquipmentLabels(!showEquipmentLabels)}
-            className={`p-1.5 rounded-xl border text-xs ${
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
               showEquipmentLabels 
                 ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
                 : isDark ? 'bg-[#0E172A] border-slate-700 text-slate-400' : 'bg-white border-slate-300 text-slate-600'
             }`}
-            title="نمایش/عدم نمایش کد ماشین‌ها زیر آیکون"
+            title="نمایش / پنهان‌سازی کد ماشین‌ها"
           >
-            <span className="text-[11px] font-bold px-1">کد</span>
+            کد ماشین
+          </button>
+
+          {/* دکمه وضعیت جانمایی دستی */}
+          <button
+            onClick={onTogglePlacementMode}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+              isPlacementMode 
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md animate-pulse font-black' 
+                : isDark ? 'bg-[#0E172A] border-slate-700 text-slate-300 hover:text-white' : 'bg-white border-slate-300 text-slate-700'
+            }`}
+            title="تغییر وضعیت به حالت جانمایی یا مشاهده"
+          >
+            <CursorArrowRaysIcon className="w-4 h-4" />
+            <span>{isPlacementMode ? 'حالت جانمایی فعال' : 'جانمایی'}</span>
           </button>
         </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* بوم نقشه (Canvas Map Viewport) با پشتیبانی Pan و Zoom */}
-      {/* ======================================================== */}
+      {/* بنر راهنمای بالای بوم در حالت جانمایی فعال */}
+      {isPlacementMode && (
+        <div className="bg-amber-500/90 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md z-20 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CursorArrowRaysIcon className="w-4 h-4 stroke-[2.5]" />
+            <span>
+              حالت جانمایی فعال است: {activePlacementItem ? `جهت استقرار «${activePlacementItem.code} (${activePlacementItem.nameFa})» روی نقطه مورد نظر در نقشه مرجع کلیک فرمایید.` : 'لطفا روی نقطه مورد نظر در نقشه مرجع کلیک کنید.'}
+            </span>
+          </div>
+          <button 
+            onClick={onTogglePlacementMode}
+            className="p-1 rounded-lg hover:bg-black/10 transition-colors"
+            title="خروج از حالت جانمایی"
+          >
+            <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
+          </button>
+        </div>
+      )}
+
+      {/* بوم نقشه مرجع با پشتیبانی Pan و Zoom */}
       <div 
         ref={mapContainerRef}
         onMouseDown={handleCanvasMouseDown}
@@ -466,11 +522,11 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onClick={handleMapClick}
         onWheel={handleWheel}
-        className={`relative flex-1 w-full h-full overflow-hidden cursor-grab ${
+        className={`relative flex-1 w-full h-full overflow-hidden ${
           isPanning ? 'cursor-grabbing' : isPlacementMode ? 'cursor-crosshair' : 'cursor-grab'
         }`}
       >
-        {/* لایه ترنسفرم شده Pan و Zoom */}
+        {/* کانتینر ترنسفرم شده بر اساس Pan و Zoom */}
         <div 
           style={{
             transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
@@ -482,170 +538,201 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
             inset: 0
           }}
         >
-          {/* نقشه وکتوری SVG معدن (برگرفته از SurveyMapService واقعی) */}
+          {/* نقشه وکتوری SVG معدن (دقیقا همان نقشه مرجع آپلود شده) */}
           <svg
             ref={svgRef}
             viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
             className="w-full h-full"
             preserveAspectRatio="xMidYMid meet"
           >
-            {/* تعریف گرادینت‌ها و پترن‌های مهندسی معدن */}
             <defs>
-              <pattern id="mineGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke={isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.05)"} strokeWidth="0.8" />
+              {/* شبکه شطرنجی مهندسی CAD */}
+              <pattern id="mineCadGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke={isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.04)"} strokeWidth="0.8" />
               </pattern>
               
-              <linearGradient id="pitDepthGradient" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor={isDark ? "#0A1528" : "#E2E8F0"} />
-                <stop offset="50%" stopColor={isDark ? "#08101E" : "#CBD5E1"} />
-                <stop offset="100%" stopColor={isDark ? "#040810" : "#94A3B8"} />
+              <linearGradient id="minePitBg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor={isDark ? "#070E1B" : "#F1F5F9"} />
+                <stop offset="50%" stopColor={isDark ? "#060A14" : "#E2E8F0"} />
+                <stop offset="100%" stopColor={isDark ? "#03060C" : "#CBD5E1"} />
               </linearGradient>
-
-              {/* پترن بافت سنگ‌آهن و پله */}
-              <pattern id="benchHatch" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                <line x1="0" y1="0" x2="0" y2="20" stroke={isDark ? "#00D4FF" : "#0284C7"} strokeWidth="0.6" strokeOpacity="0.15" />
-              </pattern>
             </defs>
 
-            {/* پس‌زمینه پیت معدن */}
-            <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#pitDepthGradient)" />
-            {showGrid && <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#mineGrid)" />}
+            {/* پس‌زمینه و گرید */}
+            <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#minePitBg)" />
+            {showGrid && <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#mineCadGrid)" />}
 
-            {/* اگر تصویر رستری آپلود شده باشد (Raster Satellite / Drone Orthophoto) */}
+            {/* در صورت وجود تصویر ارتوفتو یا نقشه رستری آپلود شده */}
             {activeSurveyMap?.rasterImageUrl && (
               <image
                 href={activeSurveyMap.rasterImageUrl}
-                x="40"
-                y="40"
-                width={CANVAS_WIDTH - 80}
-                height={CANVAS_HEIGHT - 80}
-                opacity={0.75}
+                x={offsetX}
+                y={offsetY}
+                width={drawnWidth}
+                height={drawnHeight}
+                opacity={0.85}
                 preserveAspectRatio="none"
               />
             )}
 
-            {/* رندر زون‌های معدن به عنوان پس‌زمینه */}
-            {showZones && MINE_MAP_ZONES.map((zone) => {
-              const x = (zone.bounds.xMin / 100) * CANVAS_WIDTH;
-              const y = (zone.bounds.yMin / 100) * CANVAS_HEIGHT;
-              const w = ((zone.bounds.xMax - zone.bounds.xMin) / 100) * CANVAS_WIDTH;
-              const h = ((zone.bounds.yMax - zone.bounds.yMin) / 100) * CANVAS_HEIGHT;
+            {/* خط محدوده پیرامونی نقشه مرجع */}
+            <rect 
+              x={offsetX} 
+              y={offsetY} 
+              width={drawnWidth} 
+              height={drawnHeight} 
+              fill="none" 
+              stroke={isDark ? "rgba(0, 212, 255, 0.25)" : "rgba(2, 132, 199, 0.3)"} 
+              strokeWidth="1.2" 
+              strokeDasharray="6,4" 
+            />
 
-              return (
-                <g key={zone.id} className="transition-opacity hover:opacity-100">
-                  <rect
-                    x={x}
-                    y={y}
-                    width={w}
-                    height={h}
-                    rx="16"
-                    fill={zone.color}
-                    fillOpacity={isDark ? 0.08 : 0.12}
-                    stroke={zone.color}
-                    strokeWidth="1.5"
-                    strokeDasharray="4,4"
-                  />
-                  <text
-                    x={x + w / 2}
-                    y={y + 20}
-                    textAnchor="middle"
-                    fill={zone.color}
-                    fontSize="11"
-                    fontWeight="bold"
-                    fontFamily="inherit"
-                    opacity={0.85}
-                  >
-                    {zone.nameFa} (تراز {zone.benchLevel}m)
-                  </text>
-                </g>
-              );
-            })}
+            {/* برچسب‌های مختصات در گوشه‌های نقشه مرجع */}
+            <g className="text-[10px] font-mono fill-slate-500 pointer-events-none opacity-60">
+              <text x={offsetX + 6} y={offsetY + 16}>X: {mapBounds.minX.toFixed(0)}m | Y: {mapBounds.maxY.toFixed(0)}m</text>
+              <text x={offsetX + drawnWidth - 6} y={offsetY + drawnHeight - 8} textAnchor="end">X: {mapBounds.maxX.toFixed(0)}m | Y: {mapBounds.minY.toFixed(0)}m</text>
+            </g>
 
-            {/* رندر خطوط پله‌ها و عوارض نقشه‌برداری واقعی از `activeSurveyMap.features` */}
-            {showSurveyFeatures && activeSurveyMap?.features && activeSurveyMap.features.map((feature: MapFeature) => {
-              if (!feature.geometry?.coordinates) return null;
+            {/* رندر عوارض وکتوری نقشه مرجع واقعی (Crest, Toe, Roads, Blocks, etc.) */}
+            {showSurveyFeatures && activeSurveyMap?.features && activeSurveyMap.features.length > 0 ? (
+              activeSurveyMap.features.map((feature: MapFeature, idx: number) => {
+                const coords = feature.coordinates || (feature as any).geometry?.coordinates || [];
+                if (!Array.isArray(coords) || coords.length === 0) return null;
 
-              if (feature.geometry.type === 'LineString' || feature.type === 'LINE') {
-                const coords = feature.geometry.coordinates as [number, number][];
-                const pathData = coords.map((pt, idx) => {
-                  const [cx, cy] = transformToCanvas(pt[0], pt[1]);
-                  return `${idx === 0 ? 'M' : 'L'} ${cx.toFixed(1)} ${cy.toFixed(1)}`;
-                }).join(' ');
+                const featureKey = `${feature.id || 'feat'}-${idx}`;
 
-                const isCrest = feature.category === 'BENCH_CREST';
-                const isToe = feature.category === 'BENCH_TOE';
-                const isRoad = feature.category === 'HAUL_ROAD';
+                // چندضلعی‌ها (ساب‌بلوک‌ها، مرز انفجار، دپوها)
+                if (feature.type === 'POLYGON' && coords.length >= 3) {
+                  const pointsStr = coords.map((pt: any) => {
+                    const [sx, sy] = utmToSvg(Number(pt[0]), Number(pt[1]));
+                    return `${sx.toFixed(1)},${sy.toFixed(1)}`;
+                  }).join(' ');
 
-                return (
-                  <path
-                    key={feature.id}
-                    d={pathData}
-                    fill="none"
-                    stroke={feature.color || (isCrest ? '#00D4FF' : isToe ? '#38BDF8' : isRoad ? '#F59E0B' : '#64748B')}
-                    strokeWidth={isCrest ? 2.5 : isRoad ? 4 : 1.5}
-                    strokeDasharray={isToe ? '6,4' : undefined}
-                    strokeOpacity={0.8}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                );
-              }
+                  return (
+                    <polygon
+                      key={featureKey}
+                      points={pointsStr}
+                      fill={feature.style?.fillColor || (feature as any).color || '#38BDF8'}
+                      fillOpacity={feature.style?.fillOpacity ?? 0.18}
+                      stroke={feature.style?.strokeColor || (feature as any).color || '#38BDF8'}
+                      strokeWidth={feature.style?.strokeWidth || 1.4}
+                      strokeDasharray={feature.style?.strokeDash === 'dashed' ? '5,4' : undefined}
+                      className="transition-opacity hover:opacity-100"
+                    />
+                  );
+                }
 
-              if (feature.geometry.type === 'Polygon' || feature.type === 'POLYGON') {
-                const coords = feature.geometry.coordinates as [number, number][];
-                const pathData = coords.map((pt, idx) => {
-                  const [cx, cy] = transformToCanvas(pt[0], pt[1]);
-                  return `${idx === 0 ? 'M' : 'L'} ${cx.toFixed(1)} ${cy.toFixed(1)}`;
-                }).join(' ') + ' Z';
+                // خطوط پله‌ها، لبه‌ها و راه‌ها (Toe, Crest, Haul Road)
+                if ((feature.type === 'POLYLINE' || feature.type === 'LINE') && coords.length >= 2) {
+                  const pathData = coords.map((pt: any, pIdx: number) => {
+                    const [sx, sy] = utmToSvg(Number(pt[0]), Number(pt[1]));
+                    return `${pIdx === 0 ? 'M' : 'L'} ${sx.toFixed(1)} ${sy.toFixed(1)}`;
+                  }).join(' ');
 
-                return (
-                  <path
-                    key={feature.id}
-                    d={pathData}
-                    fill={feature.color || '#10B981'}
-                    fillOpacity={0.15}
-                    stroke={feature.color || '#10B981'}
-                    strokeWidth={1.5}
-                  />
-                );
-              }
+                  const isCrest = feature.category === 'BENCH_CREST';
+                  const isToe = feature.category === 'BENCH_TOE';
+                  const isRoad = feature.category === 'HAUL_ROAD';
 
-              return null;
-            })}
+                  const defaultStroke = isCrest ? '#00D4FF' : isToe ? '#38BDF8' : isRoad ? '#F59E0B' : '#64748B';
+                  const strokeW = feature.style?.strokeWidth || (isRoad ? 3.5 : isCrest ? 2.2 : 1.3);
 
-            {/* خطوط تراز و کانتورهای فرضی زیباسازی در صورت عدم وجود خطوط برداری */}
-            {showContours && (!activeSurveyMap?.features || activeSurveyMap.features.length === 0) && (
-              <g opacity={0.6}>
-                {/* حلقه پله‌های استخراجی بیرونی به درونی */}
-                <ellipse cx="600" cy="400" rx="520" ry="340" fill="none" stroke="#00D4FF" strokeWidth="2.5" strokeDasharray="3,3" />
-                <ellipse cx="600" cy="400" rx="440" ry="280" fill="none" stroke="#38BDF8" strokeWidth="2" />
-                <ellipse cx="600" cy="400" rx="360" ry="220" fill="none" stroke="#00D4FF" strokeWidth="2" strokeDasharray="5,3" />
-                <ellipse cx="600" cy="400" rx="280" ry="160" fill="none" stroke="#38BDF8" strokeWidth="1.8" />
-                <ellipse cx="600" cy="400" rx="200" ry="110" fill="none" stroke="#00D4FF" strokeWidth="1.5" />
-                <ellipse cx="600" cy="400" rx="120" ry="60" fill="url(#benchHatch)" stroke="#00D4FF" strokeWidth="1.5" />
-                
-                {/* رمپ‌های اصلی و جاده حمل بار */}
-                <path d="M 120 700 Q 300 650 600 560 T 950 350 T 800 150" fill="none" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" strokeOpacity="0.8" />
-                <path d="M 120 700 Q 300 650 600 560 T 950 350 T 800 150" fill="none" stroke="#FEF08A" strokeWidth="1.5" strokeDasharray="8,6" />
+                  return (
+                    <path
+                      key={featureKey}
+                      d={pathData}
+                      fill="none"
+                      stroke={feature.style?.strokeColor || (feature as any).color || defaultStroke}
+                      strokeWidth={strokeW}
+                      strokeDasharray={isToe || feature.style?.strokeDash === 'dashed' ? '6,4' : undefined}
+                      strokeOpacity={0.85}
+                    />
+                  );
+                }
+
+                // نقاط (سرچال، بنچ‌مارک)
+                if (feature.type === 'POINT' && coords[0]) {
+                  const pt = coords[0];
+                  const [sx, sy] = utmToSvg(Number(pt[0]), Number(pt[1]));
+                  const radius = feature.style?.pointRadius || 4;
+
+                  return (
+                    <circle
+                      key={featureKey}
+                      cx={sx}
+                      cy={sy}
+                      r={radius}
+                      fill={feature.style?.fillColor || (feature as any).color || '#F59E0B'}
+                      stroke="#FFFFFF"
+                      strokeWidth="1"
+                    />
+                  );
+                }
+
+                // دایره یا زون
+                if (feature.type === 'CIRCLE_ZONE' && coords[0]) {
+                  const pt = coords[0];
+                  const [sx, sy] = utmToSvg(Number(pt[0]), Number(pt[1]));
+                  const radiusM = feature.properties?.radiusM || 40;
+                  const radiusSvg = radiusM * uniformScale;
+
+                  return (
+                    <circle
+                      key={featureKey}
+                      cx={sx}
+                      cy={sy}
+                      r={Math.max(6, radiusSvg)}
+                      fill={feature.style?.fillColor || 'rgba(239, 68, 68, 0.12)'}
+                      stroke={feature.style?.strokeColor || '#EF4444'}
+                      strokeWidth="1.5"
+                      strokeDasharray="4,4"
+                    />
+                  );
+                }
+
+                return null;
+              })
+            ) : (
+              // در صورت نبود عوارض وکتوری، راهنمای مهندسی نمایش داده می‌شود
+              <g className="pointer-events-none">
+                <text
+                  x={CANVAS_WIDTH / 2}
+                  y={CANVAS_HEIGHT / 2 - 10}
+                  textAnchor="middle"
+                  fill={isDark ? "#64748B" : "#94A3B8"}
+                  fontSize="14"
+                  fontWeight="bold"
+                  fontFamily="inherit"
+                >
+                  {activeSurveyMap ? `نقشه مرجع مهندسی: ${activeSurveyMap.title}` : 'نقشه مرجع معدن'}
+                </text>
+                <text
+                  x={CANVAS_WIDTH / 2}
+                  y={CANVAS_HEIGHT / 2 + 15}
+                  textAnchor="middle"
+                  fill={isDark ? "#475569" : "#CBD5E1"}
+                  fontSize="11"
+                  fontFamily="inherit"
+                >
+                  نقشه بارگذاری‌شده از ماژول نقشه‌برداری به عنوان نقشه زمینه استقرار ناوگان نمایش داده می‌شود
+                </text>
               </g>
             )}
           </svg>
 
           {/* ======================================================== */}
-          {/* لایه نشانگرهای ماشین‌آلات با وکتورهای سبک و مقیاس‌پذیر */}
+          {/* رندر لایه آیکون ماشین‌آلات روی نقشه (بدون دایره احاطه‌کننده) */}
           {/* ======================================================== */}
-          {filteredItems.map((item) => {
+          {filteredItems.map((item, idx) => {
             const isSelected = selectedEquipmentId === item.id;
             const isBeingDragged = draggingItemId === item.id;
-            const isBeingPlaced = isPlacementMode && activePlacementItemId === item.id;
+            const isBeingPlaced = isPlacementMode && (activePlacementItemId === item.id || selectedEquipmentId === item.id);
 
-            // موقعیت موقت در زمان درگ یا موقعیت ثابت
             const posX = isBeingDragged && dragCurrentPos ? dragCurrentPos.x : item.position.x;
             const posY = isBeingDragged && dragCurrentPos ? dragCurrentPos.y : item.position.y;
 
             return (
               <div
-                key={item.id}
+                key={`map-item-${item.id}-${idx}`}
                 onMouseDown={(e) => handleItemMouseDown(e, item)}
                 onClick={(e) => handleMarkerClick(e, item)}
                 onMouseEnter={(e) => handleMarkerMouseEnter(item, e)}
@@ -654,59 +741,56 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
                   left: `${posX}%`,
                   top: `${posY}%`,
                   transform: 'translate(-50%, -50%)',
-                  width: `${computedMarkerDimension}px`,
-                  height: `${computedMarkerDimension}px`
+                  width: `${iconSize}px`,
+                  height: `${iconSize}px`
                 }}
-                className={`absolute z-30 flex flex-col items-center justify-center cursor-pointer transition-transform ${
+                className={`absolute z-30 flex flex-col items-center justify-center cursor-pointer select-none transition-transform ${
                   isBeingDragged ? 'scale-125 z-50 opacity-90' : 'hover:scale-115'
                 }`}
               >
-                {/* حلقه پالس فعال یا انتخاب شده */}
+                {/* هایلایت شیک و مدرن در زمان انتخاب یا در حال جانمایی (بدون دایره ضخیم) */}
                 {isSelected && (
-                  <div className="absolute -inset-2 rounded-full border-2 border-cyan-400 animate-ping opacity-75 pointer-events-none" />
+                  <div 
+                    className="absolute -inset-1 rounded-lg pointer-events-none"
+                    style={{
+                      boxShadow: '0 0 12px 2px rgba(0, 212, 255, 0.7)',
+                      border: '1.5px dashed rgba(0, 212, 255, 0.9)'
+                    }}
+                  />
                 )}
                 {isBeingPlaced && (
-                  <div className="absolute -inset-3 rounded-full border-2 border-amber-400 animate-pulse pointer-events-none" />
+                  <div 
+                    className="absolute -inset-2 rounded-lg pointer-events-none animate-pulse"
+                    style={{
+                      boxShadow: '0 0 14px 3px rgba(245, 158, 11, 0.8)',
+                      border: '1.5px solid rgba(245, 158, 11, 0.9)'
+                    }}
+                  />
                 )}
 
-                {/* نشانگر گرد وکتوری کم‌حجم */}
-                <div 
-                  className={`w-full h-full rounded-2xl flex items-center justify-center border shadow-lg transition-all ${
-                    isSelected 
-                      ? 'bg-cyan-500 text-slate-950 border-cyan-300 ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900 shadow-cyan-500/50' 
-                      : item.status === 'ACTIVE'
-                        ? 'bg-[#0F172A] border-emerald-500/80 text-emerald-400 shadow-emerald-950/40'
-                        : item.status === 'HAULING'
-                          ? 'bg-[#0F172A] border-cyan-500/80 text-cyan-400 shadow-cyan-950/40'
-                          : item.status === 'MAINTENANCE'
-                            ? 'bg-[#0F172A] border-rose-500/80 text-rose-400'
-                            : 'bg-[#0F172A] border-amber-500/80 text-amber-400'
-                  }`}
-                  style={{
-                    boxShadow: isSelected ? '0 0 16px rgba(0, 212, 255, 0.6)' : undefined
-                  }}
-                >
+                {/* آیکون وکتوری تمیز بدون هیچ دایره محصورکننده */}
+                <div className="relative flex items-center justify-center filter drop-shadow-md">
                   <EquipmentVectorIcon 
                     category={item.category} 
-                    size={Math.max(14, computedMarkerDimension * 0.65)} 
-                    color={isSelected ? '#020617' : undefined}
+                    size={iconSize}
+                    color={isSelected ? '#00D4FF' : item.status === 'MAINTENANCE' ? '#F43F5E' : undefined}
                   />
 
-                  {/* نقطه وضعیت کوچک گوشه بالا */}
+                  {/* نقطه نشانگر کوچک وضعیت در گوشه بالا */}
                   <span 
-                    className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-900 ${
-                      STATUS_CONFIG[item.status].dotClass
+                    className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-slate-900 shadow-sm ${
+                      STATUS_CONFIG[item.status]?.dotClass || 'bg-emerald-400'
                     }`} 
                   />
                 </div>
 
                 {/* برچسب کد ماشین زیر آیکون (بدون شلوغ‌کاری و فشرده) */}
                 {showEquipmentLabels && (
-                  <div className="absolute top-full mt-1 pointer-events-none">
-                    <span className={`text-[9px] font-mono font-black px-1.5 py-0.2 rounded-md whitespace-nowrap shadow border leading-tight block ${
+                  <div className="mt-0.5 pointer-events-none">
+                    <span className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded shadow border leading-none block whitespace-nowrap ${
                       isSelected
-                        ? 'bg-cyan-400 text-slate-950 border-cyan-300'
-                        : isDark ? 'bg-slate-900/90 text-slate-200 border-slate-700' : 'bg-white/90 text-slate-800 border-slate-300'
+                        ? 'bg-cyan-400 text-slate-950 border-cyan-300 shadow-cyan-400/50'
+                        : isDark ? 'bg-slate-900/90 text-slate-200 border-slate-700/80 backdrop-blur-sm' : 'bg-white/95 text-slate-800 border-slate-300'
                     }`}>
                       {item.code}
                     </span>
@@ -717,135 +801,83 @@ export const EquipmentMapCanvas: React.FC<EquipmentMapCanvasProps> = ({
           })}
         </div>
 
-        {/* ======================================================== */}
-        {/* راهنمای حالت جانمایی شناور بالای بوم */}
-        {/* ======================================================== */}
-        {isPlacementMode && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 bg-amber-500/90 text-slate-950 px-4 py-1.5 rounded-full font-black text-xs shadow-lg backdrop-blur-md flex items-center gap-2 border border-amber-300">
-            <CursorArrowRaysIcon className="w-4 h-4 animate-spin" />
-            <span>
-              {activePlacementItemId 
-                ? `در حال جانمایی دستگاه ${activePlacementItemId}: روی نقطه مورد نظر در نقشه کلیک کنید`
-                : 'حالت جانمایی فعال است: یک ماشین را از نقشه یا سایدبار بکشید و رها کنید'}
-            </span>
+        {/* پاپ‌اور جزئیات هاور ۲ ثانیه‌ای */}
+        {hoveredItem && (
+          <div
+            style={{
+              left: `${hoverPosition.x}px`,
+              top: `${hoverPosition.y - 12}px`,
+              transform: 'translate(-50%, -100%)'
+            }}
+            className="absolute z-50 pointer-events-none animate-fade-in"
+          >
+            <div className={`p-3 rounded-2xl border shadow-2xl w-60 backdrop-blur-md ${
+              isDark ? 'bg-[#0B1323]/95 border-cyan-500/40 text-white' : 'bg-white/95 border-slate-300 text-slate-900'
+            }`}>
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <EquipmentVectorIcon category={hoveredItem.category} size={22} />
+                  <div>
+                    <h5 className="text-xs font-black font-mono text-cyan-400">{hoveredItem.code}</h5>
+                    <p className="text-[10px] text-slate-400 truncate">{hoveredItem.nameFa}</p>
+                  </div>
+                </div>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                  STATUS_CONFIG[hoveredItem.status]?.badgeClass
+                }`}>
+                  {STATUS_CONFIG[hoveredItem.status]?.labelFa}
+                </span>
+              </div>
+
+              <div className="space-y-1.5 text-[10px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <UserIcon className="w-3 h-3 text-cyan-400" />
+                    اپراتور:
+                  </span>
+                  <span className="font-bold">{hoveredItem.operatorName || 'نامشخص'}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <ClockIcon className="w-3 h-3 text-cyan-400" />
+                    کارکرد موتور:
+                  </span>
+                  <span className="font-mono font-bold">{hoveredItem.totalEngineHours} ساعت</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <FireIcon className="w-3 h-3 text-cyan-400" />
+                    فعالیت جاری:
+                  </span>
+                  <span className="font-bold text-slate-200">{hoveredItem.currentActivityFa}</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ======================================================== */}
-      {/* مودال داینامیک و متحرک هاور ۲ ثانیه‌ای (Compact Dynamic Popover) */}
-      {/* ======================================================== */}
-      {hoveredItem && !draggingItemId && (
-        <div 
-          onMouseEnter={handlePopoverMouseEnter}
-          onMouseLeave={handlePopoverMouseLeave}
-          style={{
-            position: 'fixed',
-            left: `${Math.min(window.innerWidth - 300, Math.max(16, popoverPos.x + 12))}px`,
-            top: `${Math.min(window.innerHeight - 280, Math.max(16, popoverPos.y + 12))}px`,
-            pointerEvents: 'auto'
-          }}
-          className={`z-50 w-72 rounded-2xl p-3 border shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 ${
-            isDark ? 'bg-[#0B1323]/95 border-cyan-500/40 text-white' : 'bg-white/95 border-slate-300 text-slate-900 shadow-slate-900/20'
-          }`}
-        >
-          {/* سربرگ مودال داینامیک */}
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-700/50">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="p-1 rounded-xl bg-slate-900 border border-slate-700 flex-shrink-0">
-                <EquipmentVectorIcon category={hoveredItem.category} size={20} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-cyan-400 font-mono">{hoveredItem.code}</span>
-                  <span className="text-[10px] text-slate-400 truncate">{hoveredItem.nameFa}</span>
-                </div>
-                <span className="text-[9px] text-slate-400 block truncate">{hoveredItem.brand} {hoveredItem.model}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setHoveredItem(null)}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-xs"
-              title="بستن"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* آمار کارکرد روزانه */}
-          <div className="grid grid-cols-2 gap-1.5 mt-2 text-[10px]">
-            <div className={`p-1.5 rounded-xl border ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <span className="text-slate-400 block text-[9px]">کارکرد امروز:</span>
-              <span className="font-black text-emerald-400 text-xs">{hoveredItem.dailyStats.operatingHoursToday} ساعت</span>
-            </div>
-            <div className={`p-1.5 rounded-xl border ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <span className="text-slate-400 block text-[9px]">مصرف گازوئیل:</span>
-              <span className="font-black text-amber-400 text-xs">{hoveredItem.dailyStats.fuelConsumedLitersToday} لیتر</span>
-            </div>
-          </div>
-
-          {/* اطلاعات موقعیت و اپراتور */}
-          <div className="mt-2 text-[10px] text-slate-300 space-y-1">
-            <div className="flex justify-between py-0.5 border-b border-slate-800/60">
-              <span className="text-slate-400">موقعیت:</span>
-              <span className="font-bold text-cyan-300">{hoveredItem.position.zoneNameFa} (تراز {hoveredItem.position.benchLevel}m)</span>
-            </div>
-            <div className="flex justify-between py-0.5 border-b border-slate-800/60">
-              <span className="text-slate-400">راننده:</span>
-              <span className="font-bold text-slate-200">{hoveredItem.operatorName}</span>
-            </div>
-          </div>
-
-          {/* امکان تغییر مستقیم وضعیت در همین مودال (Quick Status Edit) */}
-          <div className="mt-2 pt-2 border-t border-slate-800">
-            <label className="block text-[9px] font-bold text-slate-400 mb-1">تغییر وضعیت:</label>
-            <div className="grid grid-cols-3 gap-1">
-              {(['ACTIVE', 'STANDBY', 'MAINTENANCE'] as EquipmentStatus[]).map((st) => (
-                <button
-                  key={st}
-                  onClick={() => {
-                    if (onStatusChange) onStatusChange(hoveredItem.id, st);
-                    setHoveredItem(prev => prev && prev.id === hoveredItem.id ? { ...prev, status: st } : prev);
-                  }}
-                  className={`py-0.5 px-1 rounded-lg text-[9px] font-bold border transition-all ${
-                    hoveredItem.status === st
-                      ? STATUS_CONFIG[st].badgeClass + ' ring-1 ring-cyan-400 font-black'
-                      : isDark ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-600'
-                  }`}
-                >
-                  {STATUS_CONFIG[st].labelFa}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* دکمه‌های اقدام سریع (مشاهده جزئیات / جانمایی) */}
-          <div className="grid grid-cols-2 gap-1.5 mt-2.5 pt-2 border-t border-slate-800">
-            <button
-              onClick={() => {
-                onSelectEquipment(hoveredItem);
-                setHoveredItem(null);
-              }}
-              className="py-1 px-2 rounded-xl text-[10px] font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 flex items-center justify-center gap-1 transition-all"
-            >
-              <EyeIcon className="w-3 h-3" />
-              <span>مشاهده مشخصات</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onSelectEquipment(hoveredItem);
-                if (onEditEquipment) onEditEquipment(hoveredItem);
-                setHoveredItem(null);
-              }}
-              className="py-1 px-2 rounded-xl text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1 transition-all"
-            >
-              <WrenchScrewdriverIcon className="w-3 h-3" />
-              <span>ویرایش اطلاعات</span>
-            </button>
-          </div>
+      {/* نوار وضعیت زیر بوم: تعداد ماشین‌آلات و راهنمای کوتاه */}
+      <div className={`px-4 py-2 border-t flex flex-wrap items-center justify-between text-xs gap-2 ${
+        isDark ? 'bg-[#0B1323] border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+      }`}>
+        <div className="flex items-center gap-3">
+          <span>ماشین‌آلات نمایان: <strong className="text-cyan-400 font-mono">{filteredItems.length}</strong> از <strong className="font-mono">{items.length}</strong></span>
+          <span className="opacity-40">|</span>
+          <span className="text-[11px]">جهت جابجایی هر دستگاه می‌توانید آن را روی نقشه بکشید (Drag & Drop).</span>
         </div>
-      )}
+
+        {selectedEquipmentId && (
+          <div className="flex items-center gap-2">
+            <span className="text-cyan-400 text-[11px] font-bold">دستگاه انتخاب‌شده:</span>
+            <span className="font-mono text-white text-[11px] bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/40">
+              {items.find(e => e.id === selectedEquipmentId)?.code}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

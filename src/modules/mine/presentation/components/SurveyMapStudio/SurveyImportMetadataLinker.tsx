@@ -22,6 +22,7 @@ import {
   StockpileRepository,
   AuditLogRepository
 } from '../../../../../core/infrastructure/repositories';
+import { SurveyMapService } from '../../../services/SurveyMapService';
 
 import {
   DocumentArrowUpIcon,
@@ -717,6 +718,9 @@ export const SurveyImportMetadataLinker: React.FC<SurveyImportMetadataLinkerProp
       };
 
       SurveyMapRepository.save(newMap);
+      // واحد نقشه‌برداری مرجع اصلی بارگذاری نقشه در سامانه است:
+      // انتشار بلادرنگ به عنوان آخرین نقشه رسمی و مرجع فعال کل سامانه
+      SurveyMapService.setActiveMasterMap(newMap.id, activeRole, userName);
 
       // ۲. در صورت انتخاب، ایجاد یا به‌روزرسانی ساب‌بلوک‌ها در SubBlockRepository
       let subBlocksCreatedCount = 0;

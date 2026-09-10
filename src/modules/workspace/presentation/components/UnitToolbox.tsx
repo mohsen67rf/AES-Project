@@ -61,7 +61,7 @@ export const UnitToolbox: React.FC<UnitToolboxProps> = ({ tools, onTriggerModal 
 
   return (
     <div 
-      className={`rounded-[22px] border p-5 transition-all shadow-[0_12px_32px_rgba(7,11,26,0.5)] ${
+      className={`rounded-2xl sm:rounded-[22px] border p-3.5 sm:p-5 transition-all shadow-[0_12px_32px_rgba(7,11,26,0.5)] ${
         isDark
           ? 'bg-[#1A264F] border-[#24356B]/30 text-[#F1F5F9]'
           : 'bg-white border-slate-200 text-slate-900 shadow-sm'
@@ -69,20 +69,20 @@ export const UnitToolbox: React.FC<UnitToolboxProps> = ({ tools, onTriggerModal 
     >
       <div className="flex items-center justify-between pb-3 border-b border-[#24356B]/30">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#00D2FF]/15 text-[#00D2FF] flex items-center justify-center font-black border border-[#00D2FF]/20">
-            <Wrench className="w-4 h-4" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#00D2FF]/15 text-[#00D2FF] flex items-center justify-center font-black border border-[#00D2FF]/20">
+            <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <h3 className="text-sm font-black text-[#F1F5F9]">
+          <h3 className="text-xs sm:text-sm font-black text-[#F1F5F9]">
             ابزارهای عملیاتی
           </h3>
         </div>
 
-        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#141F42] text-[#8E9EB8] border border-[#24356B]/40">
+        <span className="text-[10px] sm:text-[11px] font-mono px-2 sm:px-2.5 py-0.5 rounded-full bg-[#141F42] text-[#8E9EB8] border border-[#24356B]/40">
           {tools.length} ابزار
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 pt-3">
         {tools.map((tool) => {
           const IconComp = ICON_MAP[tool.iconName] || ExternalLink;
 
@@ -90,7 +90,7 @@ export const UnitToolbox: React.FC<UnitToolboxProps> = ({ tools, onTriggerModal 
             <div
               key={tool.id}
               onClick={() => handleActionClick(tool)}
-              className={`p-3 rounded-[16px] border transition-all duration-200 cursor-pointer group flex items-center justify-between gap-3 ${
+              className={`p-2.5 sm:p-3 rounded-xl sm:rounded-[16px] border transition-all duration-200 cursor-pointer group flex items-center justify-between gap-2.5 sm:gap-3 ${
                 tool.isPrimary
                   ? 'bg-[#141F42] border-[#00D2FF]/40 hover:border-[#00D2FF] shadow-[0_0_12px_rgba(0,210,255,0.15)]'
                   : isDark

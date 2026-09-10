@@ -66,51 +66,53 @@ export const UnitKpiGrid: React.FC<UnitKpiGridProps> = ({ kpis, quickStats }) =>
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Quick Stat Pill Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
         {quickStats.map((stat, idx) => (
           <div
             key={idx}
-            className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+            className={`px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border flex items-center justify-between gap-1.5 min-w-0 transition-all ${
               theme === 'cyber'
                 ? 'bg-[#080E24]/80 border-cyan-500/30'
                 : isDark
-                ? 'bg-slate-900/60 border-slate-800'
+                ? 'bg-[#1A264F] border-[#24356B]/30'
                 : 'bg-white border-slate-200 shadow-sm'
             }`}
           >
-            <span className="text-xs text-slate-400 font-bold">{stat.labelFa}</span>
-            <span className={`text-sm font-black font-mono ${stat.color}`}>{stat.value}</span>
+            <span className="text-[11px] sm:text-xs text-[#8E9EB8] font-medium truncate">{stat.labelFa}</span>
+            <span className={`text-xs sm:text-sm font-black font-mono flex-shrink-0 ${stat.color}`}>{stat.value}</span>
           </div>
         ))}
       </div>
 
       {/* 4 Specialized KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {kpis.map((kpi, index) => {
           const IconComponent = ICON_MAP[kpi.iconName] || Sparkles;
 
           return (
             <div
               key={kpi.id}
-              className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group hover:scale-[1.02] ${
+              className={`p-3.5 sm:p-5 rounded-2xl border transition-all duration-200 relative group ${
                 theme === 'cyber'
                   ? `${cyberAccents[index % cyberAccents.length]} backdrop-blur-xl text-white`
                   : isDark
-                  ? 'bg-[#111726]/80 border-[#1E293B] hover:border-indigo-500/50 text-white backdrop-blur-xl hover:shadow-lg'
+                  ? 'bg-[#1A264F] border-[#24356B]/30 hover:border-[#00D2FF]/40 text-[#F1F5F9] shadow-[0_8px_24px_rgba(7,11,26,0.35)]'
                   : 'bg-white border-slate-200 text-slate-900 shadow-sm hover:border-indigo-300'
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <div 
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-transform group-hover:scale-110 ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-transform ${
                       theme === 'cyber'
-                        ? 'bg-[#080E24]/90 border-cyan-400/50 shadow-[0_0_12px_rgba(0,240,255,0.4)] text-cyan-300'
-                        : 'bg-slate-800/80 border-slate-700 text-indigo-400'
+                        ? 'bg-[#080E24]/90 border-cyan-400/50 text-cyan-300'
+                        : isDark
+                        ? 'bg-[#141F42] border-[#24356B]/50'
+                        : 'bg-slate-100 border-slate-200'
                     }`}
-                    style={{ borderColor: theme !== 'cyber' ? `${kpi.accentColor}50` : undefined }}
+                    style={{ borderColor: theme !== 'cyber' ? `${kpi.accentColor}40` : undefined }}
                   >
                     <IconComponent 
                       className="w-5 h-5" 
@@ -119,15 +121,15 @@ export const UnitKpiGrid: React.FC<UnitKpiGridProps> = ({ kpis, quickStats }) =>
                   </div>
 
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400 block leading-tight">
+                    <span className="text-xs text-[#8E9EB8] font-medium block leading-tight">
                       {isRtl ? kpi.titleFa : kpi.titleEn}
                     </span>
                     <div className="flex items-baseline gap-1.5 mt-0.5">
-                      <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-white">
+                      <span className="text-xl font-black font-mono tracking-tight text-[#F1F5F9]">
                         {kpi.value}
                       </span>
                       {kpi.unitFa && (
-                        <span className="text-[11px] text-slate-400 font-bold">
+                        <span className="text-[11px] text-[#8E9EB8] font-medium">
                           {isRtl ? kpi.unitFa : kpi.unitEn}
                         </span>
                       )}
@@ -138,20 +140,20 @@ export const UnitKpiGrid: React.FC<UnitKpiGridProps> = ({ kpis, quickStats }) =>
 
               {/* Target / Progress Bar */}
               {kpi.progressPercent !== undefined && (
-                <div className="mt-3.5 space-y-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                <div className="mt-3 space-y-1">
+                  <div className="flex items-center justify-between text-[10px] text-[#8E9EB8]">
                     <span className="flex items-center gap-1">
-                      <Target className="w-3 h-3 text-indigo-400" />
+                      <Target className="w-3 h-3 text-[#00D2FF]" />
                       <span>تارگت: {kpi.target}</span>
                     </span>
-                    <span className="font-mono font-bold text-slate-300">{kpi.progressPercent}٪</span>
+                    <span className="font-mono font-bold text-[#F1F5F9]">{kpi.progressPercent}٪</span>
                   </div>
-                  <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+                  <div className="w-full bg-[#141F42] rounded-full h-1.5 overflow-hidden border border-[#24356B]/20">
                     <div 
                       className="h-full rounded-full transition-all duration-500"
                       style={{ 
                         width: `${Math.min(100, kpi.progressPercent)}%`,
-                        backgroundColor: kpi.accentColor || '#6366F1'
+                        backgroundColor: kpi.accentColor || '#00D2FF'
                       }}
                     />
                   </div>
@@ -162,12 +164,14 @@ export const UnitKpiGrid: React.FC<UnitKpiGridProps> = ({ kpis, quickStats }) =>
               <div className={`mt-3 pt-2.5 border-t flex items-center justify-between text-[11px] font-bold ${
                 theme === 'cyber' 
                   ? 'border-cyan-500/20 text-cyan-300' 
-                  : 'border-slate-800/30 text-slate-400'
+                  : isDark
+                  ? 'border-[#24356B]/25 text-[#8E9EB8]'
+                  : 'border-slate-100 text-slate-500'
               }`}>
                 <span className={kpi.isPositive ? 'text-emerald-400' : 'text-amber-400'}>
                   {kpi.changeFa}
                 </span>
-                <ArrowUpRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
           );

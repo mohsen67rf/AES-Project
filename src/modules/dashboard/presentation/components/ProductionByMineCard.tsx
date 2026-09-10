@@ -55,14 +55,14 @@ export const ProductionByMineCard: React.FC = () => {
               strokeWidth={strokeWidth}
             />
 
-            {mineShares.map((item) => {
+            {mineShares.map((item, idx) => {
               const strokeDasharray = `${(item.share / 100) * circumference} ${circumference}`;
               const strokeDashoffset = -accumulatedOffset;
               accumulatedOffset += (item.share / 100) * circumference;
 
               return (
                 <circle
-                  key={item.id}
+                  key={`mine-circle-${item.id}-${idx}`}
                   cx={size / 2}
                   cy={size / 2}
                   r={radius}
@@ -94,8 +94,8 @@ export const ProductionByMineCard: React.FC = () => {
 
         {/* Horizontal Rounded Pill Bars List */}
         <div className="flex flex-col gap-2.5 flex-1 w-full">
-          {mineShares.map((item) => (
-            <div key={item.id} className="space-y-1">
+          {mineShares.map((item, idx) => (
+            <div key={`mine-bar-${item.id}-${idx}`} className="space-y-1">
               <div className="flex items-center justify-between text-[11px] font-bold">
                 <span className={isDark ? 'text-[#F1F5F9]' : 'text-slate-700'}>
                   {isRtl ? item.nameFa : item.name}

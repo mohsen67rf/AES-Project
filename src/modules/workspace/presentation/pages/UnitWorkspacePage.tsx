@@ -23,8 +23,10 @@ import {
   ArrowLeft, 
   CheckCircle2, 
   X,
-  Send
+  Send,
+  RotateCcw
 } from 'lucide-react';
+import { ShiftHandoverModal } from '../components/ShiftHandover/ShiftHandoverModal';
 
 export const UnitWorkspacePage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ export const UnitWorkspacePage: React.FC = () => {
   const { language } = useLanguage();
   const isRtl = language === 'fa';
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   // Lazy initialize user and role
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -64,6 +66,7 @@ export const UnitWorkspacePage: React.FC = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isTasksDrawerOpen, setIsTasksDrawerOpen] = useState(false);
   const [isQuickLogModalOpen, setIsQuickLogModalOpen] = useState(false);
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
   const [quickLogTitle, setQuickLogTitle] = useState('');
   const [quickLogDesc, setQuickLogDesc] = useState('');
   const [quickLogSent, setQuickLogSent] = useState(false);
@@ -116,7 +119,7 @@ export const UnitWorkspacePage: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         <AppHeader onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className="p-4 sm:p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto w-full">
+        <main className="p-3.5 sm:p-5 md:p-8 space-y-4 sm:space-y-6 max-w-[1600px] mx-auto w-full">
           {/* Breadcrumb & Top Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
@@ -132,7 +135,16 @@ export const UnitWorkspacePage: React.FC = () => {
               <span className="text-indigo-400 font-black">{activeRoleDef.department}</span>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
+              <button
+                onClick={() => setIsHandoverModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-[#00D2FF]/40 bg-[#00D2FF]/10 hover:bg-[#00D2FF]/20 text-[#00D2FF] text-xs font-black transition-all shadow-sm cursor-pointer"
+                title="پروتکل تحویل و تحول هوشمند شیفت (Shift Handover)"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>تحویل و تحول شیفت</span>
+              </button>
+
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold font-mono">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span>آنلاین</span>
@@ -164,10 +176,38 @@ export const UnitWorkspacePage: React.FC = () => {
             quickStats={unitData.quickStats}
           />
 
+          {/* Shift Handover Live Banner */}
+          <div className="p-4 rounded-2xl border border-[#24356B]/40 bg-gradient-to-r from-[#111933] via-[#142147] to-[#111933] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-[#00D2FF]/15 text-[#00D2FF] flex items-center justify-center font-black flex-shrink-0 border border-[#00D2FF]/30">
+                <RotateCcw className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white">پروتکل تحویل و تحول هوشمند شیفت:</span>
+                  <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">شیفت ۱ (روز)</span>
+                  <span className="text-[10px] text-slate-400 font-mono">کد: HND-1405-03-D1</span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-1">
+                  دستور ویژه شیفت: حفظ نرخ خروجی سنگ‌شکن اولیه در حد ۱,۱۰۰ تن بر ساعت و کنترل سرعت در تقاطع رامپ ۳
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              <button
+                onClick={() => setIsHandoverModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#00D2FF] to-[#38BDF8] hover:brightness-110 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-cyan-500/20 cursor-pointer"
+              >
+                <span>مشاهده، تایید و امضای رسمی شیفت</span>
+              </button>
+            </div>
+          </div>
+
           {/* Core 2-Column Operational Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             {/* Left Column (8 cols): Specialized Toolbox & Tasks List */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-4 sm:space-y-6">
               {/* Specialized Unit Toolbox */}
               <UnitToolbox
                 tools={unitData.tools}
@@ -191,7 +231,7 @@ export const UnitWorkspacePage: React.FC = () => {
             </div>
 
             {/* Right Column (4 cols): Shift Checklist & Operational Log Notes */}
-            <div className="lg:col-span-4 space-y-6">
+            <div className="lg:col-span-4 space-y-4 sm:space-y-6">
               {/* Shift Interactive Checklist */}
               <UnitChecklistCard
                 roleId={selectedRoleId}
@@ -312,6 +352,14 @@ export const UnitWorkspacePage: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Shift Handover Modal */}
+      <ShiftHandoverModal
+        isOpen={isHandoverModalOpen}
+        onClose={() => setIsHandoverModalOpen(false)}
+        currentUser={currentUser}
+        targetDepartmentKey={selectedRoleId}
+        targetDepartmentName={activeRoleDef.department}
+      />
     </div>
   );
 };

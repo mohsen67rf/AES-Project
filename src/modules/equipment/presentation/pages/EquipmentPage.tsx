@@ -1,10 +1,9 @@
 // src/modules/equipment/presentation/pages/EquipmentPage.tsx
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../../shared/context/ThemeContext';
-import { useLanguage } from '../../../../shared/context/LanguageContext';
 import { AppHeader } from '../../../../shared/components/Header/AppHeader';
-import { EquipmentService, MINE_MAP_ZONES, EquipmentPlacementAuditLog } from '../../services/EquipmentService';
+import { EquipmentService, EquipmentPlacementAuditLog } from '../../services/EquipmentService';
 import { 
   EquipmentItem, 
   EquipmentCategory, 
@@ -13,33 +12,22 @@ import {
 import { EquipmentMapCanvas } from '../components/EquipmentMapCanvas';
 import { EquipmentPropertiesSidebar, ALL_EQUIPMENT_CATEGORIES } from '../components/EquipmentPropertiesSidebar';
 import { EquipmentFormModal } from '../components/EquipmentFormModal';
-import { EquipmentVectorIcon } from '../components/EquipmentVectorIcons';
+import { EquipmentPlacementModal } from '../components/EquipmentPlacementModal';
 import { 
   TruckIcon, 
-  ClockIcon, 
-  FireIcon, 
-  BoltIcon, 
-  SparklesIcon, 
   ArrowPathIcon,
   MapPinIcon,
   CheckBadgeIcon,
-  CursorArrowRaysIcon,
   ClipboardDocumentListIcon,
   XMarkIcon,
-  PlusIcon,
-  FunnelIcon,
-  TableCellsIcon,
-  MapIcon,
-  ArrowsPointingOutIcon
+  PlusIcon
 } from '@heroicons/react/24/outline';
 
 export const EquipmentPage: React.FC = () => {
   const { isDark } = useTheme();
-  const { language } = useLanguage();
-  const isRtl = language === 'fa';
 
   // سایدبار مشخصات و وضعیت ناوگان (جایگزین سایدبار داشبورد در این صفحه)
-  const [propertiesSidebarOpen, setPropertiesSidebarOpen] = useState(true);
+  const [propertiesSidebarOpen, setPropertiesSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   // داده‌های ناوگان
   const [items, setItems] = useState<EquipmentItem[]>(() => EquipmentService.getEquipmentList());
@@ -51,6 +39,9 @@ export const EquipmentPage: React.FC = () => {
 
   // دستگاه انتخاب شده
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
+
+  // مودال جانمایی ماشین‌آلات روی نقشه
+  const [placementModalOpen, setPlacementModalOpen] = useState(false);
 
   // مودال افزودن / ویرایش ماشین‌آلات (CRUD)
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -248,11 +239,21 @@ export const EquipmentPage: React.FC = () => {
             {/* دکمه‌های اکشن بالا */}
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={() => setPlacementModalOpen(true)}
+                className="py-2 px-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 transition-all hover:scale-105"
+              >
+                <MapPinIcon className="w-4 h-4 stroke-[2.5]" />
+                <span>جانمایی ماشین‌آلات روی نقشه</span>
+              </button>
+
+              <button
                 onClick={handleOpenAddModal}
-                className="py-2 px-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg transition-all"
+                className={`py-2 px-3.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  isDark ? 'bg-[#0E172A] border-slate-700 text-slate-300 hover:text-white' : 'bg-white border-slate-300 text-slate-700'
+                }`}
               >
                 <PlusIcon className="w-4 h-4" />
-                <span>افزودن ماشین‌آلات</span>
+                <span>تعریف دستگاه جدید</span>
               </button>
 
               <button
@@ -276,58 +277,6 @@ export const EquipmentPage: React.FC = () => {
                 <ArrowPathIcon className="w-4 h-4" />
               </button>
             </div>
-          </div>
-
-          {/* فیلتر سریع چندگانه دسته‌بندی‌ها بالای صفحه */}
-          <div className={`p-2 rounded-2xl border flex items-center justify-between gap-2 overflow-x-auto ${
-            isDark ? 'bg-[#0B1323] border-slate-800' : 'bg-white border-slate-200'
-          }`}>
-            <div className="flex items-center gap-1.5 flex-nowrap">
-              <span className="text-[11px] font-bold text-slate-400 px-2 flex items-center gap-1">
-                <FunnelIcon className="w-3.5 h-3.5 text-cyan-400" />
-                <span>نوع:</span>
-              </span>
-
-              <button
-                onClick={handleClearCategories}
-                className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border transition-all ${
-                  selectedCategories.length === 0
-                    ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm font-black'
-                    : isDark ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-600'
-                }`}
-              >
-                همه ({items.length})
-              </button>
-
-              {ALL_EQUIPMENT_CATEGORIES.map(cat => {
-                const isSelected = selectedCategories.includes(cat.id);
-                const count = items.filter(e => e.category === cat.id).length;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleToggleCategory(cat.id)}
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                      isSelected
-                        ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 shadow-sm font-black'
-                        : isDark ? 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    <EquipmentVectorIcon category={cat.id} size={15} />
-                    <span>{cat.labelFa}</span>
-                    <span className="text-[10px] opacity-75 font-mono">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {selectedCategories.length > 0 && (
-              <button
-                onClick={handleClearCategories}
-                className="text-[11px] text-cyan-400 hover:underline px-2 whitespace-nowrap font-bold"
-              >
-                پاکسازی فیلتر ({selectedCategories.length})
-              </button>
-            )}
           </div>
 
           {/* بوم نقشه واقعی معدن (Real GIS / Mine Map Canvas) */}
@@ -358,6 +307,22 @@ export const EquipmentPage: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* مودال جانمایی ماشین‌آلات روی نقشه */}
+      <EquipmentPlacementModal
+        isOpen={placementModalOpen}
+        onClose={() => setPlacementModalOpen(false)}
+        items={items}
+        isDark={isDark}
+        onConfirmPlacement={(item) => {
+          handleStartPlacement(item);
+        }}
+        onAddNewAndPlace={(data) => {
+          const created = EquipmentService.addEquipmentItem(data);
+          reloadData();
+          return created;
+        }}
+      />
 
       {/* مودال فرم افزودن / ویرایش ماشین‌آلات (CRUD) */}
       <EquipmentFormModal

@@ -126,6 +126,19 @@ export function SurveyMapStudio({
 
   useEffect(() => {
     refreshMaps();
+
+    // اشتراک در رویدادهای زنده انتشار نقشه مرجع توسط واحد نقشه‌برداری
+    const unsubscribe = SurveyMapService.subscribeToMasterMapUpdates((updatedMasterMap) => {
+      const all = SurveyMapService.getAllMaps();
+      setMapsList(all);
+      if (updatedMasterMap?.id) {
+        setInternalActiveMapId(updatedMasterMap.id);
+        if (onMapChange) onMapChange(updatedMasterMap.id);
+        showToast(`آخرین نقشه مرجع ابلاغ‌شده توسط واحد نقشه‌برداری دریافت و فعال شد (${updatedMasterMap.version}).`, 'info');
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // همگام‌سازی نقشه خارجی
@@ -264,6 +277,18 @@ export function SurveyMapStudio({
     }
   };
 
+  // انتشار رسمی نقشه به عنوان نقشه مرجع سراسری سامانه
+  const handlePublishAsMasterMap = () => {
+    if (!currentMap) return;
+    SurveyMapService.setActiveMasterMap(
+      currentMap.id,
+      activeRole,
+      activeUserName
+    );
+    refreshMaps();
+    showToast(`نقشه '${currentMap.title}' به عنوان نقشه مرجع فعال سراسری ثبت و به کلیه واحدها ابلاغ گردید.`, 'success');
+  };
+
   const isFull = isFullScreenMode || internalFullScreen;
 
   const toggleFull = () => {
@@ -294,7 +319,7 @@ export function SurveyMapStudio({
     >
       {/* اعلان‌های توست شناور باریک */}
       {notification && (
-        <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl border text-xs font-bold shadow-2xl flex items-center gap-2 animate-fade-in backdrop-blur-md ${
+        <div className={`absolute top-12 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl border text-xs font-bold shadow-2xl flex items-center gap-2 animate-fade-in backdrop-blur-md ${
           notification.type === 'success' ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300' :
           notification.type === 'warning' ? 'bg-amber-950/90 border-amber-500/50 text-amber-300' :
           'bg-cyan-950/90 border-cyan-500/50 text-cyan-300'
@@ -304,6 +329,53 @@ export function SurveyMapStudio({
           <button onClick={() => setNotification(null)} className="text-white/60 hover:text-white mr-1 text-xs">✕</button>
         </div>
       )}
+
+      {/* نوار وضعیت رسمی نقشه مرجع واحد نقشه‌برداری (Master Map Reference Header) */}
+      <div className="h-10 px-3 bg-slate-950/95 border-b border-slate-800/90 flex items-center justify-between gap-2 text-xs select-none shrink-0 z-20">
+        <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar py-1">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-bold">
+            <MapIcon className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[11px] whitespace-nowrap">واحد نقشه‌برداری (مرجع اصلی بارگذاری و به‌روزرسانی نقشه)</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] font-mono whitespace-nowrap">
+            <span className="text-slate-400">نقشه جاری:</span>
+            <span className="text-white font-bold max-w-[220px] truncate">{currentMap.title}</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400 text-[10px] font-bold">{currentMap.version}</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 text-[10px] font-bold">تراز {currentMap.benchLevel}m</span>
+          </div>
+
+          {currentMap.isMasterMap ? (
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[10px] font-black whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>نقشه مرجع سراسری سامانه (مبنای مشترک کلیه واحدها)</span>
+            </span>
+          ) : (
+            <button
+              onClick={handlePublishAsMasterMap}
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-[10px] font-bold transition-all whitespace-nowrap"
+              title="ثبت و ابلاغ این نقشه به عنوان نقشه مرجع به تمام بخش‌های سامانه"
+            >
+              <SparklesIcon className="w-3 h-3 text-amber-400" />
+              <span>انتشار به عنوان نقشه مرجع سامانه</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsLayersDrawerOpen(!isLayersDrawerOpen)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition-colors shadow-sm"
+            title="مدیریت لایه‌های اطلاعاتی ۸ واحد عملیاتی معدن (حفاری، زمین‌شناسی، استخراج، ترابری و...)"
+          >
+            <WrenchScrewdriverIcon className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">لایه‌های اطلاعاتی واحدها</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px] font-mono text-amber-300">
+              {currentMap.layers?.length || 0}
+            </span>
+          </button>
+        </div>
+      </div>
 
       {/* چیدمان اصلی تمام‌صفحه: کادر اتوکد Properties در سمت چپ + بوم نقشه در مرکز */}
       <div className="flex-1 w-full h-full flex flex-row overflow-hidden relative">
@@ -846,12 +918,18 @@ export function SurveyMapStudio({
             <MapLayersControlPanel
               layers={currentMap.layers || []}
               displaySettings={displaySettings}
+              isMasterMap={currentMap.isMasterMap}
+              masterApprovedBy={currentMap.masterApprovedBy}
+              masterApprovedAt={currentMap.masterApprovedAt}
+              mapTitle={currentMap.title}
+              benchLevel={currentMap.benchLevel}
               onToggleLayerVisibility={handleToggleLayerVisibility}
               onToggleLayerLock={handleToggleLayerLock}
               onToggleLayerLabels={handleToggleLayerLabels}
               onChangeLayerOpacity={handleChangeLayerOpacity}
               onBatchToggleLayers={handleBatchToggleLayers}
               onSetLayersLabelsVisibility={handleSetLayersLabelsVisibility}
+              onUpdateLayersStyle={handleUpdateLayersStyle}
               onChangeDisplaySettings={handleChangeDisplaySettings}
               onQuickCreateUnitFeature={handleQuickCreateUnitFeature}
               onClose={() => setIsLayersDrawerOpen(false)}

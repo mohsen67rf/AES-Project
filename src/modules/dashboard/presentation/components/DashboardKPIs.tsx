@@ -117,7 +117,7 @@ export const DashboardKPIs: React.FC = () => {
 
         return (
           <div
-            key={kpi.id}
+            key={`dash-kpi-${kpi.id}-${idx}`}
             className={`relative rounded-[22px] p-4.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group ${
               isDark
                 ? 'bg-[#1A264F] text-[#F1F5F9] shadow-[0_12px_32px_rgba(7,11,26,0.5)] border border-[#24356B]/30 hover:border-[#00D2FF]/40'

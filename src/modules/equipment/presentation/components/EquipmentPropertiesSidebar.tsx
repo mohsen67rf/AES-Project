@@ -4,13 +4,10 @@ import React, { useState } from 'react';
 import { 
   EquipmentItem, 
   EquipmentCategory, 
-  EquipmentStatus,
-  EquipmentPosition
+  EquipmentStatus
 } from '../../domain/types/equipment.types';
-import { MINE_MAP_ZONES } from '../../services/EquipmentService';
 import { EquipmentVectorIcon } from './EquipmentVectorIcons';
 import { 
-  XMarkIcon, 
   ChevronRightIcon, 
   ChevronLeftIcon,
   MagnifyingGlassIcon,
@@ -20,11 +17,8 @@ import {
   MapPinIcon,
   CursorArrowRaysIcon,
   ClockIcon,
-  FireIcon,
-  BoltIcon,
   PhoneIcon,
   UserIcon,
-  WrenchScrewdriverIcon,
   FunnelIcon,
   CheckIcon,
   ChartBarIcon,
@@ -151,7 +145,6 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
   fleetSummary
 }) => {
   const [activeTab, setActiveTab] = useState<'PROPERTIES' | 'FLEET_LIST' | 'KPIS'>('PROPERTIES');
-  const [categorySearch, setCategorySearch] = useState('');
 
   // کنترل تغییر گروهی فیلترها (Preset Group Toggle)
   const handleToggleGroupPreset = (preset: typeof CATEGORY_GROUP_PRESETS[0]) => {
@@ -199,27 +192,48 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
 
   if (!isOpen) {
     return (
-      <div className="flex flex-col items-center justify-start py-4 px-1.5 border-l border-slate-800 bg-[#0B1323] z-20 w-11 h-full shadow-xl flex-shrink-0">
+      <>
+        {/* Desktop collapsed bar */}
+        <div className="hidden lg:flex flex-col items-center justify-start py-4 px-1.5 border-l border-slate-800 bg-[#0B1323] z-20 w-11 h-full shadow-xl flex-shrink-0">
+          <button
+            onClick={onToggleOpen}
+            className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/40 transition-all shadow-md"
+            title="باز کردن پنل مشخصات و موقعیت ناوگان"
+          >
+            <ChevronLeftIcon className="w-4 h-4" />
+          </button>
+          <div className="mt-10 [writing-mode:vertical-rl] text-[11px] font-black tracking-widest text-slate-400 flex items-center gap-2 opacity-85 hover:opacity-100 cursor-pointer" onClick={onToggleOpen}>
+            <span>مشخصات و وضعیت ناوگان</span>
+          </div>
+        </div>
+
+        {/* Mobile floating button */}
         <button
           onClick={onToggleOpen}
-          className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/40 transition-all shadow-md"
-          title="باز کردن پنل مشخصات و موقعیت ناوگان"
+          className="lg:hidden fixed bottom-5 left-5 z-30 px-4 py-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black text-xs shadow-2xl shadow-cyan-500/40 flex items-center gap-2 border border-cyan-300/40 cursor-pointer"
+          title="مشاهده مشخصات و فیلترهای ناوگان"
         >
-          <ChevronLeftIcon className="w-4 h-4" />
+          <IdentificationIcon className="w-4 h-4" />
+          <span>پنل ناوگان ({fleetSummary.activeCount})</span>
         </button>
-        <div className="mt-10 [writing-mode:vertical-rl] text-[11px] font-black tracking-widest text-slate-400 flex items-center gap-2 opacity-85 hover:opacity-100 cursor-pointer" onClick={onToggleOpen}>
-          <span>مشخصات و وضعیت ناوگان</span>
-        </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <aside 
-      className={`w-72 sm:w-80 flex-shrink-0 flex flex-col h-full border-l z-20 shadow-2xl transition-all duration-200 ${
-        isDark ? 'bg-[#0B1323] border-[#1E293B] text-slate-100' : 'bg-white border-slate-200 text-slate-800'
-      }`}
-    >
+    <>
+      {/* Mobile Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+        onClick={onToggleOpen}
+        aria-label="بستن پنل ناوگان"
+      />
+
+      <aside 
+        className={`fixed inset-y-0 right-0 z-50 w-80 max-w-[85vw] flex-shrink-0 flex flex-col h-full border-l shadow-2xl transition-all duration-200 lg:static lg:z-20 lg:w-80 ${
+          isDark ? 'bg-[#0B1323] border-[#1E293B] text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+        }`}
+      >
       {/* سربرگ سایدبار با دکمه بستن/جمع شدن */}
       <div className={`p-3 border-b flex items-center justify-between ${
         isDark ? 'border-slate-800 bg-[#080E1B]' : 'border-slate-200 bg-slate-50'
@@ -643,11 +657,11 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
 
             {/* لیست فشرده ماشین‌آلات با اکشن‌های سریع */}
             <div className="space-y-1.5 max-h-[calc(100vh-340px)] overflow-y-auto pr-1">
-              {filteredItems.map((item) => {
+              {filteredItems.map((item, idx) => {
                 const isSelected = selectedItem?.id === item.id;
                 return (
                   <div
-                    key={item.id}
+                    key={`sidebar-eq-${item.id}-${idx}`}
                     onClick={() => {
                       onSelectEquipment(item);
                       setActiveTab('PROPERTIES');
@@ -746,28 +760,10 @@ export const EquipmentPropertiesSidebar: React.FC<EquipmentPropertiesSidebarProp
                 <span className="text-base font-black text-amber-400">{fleetSummary.totalFuelToday} لیتر</span>
               </div>
             </div>
-
-            {/* تفکیک ماشین‌آلات بر اساس زون‌های معدن */}
-            <div className={`p-3 rounded-2xl border ${isDark ? 'bg-[#0E172A] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <h4 className="text-xs font-bold text-slate-300 mb-2">توزیع ماشین‌آلات در زون‌های معدن</h4>
-              <div className="space-y-1.5 text-xs">
-                {MINE_MAP_ZONES.map((zone) => {
-                  const count = items.filter(e => e.position.zoneId === zone.id).length;
-                  return (
-                    <div key={zone.id} className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: zone.color }} />
-                        <span className="text-slate-300 text-[11px]">{zone.nameFa}</span>
-                      </div>
-                      <span className="text-[11px] font-mono font-bold text-cyan-300">{count} دستگاه</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
       </div>
     </aside>
+  </>
   );
 };

@@ -1,6 +1,6 @@
 // src/shared/components/Sidebar/Sidebar.tsx
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -21,7 +21,10 @@ import {
   ChevronUpDownIcon,
   SparklesIcon,
   CubeIcon,
-  BriefcaseIcon
+  BriefcaseIcon,
+  ArrowPathIcon,
+  ClipboardDocumentCheckIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { Zap } from 'lucide-react';
 
@@ -30,7 +33,7 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const { theme, setTheme, isDark } = useTheme();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -38,9 +41,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
 
   const isRtl = language === 'fa';
 
+  // Close on Escape key press on mobile
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Navigation Items matching the reference image + existing project modules
   const menuItems = [
     { id: 'workspace', label: isRtl ? 'میز کار اختصاصی واحد' : 'Role & Unit Desk', path: '/workspace', icon: BriefcaseIcon, badge: isRtl ? 'تخصصی' : 'Live' },
+    { id: 'tally-dispatch', label: isRtl ? 'کنترل‌چی و سرویس‌شمار' : 'Haulage Tally Desk', path: '/tally-controller', icon: ClipboardDocumentCheckIcon, badge: isRtl ? 'سرویس‌شمار' : 'Tally' },
+    { id: 'shift-handover', label: isRtl ? 'تحویل و تحول شیفت' : 'Shift Handover', path: '/shift-handover', icon: ArrowPathIcon, badge: isRtl ? 'هوشمند' : 'Smart' },
     { id: 'dashboard', label: isRtl ? 'داشبورد عمومی' : 'General Dashboard', path: '/dashboard', icon: Squares2X2Icon },
     { id: 'management-kpi', label: isRtl ? 'مدیریت و شاخص‌ها (KPI)' : 'Executive Management (KPIs)', path: '/management-dashboard', icon: ChartBarIcon },
     { id: 'mines', label: isRtl ? 'معادن' : 'Mines', path: '/mine', icon: BuildingOffice2Icon },
@@ -70,31 +86,61 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
 
   const handleNav = (path: string) => {
     navigate(path);
+    if (onClose && typeof window !== 'undefined' && window.innerWidth < 1024) {
+      onClose();
+    }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <aside
-      className={`w-64 flex-shrink-0 flex flex-col justify-between select-none transition-all duration-300 z-40 ${
-        isDark 
-          ? 'bg-[#0C132B] border-[#24356B]/30 text-[#8E9EB8]' 
-          : 'bg-white border-slate-200/80 text-slate-700 shadow-sm'
-      } ${isRtl ? 'border-l' : 'border-r'}`}
-      style={{ minHeight: '100vh' }}
-    >
-      {/* Top Section: Logo + Navigation Items */}
-      <div className="p-5 flex flex-col gap-6">
-        {/* Brand Header */}
-        <div 
-          onClick={() => navigate('/dashboard')}
-          className="cursor-pointer py-1"
-        >
-          <LogoFull size={38} variant="sidebar" />
-        </div>
+    <>
+      {/* Mobile & Tablet Backdrop Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={onClose}
+          aria-label="بستن منوی جانبی"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} z-50 w-72 lg:w-64 flex flex-col justify-between select-none transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          isOpen 
+            ? 'translate-x-0 shadow-2xl lg:shadow-none' 
+            : isRtl 
+              ? 'translate-x-full lg:hidden' 
+              : '-translate-x-full lg:hidden'
+        } ${
+          isDark 
+            ? 'bg-[#0C132B] border-[#24356B]/30 text-[#8E9EB8]' 
+            : 'bg-white border-slate-200/80 text-slate-700 shadow-sm'
+        } ${isRtl ? 'border-l' : 'border-r'} h-full max-h-screen overflow-hidden`}
+      >
+        {/* Top Section: Logo + Close Button + Navigation Items */}
+        <div className="p-4 sm:p-5 flex flex-col gap-4 sm:gap-5 flex-1 min-h-0">
+          {/* Brand Header with Mobile Close Button */}
+          <div className="flex items-center justify-between py-1">
+            <div 
+              onClick={() => handleNav('/dashboard')}
+              className="cursor-pointer"
+              title="داشبورد اصلی سامانه مهندسی معدن AES"
+            >
+              <LogoFull size={36} variant="sidebar" />
+            </div>
+
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="lg:hidden p-1.5 rounded-xl border border-slate-700/50 hover:bg-slate-800/80 text-slate-400 hover:text-white transition-colors"
+                title="بستن منو"
+                aria-label="Close menu"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            )}
+          </div>
 
         {/* Navigation List */}
-        <nav className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-250px)] pr-1 custom-scrollbar">
+        <nav className="space-y-1 overflow-y-auto flex-1 pr-1 custom-scrollbar">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path || 
               (item.path === '/dashboard' && (location.pathname === '/' || location.pathname === '/dashboard')) ||
@@ -218,6 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
         </div>
       </div>
     </aside>
+  </>
   );
 };
 

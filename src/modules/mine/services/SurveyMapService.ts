@@ -15,7 +15,221 @@ import type {
 } from '../../../core/domain/types/survey-map.types';
 import type { StakeholderRole } from '../../../core/domain/types/mine.types';
 
+export interface IntegratedDecisionPreset {
+  id: string;
+  name: string;
+  shortTitle: string;
+  description: string;
+  targetUnits: OperationalUnitType[];
+  targetCategories: FeatureCategory[];
+  icon: string;
+  color: string;
+  decisionContext: string;
+}
+
+export const INTEGRATED_DECISION_PRESETS: IntegratedDecisionPreset[] = [
+  {
+    id: 'PRESET_EXTRACTION',
+    name: 'تلفیق عملیات استخراج و بارگیری کانسنگ',
+    shortTitle: 'استخراج و بارگیری',
+    description: 'تلفیق لایه‌های ساب‌بلوک، باندهای عیار زمین‌شناسی، مسیرهای رمپ و موقعیت ناوگان بارگیری جهت تصمیم‌گیری ارسال به مقاصد مصوب',
+    targetUnits: ['SURVEY', 'MINING', 'GEOLOGY', 'FLEET'],
+    targetCategories: ['SUB_BLOCK', 'GEOLOGY_ROCK_BAND', 'HAUL_ROAD', 'FLEET_EQUIPMENT', 'BENCH_CREST', 'BENCH_TOE'],
+    icon: 'CubeIcon',
+    color: '#10B981',
+    decisionContext: 'هدایت شاول‌ها، پیشگیری از رقت و حمل دقیق به سنگ‌شکن یا دپوهای عیاری'
+  },
+  {
+    id: 'PRESET_DRILLING_BLASTING',
+    name: 'تلفیق عملیات حفاری، آتشباری و ایمنی HSE',
+    shortTitle: 'حفاری و آتشباری',
+    description: 'تلفیق باندهای حفاری، شبکه سرچال‌ها، گسل‌های زمین‌شناسی و حریم ایمنی انفجار جهت اجرای الگوی آتشباری و تخلیه ایمن',
+    targetUnits: ['SURVEY', 'DRILLING', 'GEOLOGY', 'SAFETY'],
+    targetCategories: ['DRILLING_BAND', 'BLAST_HOLE', 'BLAST_BOUNDARY', 'GEOLOGY_FAULT', 'BLAST_DANGER_ZONE', 'HAZARD_CRACK'],
+    icon: 'FireIcon',
+    color: '#F59E0B',
+    decisionContext: 'کنترل پرتاب سنگ، جلوگیری از هدررفت انرژی در گسل و ایمن‌سازی پیت'
+  },
+  {
+    id: 'PRESET_GRADE_CONTROL',
+    name: 'تلفیق ژئولوژی، عیارسنجی و کنترل کیفیت',
+    shortTitle: 'کنترل عیار و ژئولوژی',
+    description: 'تلفیق مدل لیتولوژی، باندهای سنگ، کانتورهای عیاری آهن و ساب‌بلوک‌های تفکیکی جهت مدیریت عیار ورودی سنگ‌شکن',
+    targetUnits: ['GEOLOGY', 'MINING', 'STOCKPILE'],
+    targetCategories: ['GEOLOGY_ROCK_BAND', 'SUB_BLOCK', 'STOCKPILE_BOUNDARY', 'CRUSHER_FACILITY'],
+    icon: 'SparklesIcon',
+    color: '#8B5CF6',
+    decisionContext: 'تفکیک سنگ‌آهن پرعیار، متوسط‌عیار، کم‌عیار و باطله'
+  },
+  {
+    id: 'PRESET_SURVEY_REALITY',
+    name: 'انطباق نقشه برداشت نقشه‌برداری با طراحی معدن',
+    shortTitle: 'نقشه‌برداری و طراحی',
+    description: 'بررسی انطباق دقیق خطوط لبه و پای پله برداشت‌شده با محدوده طراحی بلوک‌ها جهت محاسبه احجام و اضافه‌برداشت',
+    targetUnits: ['SURVEY', 'MINING'],
+    targetCategories: ['BENCH_CREST', 'BENCH_TOE', 'SURVEY_BENCHMARK', 'MINING_BLOCK', 'HAUL_ROAD'],
+    icon: 'MapPinIcon',
+    color: '#00D4FF',
+    decisionContext: 'محاسبه احجام عملیات خاکی، تطابق با طرح و کنترل پیشروی جبهه‌کار'
+  },
+  {
+    id: 'PRESET_STABILITY_SAFETY',
+    name: 'پایش پایداری شیب، ژئوتکنیک و ریسک‌های HSE',
+    shortTitle: 'پایداری و ایمنی',
+    description: 'تلفیق شیب دیواره، شکستگی‌ها و گسل‌ها، درزه‌ها، پریس‌های پایش جابجایی و پناهگاه‌ها',
+    targetUnits: ['SURVEY', 'GEOLOGY', 'SAFETY'],
+    targetCategories: ['BENCH_CREST', 'BENCH_TOE', 'GEOLOGY_FAULT', 'HAZARD_CRACK'],
+    icon: 'ShieldExclamationIcon',
+    color: '#EF4444',
+    decisionContext: 'تشخیص زودهنگام لغزش دیواره پیت و حفاظت از جان پرسنل و ماشین‌آلات'
+  },
+  {
+    id: 'PRESET_ALL_INTEGRATED',
+    name: 'نمایش جامع تمامی لایه‌های سازمانی (دید ۳۶۰ درجه معدن)',
+    shortTitle: 'نقشه جامع تلفیقی',
+    description: 'فعال‌سازی همزمان تمام لایه‌های نقشه‌برداری، زمین‌شناسی، حفاری، استخراج، ترابری و ایمنی برای تحلیل کلان',
+    targetUnits: ['ALL'],
+    targetCategories: [],
+    icon: 'Square2StackIcon',
+    color: '#6366F1',
+    decisionContext: 'تصمیم‌گیری استراتژیک در جلسات هماهنگی روزانه و هفتگی پیت'
+  },
+  {
+    id: 'PRESET_SURVEY_BASE_ONLY',
+    name: 'فقط نقشه پایه برداشت نقشه‌برداری',
+    shortTitle: 'نقشه پایه نقشه‌برداری',
+    description: 'خاموش کردن سایر لایه‌ها و نمایش خالص خطوط توپوگرافی، لبه و پای پله و بنچ‌مارک‌های نقشه‌برداری',
+    targetUnits: ['SURVEY'],
+    targetCategories: ['BENCH_CREST', 'BENCH_TOE', 'SURVEY_BENCHMARK'],
+    icon: 'ViewfinderCircleIcon',
+    color: '#38BDF8',
+    decisionContext: 'بررسی هندسه محض تراز پله بدون تداخل اطلاعاتی'
+  }
+];
+
 export class SurveyMapService {
+  public static readonly MASTER_MAP_STORAGE_KEY = 'aes_active_master_map_id';
+  public static readonly MASTER_MAP_EVENT = 'aes_master_map_updated';
+
+  /**
+   * دریافت شناسه آخرین نقشه مرجع فعال در سامانه (تعیین‌شده توسط واحد نقشه‌برداری)
+   */
+  public static getActiveMasterMapId(): string {
+    this.ensureInitialized();
+    if (typeof window !== 'undefined') {
+      const storedId = localStorage.getItem(this.MASTER_MAP_STORAGE_KEY);
+      if (storedId) {
+        const found = SurveyMapRepository.getById(storedId);
+        if (found) return found.id;
+      }
+    }
+
+    // جستجوی نقشه دارای فلگ مرجع
+    const all = SurveyMapRepository.getAll();
+    const explicitMaster = all.find(m => m.isMasterMap);
+    if (explicitMaster) return explicitMaster.id;
+
+    // آخرین نقشه مصوب رسمی
+    const approved = all.find(m => m.status === 'APPROVED_OFFICIAL');
+    if (approved) return approved.id;
+
+    return all.length > 0 ? all[0].id : '';
+  }
+
+  /**
+   * دریافت شئ کامل آخرین نقشه مرجع فعال و هماهنگ در کل سامانه
+   */
+  public static getActiveMasterMap(): SurveyMap | null {
+    const id = this.getActiveMasterMapId();
+    if (!id) return null;
+    return this.getMapById(id);
+  }
+
+  /**
+   * تعیین و انتشار یک نقشه به عنوان نقشه مرجع رسمی و سراسری سامانه توسط واحد نقشه‌برداری
+   */
+  public static setActiveMasterMap(
+    mapId: string, 
+    userRole: string = 'SUPERVISION', 
+    userName: string = 'مهندس مرادی (واحد نقشه‌برداری)'
+  ): SurveyMap | null {
+    this.ensureInitialized();
+    const all = SurveyMapRepository.getAll();
+    const targetMap = all.find(m => m.id === mapId);
+    if (!targetMap) return null;
+
+    const now = new Date().toISOString();
+
+    // به‌روزرسانی تمام نقشه‌ها: تنها یک نقشه مرجع فعال در لحظه وجود دارد
+    all.forEach(m => {
+      if (m.id === mapId) {
+        m.isMasterMap = true;
+        m.status = 'APPROVED_OFFICIAL';
+        m.masterApprovedAt = now;
+        m.masterApprovedBy = userName;
+        m.updatedAt = now;
+
+        const revLog: MapRevisionLog = {
+          id: `rev-master-${Date.now()}`,
+          revision: m.version,
+          action: 'APPROVED_OFFICIAL',
+          description: `انتشار به عنوان آخرین نقشه مرجع رسمی و فعال کل سامانه توسط ${userName} (${userRole})`,
+          performedBy: userName,
+          performedRole: userRole,
+          timestamp: now
+        };
+        m.revisionHistory = [revLog, ...(m.revisionHistory || [])];
+        SurveyMapRepository.save(m);
+      } else if (m.isMasterMap) {
+        m.isMasterMap = false;
+        m.updatedAt = now;
+        SurveyMapRepository.save(m);
+      }
+    });
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(this.MASTER_MAP_STORAGE_KEY, mapId);
+      // ارسال رویداد هماهنگ‌سازی بلادرنگ به تمام ماژول‌ها و تب‌های سامانه
+      window.dispatchEvent(new CustomEvent(this.MASTER_MAP_EVENT, {
+        detail: { mapId, map: targetMap, publishedBy: userName, timestamp: now }
+      }));
+    }
+
+    return targetMap;
+  }
+
+  /**
+   * ثبت شنونده تغییرات آخرین نقشه مرجع برای هماهنگی بلادرنگ اجزای سامانه
+   */
+  public static subscribeToMasterMapUpdates(callback: (map: SurveyMap) => void): () => void {
+    if (typeof window === 'undefined') return () => {};
+
+    const handleCustomEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ map: SurveyMap }>;
+      if (customEvent.detail?.map) {
+        callback(customEvent.detail.map);
+      } else {
+        const active = this.getActiveMasterMap();
+        if (active) callback(active);
+      }
+    };
+
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === this.MASTER_MAP_STORAGE_KEY || e.key === 'aes_survey_maps') {
+        const active = this.getActiveMasterMap();
+        if (active) callback(active);
+      }
+    };
+
+    window.addEventListener(this.MASTER_MAP_EVENT, handleCustomEvent);
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
+      window.removeEventListener(this.MASTER_MAP_EVENT, handleCustomEvent);
+      window.removeEventListener('storage', handleStorageEvent);
+    };
+  }
+
   /**
    * دریافت تمامی نقشه‌های موجود در سامانه
    */
@@ -52,6 +266,16 @@ export class SurveyMapService {
     }
 
     SurveyMapRepository.save(map);
+
+    // اگر این نقشه، نقشه مرجع سامانه است، رویداد هماهنگی ارسال شود
+    if (map.isMasterMap || map.id === this.getActiveMasterMapId()) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(this.MASTER_MAP_EVENT, {
+          detail: { mapId: map.id, map }
+        }));
+      }
+    }
+
     return map;
   }
 
@@ -76,27 +300,38 @@ export class SurveyMapService {
     userName: string
   ): SurveyMap {
     const defaultLayers: MapLayer[] = data.layers || [
-      // ۱. واحد نقشه‌برداری و ژئودزی
-      { id: 'layer-crest', mapId: '', name: 'لبه بالای پله (Crest Lines)', category: 'BENCH_CREST', unit: 'SURVEY', color: '#00D4FF', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'لبه بالای پله استخراجی' },
-      { id: 'layer-toe', mapId: '', name: 'پای پله و کف تراز (Toe Lines)', category: 'BENCH_TOE', unit: 'SURVEY', color: '#38BDF8', strokeWidth: 2, strokeDash: 'dashed', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'پای پله و کف تراز پیت' },
-      { id: 'layer-topography', mapId: '', name: 'منحنی‌های میزان و توپوگرافی', category: 'GENERAL', unit: 'SURVEY', color: '#67E8F9', strokeWidth: 1.5, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0, description: 'منحنی‌های کانتور و تراز' },
-      { id: 'layer-benchmarks', mapId: '', name: 'بنچ‌مارک‌ها و نقاط ژئودزی', category: 'SURVEY_BENCHMARK', unit: 'SURVEY', color: '#EC4899', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'نقاط مبنا و بنچ‌مارک‌های GPS' },
+      // ۱. واحد نقشه‌برداری و ژئودزی (مرجع پایه بارگذاری)
+      { id: 'layer-crest', mapId: '', name: 'لبه بالای پله (Crest Lines)', category: 'BENCH_CREST', unit: 'SURVEY', color: '#00D4FF', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'لبه بالای پله استخراجی برداشت‌شده توسط واحد نقشه‌برداری' },
+      { id: 'layer-toe', mapId: '', name: 'پای پله و کف تراز (Toe Lines)', category: 'BENCH_TOE', unit: 'SURVEY', color: '#38BDF8', strokeWidth: 2, strokeDash: 'dashed', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'پای پله و خطوط شکست کف پیت' },
+      { id: 'layer-topography', mapId: '', name: 'منحنی‌های میزان و کانتورهای توپوگرافی', category: 'GENERAL', unit: 'SURVEY', color: '#67E8F9', strokeWidth: 1.5, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0, description: 'منحنی‌های کانتور و ترازهای ارتفاعی پیت' },
+      { id: 'layer-benchmarks', mapId: '', name: 'بنچ‌مارک‌ها و نقاط مبنای ژئودزی GPS', category: 'SURVEY_BENCHMARK', unit: 'SURVEY', color: '#EC4899', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'ایستگاه‌های توتال استیشن و بنچ‌مارک‌های ژئودتیک' },
 
-      // ۲. واحد حفاری و آتشباری
-      { id: 'layer-drilling-bands', mapId: '', name: 'باندهای حفاری پله (واحد حفاری)', category: 'DRILLING_BAND', unit: 'DRILLING', color: '#F97316', strokeWidth: 2.5, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 0, description: 'محدوده و باندهای حفاری تعریف‌شده توسط واحد حفاری' },
-      { id: 'layer-holes', mapId: '', name: 'موقعیت چال‌های حفاری و انفجار (واحد حفاری)', category: 'BLAST_HOLE', unit: 'DRILLING', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'شبکه چال‌پاشی و موقعیت سرچال‌ها' },
+      // ۲. واحد استخراج و طراحی معدن
+      { id: 'layer-subblocks', mapId: '', name: 'ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)', category: 'SUB_BLOCK', unit: 'MINING', color: '#10B981', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 0, description: 'تفکیک ساب‌بلوک‌ها بر اساس عیار و مقصد حمل' },
+      { id: 'layer-roads', mapId: '', name: 'رمپ‌ها و شبکه راه‌های حمل و نقل', category: 'HAUL_ROAD', unit: 'MINING', color: '#60A5FA', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'محور شبکه ترابری پیت و رمپ‌های دسترسی' },
 
-      // ۳. واحد زمین‌شناسی و مدلسازی کانسار
-      { id: 'layer-geology-rock', mapId: '', name: 'باندهای جنس سنگ و کانسنگ (واحد زمین‌شناسی)', category: 'GEOLOGY_ROCK_BAND', unit: 'GEOLOGY', color: '#8B5CF6', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.75, featureCount: 0, description: 'تفکیک باندهای لیتولوژی و جنس سنگ‌های معدن' },
-      { id: 'layer-geology-faults', mapId: '', name: 'موقعیت گسل‌ها و درزه‌های ساختاری (واحد زمین‌شناسی)', category: 'GEOLOGY_FAULT', unit: 'GEOLOGY', color: '#DC2626', strokeWidth: 3, strokeDash: 'dashdot', showLabels: true, isVisible: true, isLocked: false, opacity: 0.95, featureCount: 0, description: 'گسل‌های اصلی و شکستگی‌های تکتونیکی معدن' },
+      // ۳. واحد حفاری و آتشباری
+      { id: 'layer-drilling-bands', mapId: '', name: 'باندهای حفاری پله (واحد حفاری)', category: 'DRILLING_BAND', unit: 'DRILLING', color: '#F97316', strokeWidth: 2.5, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 0, description: 'محدوده و باندهای طراحی‌شده توسط واحد حفاری' },
+      { id: 'layer-holes', mapId: '', name: 'شبکه و موقعیت سرچال‌های آتشباری', category: 'BLAST_HOLE', unit: 'DRILLING', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'شبکه چال‌پاشی و موقعیت گمانه‌های انفجاری' },
+      { id: 'layer-blast-danger', mapId: '', name: 'حریم ایمنی و زون خطر آتشباری', category: 'BLAST_DANGER_ZONE', unit: 'DRILLING', color: '#EF4444', strokeWidth: 2, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.35, featureCount: 0, description: 'محدوده تخلیه شعاع خطر پرتاب سنگ و موج انفجار' },
 
-      // ۴. واحد استخراج و دفتر فنی
-      { id: 'layer-subblocks', mapId: '', name: 'ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)', category: 'SUB_BLOCK', unit: 'MINING', color: '#10B981', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 0, description: 'تفکیک ساب‌بلوک‌ها بر اساس عیار و مقصد' },
-      { id: 'layer-roads', mapId: '', name: 'رمپ‌ها و شبکه راه‌های حمل', category: 'HAUL_ROAD', unit: 'MINING', color: '#60A5FA', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'شبکه ترابری و رمپ‌های دسترسی' },
+      // ۴. واحد زمین‌شناسی و مدلسازی کانسار
+      { id: 'layer-geology-rock', mapId: '', name: 'باندهای جنس سنگ و لیتولوژی کانسنگ', category: 'GEOLOGY_ROCK_BAND', unit: 'GEOLOGY', color: '#8B5CF6', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.75, featureCount: 0, description: 'تفکیک باندهای لیتولوژی (مگنتیت، هماتیت، باطله)' },
+      { id: 'layer-geology-faults', mapId: '', name: 'گسل‌ها و درزه‌های ساختاری زمین‌شناسی', category: 'GEOLOGY_FAULT', unit: 'GEOLOGY', color: '#DC2626', strokeWidth: 3, strokeDash: 'dashdot', showLabels: true, isVisible: true, isLocked: false, opacity: 0.95, featureCount: 0, description: 'گسل‌های اصلی و صفحات لغزش دیواره معدن' },
 
-      // ۵. واحد ایمنی و ژئوتکنیک
-      { id: 'layer-hazards', mapId: '', name: 'حریم‌های ایمنی و درزه‌ها (واحد ژئوتکنیک)', category: 'HAZARD_CRACK', unit: 'SAFETY', color: '#EF4444', strokeWidth: 2, strokeDash: 'dotted', showLabels: false, isVisible: true, isLocked: false, opacity: 0.7, featureCount: 0, description: 'حریم‌های ایمنی، درزه‌داری و دیواره ناپایدار' },
-      { id: 'layer-annotations', mapId: '', name: 'یادداشت‌ها و برچسب‌های مهندسی', category: 'ANNOTATION', unit: 'ALL', color: '#FBBF24', strokeWidth: 1, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'یادداشت‌های متنی روی نقشه' },
+      // ۵. واحد بارگیری، ترابری و دیسپاچینگ ماشین‌آلات
+      { id: 'layer-fleet', mapId: '', name: 'موقعیت و ناوگان ماشین‌آلات پیت (شاول، لودر، تراک)', category: 'FLEET_EQUIPMENT', unit: 'FLEET', color: '#06B6D4', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 0, description: 'موقعیت زنده و زون فعالیت شاول‌ها، لودرها و دامپتراک‌ها' },
+
+      // ۶. واحد انبار، دپوها و سنگ‌شکن
+      { id: 'layer-stockpiles', mapId: '', name: 'محدوده دپوهای سنگ‌آهن، باطله و ورودی سنگ‌شکن', category: 'STOCKPILE_BOUNDARY', unit: 'STOCKPILE', color: '#D97706', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0, description: 'دپوهای خردایش، باطله و بونکر سنگ‌شکن اولیه' },
+
+      // ۷. واحد ایمنی، HSE و ژئوتکنیک
+      { id: 'layer-hazards', mapId: '', name: 'حریم‌های ایمنی، ترک‌های کششی دیواره و زون خطر', category: 'HAZARD_CRACK', unit: 'SAFETY', color: '#E11D48', strokeWidth: 2, strokeDash: 'dotted', showLabels: false, isVisible: true, isLocked: false, opacity: 0.75, featureCount: 0, description: 'ترک‌های کششی، زون ناپایدار پله و مسیرهای امداد پیت' },
+
+      // ۸. واحد تسک‌ها و دستورکارهای میدانی
+      { id: 'layer-tasks', mapId: '', name: 'پین‌ها و دستورکارهای میدانی واحدهای عملیاتی', category: 'TASK_ACTION_PIN', unit: 'FIELD_TASKS', color: '#A855F7', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 0, description: 'موقعیت وظایف و مأموریت‌های ابلاغ‌شده روی پله‌ها' },
+
+      { id: 'layer-annotations', mapId: '', name: 'یادداشت‌ها و توضیحات مهندسی', category: 'ANNOTATION', unit: 'ALL', color: '#FBBF24', strokeWidth: 1, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'یادداشت‌های متنی مهندسی روی نقشه' },
     ];
 
     const mapId = `map-${Date.now()}`;
@@ -164,6 +399,9 @@ export class SurveyMapService {
       },
       version: 'Rev 1.0',
       status: userRole === 'SUPERVISION' || userRole === 'CLIENT' ? 'APPROVED_OFFICIAL' : 'PENDING_REVIEW',
+      isMasterMap: userRole === 'SUPERVISION' || userRole === 'CLIENT',
+      masterApprovedAt: (userRole === 'SUPERVISION' || userRole === 'CLIENT') ? new Date().toISOString() : undefined,
+      masterApprovedBy: (userRole === 'SUPERVISION' || userRole === 'CLIENT') ? userName : undefined,
       layers,
       features: (data.features || []).map(f => ({ ...f, mapId })),
       rasterImageUrl: data.rasterImageUrl,
@@ -173,6 +411,12 @@ export class SurveyMapService {
     };
 
     SurveyMapRepository.save(newMap);
+
+    // در صورتی که نقشه‌ای توسط نظارت/نقشه‌برداری وارد شود، بلافاصله به عنوان نقشه فعال و مرجع کل سامانه منتشر می‌گردد
+    if (newMap.isMasterMap) {
+      this.setActiveMasterMap(newMap.id, userRole, userName);
+    }
+
     return newMap;
   }
 
@@ -309,6 +553,72 @@ export class SurveyMapService {
 
     map.updatedAt = new Date().toISOString();
     SurveyMapRepository.save(map);
+    return true;
+  }
+
+  /**
+   * اعمال سناریوی تلفیق هوشمند لایه‌ها برای اتخاذ تصمیمات مناسب در سطح واحدهای مختلف معدن
+   */
+  public static applyDecisionPreset(mapId: string, presetId: string): boolean {
+    const map = this.getMapById(mapId);
+    if (!map) return false;
+
+    // سناریوی خاموشی کامل
+    if (presetId === 'ALL_OFF') {
+      map.layers = map.layers.map(l => ({ ...l, isVisible: false }));
+      map.updatedAt = new Date().toISOString();
+      SurveyMapRepository.save(map);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(this.MASTER_MAP_EVENT, {
+          detail: { mapId: map.id, map, presetId }
+        }));
+      }
+      return true;
+    }
+
+    // نگاشت شناسه‌های معادل سناریوهای تصمیم‌گیری
+    let normalizedPresetId = presetId;
+    if (presetId === 'MINING_DISPATCH') normalizedPresetId = 'PRESET_EXTRACTION';
+    else if (presetId === 'BLAST_SAFETY' || presetId === 'DRILL_BLAST_SAFETY') normalizedPresetId = 'PRESET_DRILLING_BLASTING';
+    else if (presetId === 'GRADE_GEOLOGY' || presetId === 'GRADE_CONTROL_GEOLOGY') normalizedPresetId = 'PRESET_GRADE_CONTROL';
+    else if (presetId === 'SURVEY_MASTER' || presetId === 'SURVEY_BASE_ONLY') normalizedPresetId = 'PRESET_SURVEY_BASE_ONLY';
+    else if (presetId === 'FULL_INTEGRATION' || presetId === 'ALL_ON') normalizedPresetId = 'PRESET_ALL_INTEGRATED';
+
+    const preset = INTEGRATED_DECISION_PRESETS.find(p => p.id === normalizedPresetId || p.id === presetId);
+    if (!preset) {
+      if (presetId === 'FULL_INTEGRATION' || presetId === 'ALL_ON') {
+        map.layers = map.layers.map(l => ({ ...l, isVisible: true }));
+        map.updatedAt = new Date().toISOString();
+        SurveyMapRepository.save(map);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(this.MASTER_MAP_EVENT, {
+            detail: { mapId: map.id, map, presetId }
+          }));
+        }
+        return true;
+      }
+      return false;
+    }
+
+    if (preset.id === 'PRESET_ALL_INTEGRATED') {
+      map.layers = map.layers.map(l => ({ ...l, isVisible: true }));
+    } else {
+      map.layers = map.layers.map(l => {
+        const unitMatch = l.unit ? preset.targetUnits.includes(l.unit) : false;
+        const catMatch = preset.targetCategories.includes(l.category);
+        const shouldBeVisible = unitMatch || catMatch;
+        return { ...l, isVisible: shouldBeVisible };
+      });
+    }
+
+    map.updatedAt = new Date().toISOString();
+    SurveyMapRepository.save(map);
+    
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(this.MASTER_MAP_EVENT, {
+        detail: { mapId: map.id, map, presetId }
+      }));
+    }
     return true;
   }
 
@@ -584,6 +894,8 @@ export class SurveyMapService {
     map.revisionHistory = [revisionLog, ...map.revisionHistory];
 
     SurveyMapRepository.save(map);
+    // نقشه مصوب بلافاصله به عنوان آخرین نقشه رسمی و فعال کل سامانه ابلاغ و همگام‌سازی می‌شود
+    this.setActiveMasterMap(map.id, approverRole, approverName);
     return map;
   }
 
@@ -1317,6 +1629,266 @@ export class SurveyMapService {
         createdBy: 'واحد زمین‌شناسی و تکتونیک',
         createdRole: 'SUPERVISION',
         createdAt: new Date().toISOString()
+      },
+
+      // --- عوارض واحد حفاری و آتشباری: زون خطر انفجار ---
+      {
+        id: 'feat-blast-danger-1040',
+        mapId: 'map-default-1040',
+        layerId: 'layer-blast-danger',
+        name: 'حریم خطر و تخلیه عملیات آتشباری پله ۱۰۴۰ (شعاع ۳۵۰ متر)',
+        type: 'POLYGON',
+        category: 'BLAST_DANGER_ZONE',
+        coordinates: [
+          [584340, 3512720],
+          [584620, 3512720],
+          [584620, 3513000],
+          [584340, 3513000]
+        ],
+        elevation: 1040,
+        unit: 'DRILLING',
+        properties: {
+          code: 'BDZ-1040',
+          unit: 'DRILLING',
+          safetyRadiusM: 350,
+          hazardLevel: 'HIGH',
+          status: 'EVACUATION_REQUIRED',
+          notes: 'حریم تخلیه پرتاب سنگ و موج فشار انفجار جهت ایمنی ماشین‌آلات و پرسنل'
+        },
+        style: {
+          strokeColor: '#EF4444',
+          fillColor: '#EF4444',
+          fillOpacity: 0.12,
+          strokeWidth: 2,
+          strokeDash: 'dashed'
+        },
+        createdBy: 'مسئول ایمنی و آتشباری',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+
+      // --- عوارض واحد بارگیری، ترابری و ناوگان ماشین‌آلات ---
+      {
+        id: 'feat-fleet-shv-01',
+        mapId: 'map-default-1040',
+        layerId: 'layer-fleet',
+        name: 'شاول بارگیری هیدرولیکی SHV-01 (Hitachi EX1200)',
+        type: 'POINT',
+        category: 'FLEET_EQUIPMENT',
+        coordinates: [[584440, 3512830]],
+        elevation: 1040,
+        unit: 'FLEET',
+        properties: {
+          code: 'SHV-01',
+          unit: 'FLEET',
+          equipmentType: 'SHOVEL',
+          model: 'Hitachi EX1200',
+          status: 'OPERATIONAL',
+          operator: 'حسین کریمی',
+          capacityTon: 45,
+          activeTarget: 'ساب‌بلوک SA-1040 (سنگ‌آهن پرعیار)',
+          notes: 'مستقر در جبهه‌کار اصلی بارگیری'
+        },
+        style: {
+          strokeColor: '#06B6D4',
+          fillColor: '#0891B2',
+          pointRadius: 6
+        },
+        createdBy: 'دیسپاچینگ و مدیریت ناوگان',
+        createdRole: 'MINING_CONTRACTOR',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'feat-fleet-trk-04',
+        mapId: 'map-default-1040',
+        layerId: 'layer-fleet',
+        name: 'دامپتراک ۱۰۰ تنی TRK-04 (Komatsu HD785)',
+        type: 'POINT',
+        category: 'FLEET_EQUIPMENT',
+        coordinates: [[584460, 3512825]],
+        elevation: 1040,
+        unit: 'FLEET',
+        properties: {
+          code: 'TRK-04',
+          unit: 'FLEET',
+          equipmentType: 'TRUCK',
+          model: 'Komatsu HD785-7',
+          status: 'LOADING',
+          operator: 'رضا مرادی',
+          payloadTon: 91,
+          destination: 'سنگ‌شکن اولیه (Crusher-01)',
+          notes: 'در حال بارگیری توسط شاول SHV-01'
+        },
+        style: {
+          strokeColor: '#3B82F6',
+          fillColor: '#2563EB',
+          pointRadius: 5
+        },
+        createdBy: 'دیسپاچینگ و مدیریت ناوگان',
+        createdRole: 'MINING_CONTRACTOR',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'feat-fleet-drl-02',
+        mapId: 'map-default-1040',
+        layerId: 'layer-fleet',
+        name: 'دستگاه دریل هیدرولیکی DRL-02 (Sandvik Pantera)',
+        type: 'POINT',
+        category: 'FLEET_EQUIPMENT',
+        coordinates: [[584470, 3512880]],
+        elevation: 1040,
+        unit: 'FLEET',
+        properties: {
+          code: 'DRL-02',
+          unit: 'FLEET',
+          equipmentType: 'DRILL',
+          model: 'Sandvik Pantera DP1500i',
+          status: 'DRILLING',
+          operator: 'علی احمدی',
+          holeDiameterMm: 165,
+          activeTarget: 'باند حفاری پله ۱۰۴۰',
+          notes: 'در حال حفر چال‌های ردیف ۴'
+        },
+        style: {
+          strokeColor: '#F59E0B',
+          fillColor: '#D97706',
+          pointRadius: 5.5
+        },
+        createdBy: 'واحد حفاری و نگهداری ماشین‌آلات',
+        createdRole: 'MINING_CONTRACTOR',
+        createdAt: new Date().toISOString()
+      },
+
+      // --- عوارض واحد انبار، دپوها و سنگ‌شکن ---
+      {
+        id: 'feat-stockpile-dso',
+        mapId: 'map-default-1040',
+        layerId: 'layer-stockpiles',
+        name: 'محدوده دپوی کانسنگ دانه بندی مستقیم (DSO Stockpile)',
+        type: 'POLYGON',
+        category: 'STOCKPILE_BOUNDARY',
+        coordinates: [
+          [584610, 3512730],
+          [584710, 3512730],
+          [584710, 3512820],
+          [584610, 3512820]
+        ],
+        elevation: 1040,
+        unit: 'STOCKPILE',
+        properties: {
+          code: 'STK-DSO-01',
+          unit: 'STOCKPILE',
+          capacityTon: 85000,
+          currentTonnage: 42000,
+          avgFeGrade: 62.4,
+          destination: 'خوراک کارخانه کنسانتره',
+          notes: 'محل تخلیه محموله‌های پرعیار ساب‌بلوک SA'
+        },
+        style: {
+          strokeColor: '#D97706',
+          fillColor: '#F59E0B',
+          fillOpacity: 0.22,
+          strokeWidth: 2,
+          strokeDash: 'solid'
+        },
+        createdBy: 'واحد فرآوری و کنترل دپو',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'feat-crusher-facility',
+        mapId: 'map-default-1040',
+        layerId: 'layer-stockpiles',
+        name: 'تاسیسات و بونکر ورودی سنگ‌شکن اولیه (Primary Crusher)',
+        type: 'POLYGON',
+        category: 'CRUSHER_FACILITY',
+        coordinates: [
+          [584700, 3512850],
+          [584760, 3512850],
+          [584760, 3512910],
+          [584700, 3512910]
+        ],
+        elevation: 1040,
+        unit: 'STOCKPILE',
+        properties: {
+          code: 'CRUSHER-01',
+          unit: 'STOCKPILE',
+          type: 'Gyratory Crusher 54x75',
+          capacityTph: 1200,
+          status: 'ACTIVE_FEEDING',
+          notes: 'دریافت بار مستقیم از دامپتراک‌های تراز ۱۰۴۰'
+        },
+        style: {
+          strokeColor: '#B45309',
+          fillColor: '#D97706',
+          fillOpacity: 0.35,
+          strokeWidth: 2.5
+        },
+        createdBy: 'واحد بهره‌برداری و کارخانه خردایش',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+
+      // --- عوارض واحد تسک‌ها و دستورکارهای میدانی ---
+      {
+        id: 'feat-task-pin-01',
+        mapId: 'map-default-1040',
+        layerId: 'layer-tasks',
+        name: 'دستورکار شماره ۲۱۰: بارگیری و حمل ساب SA به سنگ‌شکن',
+        type: 'POINT',
+        category: 'TASK_ACTION_PIN',
+        coordinates: [[584420, 3512850]],
+        elevation: 1040,
+        unit: 'FIELD_TASKS',
+        properties: {
+          code: 'TSK-MIN-210',
+          unit: 'FIELD_TASKS',
+          taskTitle: 'بارگیری فوری ساب SA با رعایت سقف عیار فسفر',
+          assignedRole: 'MINING_CONTRACTOR',
+          assigneeName: 'سرپرست شیفت استخراج',
+          priority: 'URGENT',
+          status: 'IN_PROGRESS',
+          progressPct: 65,
+          notes: 'تأییدیه کنترل کیفی آزمایشگاه برای Fe 62.8% دریافت شد'
+        },
+        style: {
+          strokeColor: '#A855F7',
+          fillColor: '#9333EA',
+          pointRadius: 6
+        },
+        createdBy: 'دستگاه نظارت مقیم معدن',
+        createdRole: 'SUPERVISION',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'feat-task-pin-02',
+        mapId: 'map-default-1040',
+        layerId: 'layer-tasks',
+        name: 'دستورکار شماره ۲۱۴: برداشت دقیق مقطع پله توسط واحد نقشه‌برداری',
+        type: 'POINT',
+        category: 'TASK_ACTION_PIN',
+        coordinates: [[584490, 3512890]],
+        elevation: 1040,
+        unit: 'FIELD_TASKS',
+        properties: {
+          code: 'TSK-SURV-214',
+          unit: 'FIELD_TASKS',
+          taskTitle: 'برداشت خط لبه و پای پله ۱۰۴۰ بعد از آتشباری نهایی',
+          assignedRole: 'SUPERVISION',
+          assigneeName: 'مهندس مرادی (واحد نقشه‌برداری)',
+          priority: 'HIGH',
+          status: 'PENDING_ACTION',
+          progressPct: 20,
+          notes: 'به‌روزرسانی نقشه با پهپاد فتوگرامتری برای محاسبه حجم احجام استخراجی'
+        },
+        style: {
+          strokeColor: '#00D4FF',
+          fillColor: '#0284C7',
+          pointRadius: 6
+        },
+        createdBy: 'مدیریت طرح و برنامه معدن',
+        createdRole: 'CLIENT',
+        createdAt: new Date().toISOString()
       }
     ];
 
@@ -1343,27 +1915,41 @@ export class SurveyMapService {
       },
       version: 'Rev 1.2',
       status: 'APPROVED_OFFICIAL',
+      isMasterMap: true,
+      masterApprovedAt: '2026-08-20T10:00:00Z',
+      masterApprovedBy: 'واحد نقشه‌برداری و ژئودزی نظارت',
       layers: [
-        // لایه‌های واحد نقشه‌برداری
+        // ۱. لایه‌های واحد نقشه‌برداری
         { id: 'layer-crest', mapId: 'map-default-1040', name: 'لبه بالای پله (Crest Lines)', category: 'BENCH_CREST', unit: 'SURVEY', color: '#00D4FF', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'لبه بالای پله' },
         { id: 'layer-toe', mapId: 'map-default-1040', name: 'پای پله و کف تراز (Toe Lines)', category: 'BENCH_TOE', unit: 'SURVEY', color: '#38BDF8', strokeWidth: 2, strokeDash: 'dashed', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'پای پله و کف تراز' },
         { id: 'layer-topography', mapId: 'map-default-1040', name: 'منحنی‌های میزان و توپوگرافی پیت', category: 'GENERAL', unit: 'SURVEY', color: '#67E8F9', strokeWidth: 1.5, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 0, description: 'توپوگرافی و تراز' },
         { id: 'layer-benchmarks', mapId: 'map-default-1040', name: 'بنچ‌مارک‌ها و نقاط ژئودزی', category: 'SURVEY_BENCHMARK', unit: 'SURVEY', color: '#EC4899', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'نقاط مبنای GPS' },
 
-        // لایه‌های واحد حفاری و آتشباری
-        { id: 'layer-drilling-bands', mapId: 'map-default-1040', name: 'باندهای حفاری پله (واحد حفاری)', category: 'DRILLING_BAND', unit: 'DRILLING', color: '#F97316', strokeWidth: 2.5, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 1, description: 'باندها و محدوده‌های حفاری تعریف‌شده توسط واحد حفاری' },
-        { id: 'layer-holes', mapId: 'map-default-1040', name: 'موقعیت چال‌های حفاری و انفجار (واحد حفاری)', category: 'BLAST_HOLE', unit: 'DRILLING', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 16, description: 'موقعیت سرچال‌های حفر شده و طراحی‌شده' },
-
-        // لایه‌های واحد زمین‌شناسی و مدلسازی کانسار
-        { id: 'layer-geology-rock', mapId: 'map-default-1040', name: 'باندهای جنس سنگ و کانسنگ (واحد زمین‌شناسی)', category: 'GEOLOGY_ROCK_BAND', unit: 'GEOLOGY', color: '#8B5CF6', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 3, description: 'تفکیک باندهای لیتولوژی: مگنتیت، هماتیت و اسکارن' },
-        { id: 'layer-geology-faults', mapId: 'map-default-1040', name: 'موقعیت گسل‌ها و درزه‌های ساختاری (واحد زمین‌شناسی)', category: 'GEOLOGY_FAULT', unit: 'GEOLOGY', color: '#DC2626', strokeWidth: 3, strokeDash: 'dashdot', showLabels: true, isVisible: true, isLocked: false, opacity: 0.95, featureCount: 2, description: 'گسل‌های اصلی و شکستگی‌های تکتونیکی معدن' },
-
-        // لایه‌های واحد استخراج و دفتر فنی
+        // ۲. لایه‌های واحد استخراج و دفتر فنی
         { id: 'layer-subblocks', mapId: 'map-default-1040', name: 'ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)', category: 'SUB_BLOCK', unit: 'MINING', color: '#10B981', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 4, description: 'ساب‌بلوک‌های تفکیکی استخراجی' },
         { id: 'layer-roads', mapId: 'map-default-1040', name: 'رمپ‌ها و شبکه راه‌های حمل', category: 'HAUL_ROAD', unit: 'MINING', color: '#60A5FA', strokeWidth: 3, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 1, description: 'رمپ اصلی خروج پیت' },
 
-        // لایه‌های واحد ایمنی و ژئوتکنیک
+        // ۳. لایه‌های واحد حفاری و آتشباری
+        { id: 'layer-drilling-bands', mapId: 'map-default-1040', name: 'باندهای حفاری پله (واحد حفاری)', category: 'DRILLING_BAND', unit: 'DRILLING', color: '#F97316', strokeWidth: 2.5, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 1, description: 'باندها و محدوده‌های حفاری تعریف‌شده توسط واحد حفاری' },
+        { id: 'layer-holes', mapId: 'map-default-1040', name: 'موقعیت چال‌های حفاری و انفجار (واحد حفاری)', category: 'BLAST_HOLE', unit: 'DRILLING', color: '#F59E0B', strokeWidth: 1, strokeDash: 'solid', showLabels: false, isVisible: true, isLocked: false, opacity: 1, featureCount: 16, description: 'موقعیت سرچال‌های حفر شده و طراحی‌شده' },
+        { id: 'layer-blast-danger', mapId: 'map-default-1040', name: 'حریم ایمنی و زون خطر آتشباری', category: 'BLAST_DANGER_ZONE', unit: 'DRILLING', color: '#EF4444', strokeWidth: 2, strokeDash: 'dashed', showLabels: true, isVisible: true, isLocked: false, opacity: 0.35, featureCount: 1, description: 'شعاع خطر پرتاب سنگ و موج انفجار' },
+
+        // ۴. لایه‌های واحد زمین‌شناسی و مدلسازی کانسار
+        { id: 'layer-geology-rock', mapId: 'map-default-1040', name: 'باندهای جنس سنگ و کانسنگ (واحد زمین‌شناسی)', category: 'GEOLOGY_ROCK_BAND', unit: 'GEOLOGY', color: '#8B5CF6', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.8, featureCount: 3, description: 'تفکیک باندهای لیتولوژی: مگنتیت، هماتیت و اسکارن' },
+        { id: 'layer-geology-faults', mapId: 'map-default-1040', name: 'موقعیت گسل‌ها و درزه‌های ساختاری (واحد زمین‌شناسی)', category: 'GEOLOGY_FAULT', unit: 'GEOLOGY', color: '#DC2626', strokeWidth: 3, strokeDash: 'dashdot', showLabels: true, isVisible: true, isLocked: false, opacity: 0.95, featureCount: 2, description: 'گسل‌های اصلی و شکستگی‌های تکتونیکی معدن' },
+
+        // ۵. لایه ناوگان ماشین‌آلات و دیسپاچینگ
+        { id: 'layer-fleet', mapId: 'map-default-1040', name: 'ناوگان ماشین‌آلات و تجهیزات پیت', category: 'FLEET_EQUIPMENT', unit: 'FLEET', color: '#06B6D4', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 3, description: 'شاول، دامپتراک و دستگاه دریل' },
+
+        // ۶. لایه انبار و دپوها
+        { id: 'layer-stockpiles', mapId: 'map-default-1040', name: 'دپوها و تاسیسات سنگ‌شکن', category: 'STOCKPILE_BOUNDARY', unit: 'STOCKPILE', color: '#D97706', strokeWidth: 2, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.85, featureCount: 2, description: 'دپوی کانسنگ DSO و بونکر سنگ‌شکن' },
+
+        // ۷. لایه‌های واحد ایمنی و ژئوتکنیک
         { id: 'layer-hazards', mapId: 'map-default-1040', name: 'حریم‌های ایمنی و درزه‌ها (واحد ژئوتکنیک)', category: 'HAZARD_CRACK', unit: 'SAFETY', color: '#EF4444', strokeWidth: 2, strokeDash: 'dotted', showLabels: false, isVisible: true, isLocked: false, opacity: 0.7, featureCount: 1, description: 'حریم‌های پایش دیواره' },
+
+        // ۸. لایه تسک‌ها و دستورکارهای میدانی
+        { id: 'layer-tasks', mapId: 'map-default-1040', name: 'پین‌های دستورکارهای میدانی', category: 'TASK_ACTION_PIN', unit: 'FIELD_TASKS', color: '#A855F7', strokeWidth: 1.5, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 0.9, featureCount: 2, description: 'دستورکارهای میدانی جاری روی پله' },
+
         { id: 'layer-annotations', mapId: 'map-default-1040', name: 'یادداشت‌ها و برچسب‌های مهندسی', category: 'ANNOTATION', unit: 'ALL', color: '#FBBF24', strokeWidth: 1, strokeDash: 'solid', showLabels: true, isVisible: true, isLocked: false, opacity: 1, featureCount: 0, description: 'یادداشت‌های متنی روی نقشه' },
       ],
       features: map1Features,
@@ -1518,7 +2104,7 @@ export class SurveyMapService {
     if (!existingMap1) {
       SurveyMapRepository.save(defaultMap1);
     } else {
-      // ادغام ایمن لایه‌های جدید بدون دستکاری و حذف عوارض ترسیم‌شده توسط کاربر
+      // ادغام ایمن لایه‌ها و عوارض جدید بدون دستکاری و حذف داده‌های کاربر
       let map1Changed = false;
       defaultMap1.layers.forEach(defLayer => {
         if (!existingMap1.layers.some(l => l.id === defLayer.id)) {
@@ -1526,6 +2112,19 @@ export class SurveyMapService {
           map1Changed = true;
         }
       });
+      // افزودن عوارض نمونه جدید در صورت عدم وجود
+      defaultMap1.features.forEach(defFeat => {
+        if (!existingMap1.features.some(f => f.id === defFeat.id)) {
+          existingMap1.features.push(defFeat);
+          map1Changed = true;
+        }
+      });
+      if (existingMap1.isMasterMap === undefined) {
+        existingMap1.isMasterMap = true;
+        existingMap1.masterApprovedAt = '2026-08-20T10:00:00Z';
+        existingMap1.masterApprovedBy = 'واحد نقشه‌برداری و ژئودزی نظارت';
+        map1Changed = true;
+      }
       if (map1Changed) {
         SurveyMapRepository.save(existingMap1);
       }
@@ -1545,6 +2144,158 @@ export class SurveyMapService {
         SurveyMapRepository.save(existingMap2);
       }
     }
+
+    // بررسی اطمینان از تنظیم حداقل یک نقشه به عنوان مرجع سیستم
+    if (typeof window !== 'undefined') {
+      const activeMaster = localStorage.getItem(this.MASTER_MAP_STORAGE_KEY);
+      if (!activeMaster) {
+        localStorage.setItem(this.MASTER_MAP_STORAGE_KEY, defaultMap1.id);
+      }
+    }
+
     console.log('✅ وضعیت نقشه‌های استاندارد و لایه‌های مهندسی معدن تأیید گردید');
+  }
+
+  /**
+   * تعاریف ساختاریافته واحدهای عملیاتی معدن برای کنترل لایه‌های تلفیقی
+   */
+  public static getOperationalUnitsDefinition(): Array<{
+    id: OperationalUnitType;
+    titleFa: string;
+    titleEn: string;
+    description: string;
+    color: string;
+    badgeBg: string;
+    icon: string;
+    isBaseReference?: boolean;
+  }> {
+    return [
+      {
+        id: 'SURVEY',
+        titleFa: 'واحد نقشه‌برداری و ژئودزی (مرجع)',
+        titleEn: 'Surveying & Geodesy Unit',
+        description: 'مرجع پایه بارگذاری نقشه‌ها، توپوگرافی، لبه بالای پله (Crest)، پای پله (Toe) و بنچ‌مارک‌های GPS',
+        color: '#00D4FF',
+        badgeBg: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+        icon: 'Compass',
+        isBaseReference: true
+      },
+      {
+        id: 'MINING',
+        titleFa: 'واحد استخراج و طراحی معدن',
+        titleEn: 'Mine Planning & Engineering',
+        description: 'طراحی ساب‌بلوک‌های استخراجی (SA, SB, SC, SD)، احجام، رمپ‌ها و خطوط جاده‌های حمل پیت',
+        color: '#10B981',
+        badgeBg: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+        icon: 'Pickaxe'
+      },
+      {
+        id: 'DRILLING',
+        titleFa: 'واحد حفاری و آتشباری',
+        titleEn: 'Drilling & Blasting Unit',
+        description: 'باندهای حفاری پله، شبکه چال‌پاشی، وضعیت حفاری چال‌ها و زون حریم خطر انفجار',
+        color: '#F97316',
+        badgeBg: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
+        icon: 'Flame'
+      },
+      {
+        id: 'GEOLOGY',
+        titleFa: 'واحد زمین‌شناسی و مدلسازی کانسار',
+        titleEn: 'Geology & Mineral Modeling',
+        description: 'باندهای جنس سنگ (مگنتیت، هماتیت، اسکارن)، گسل‌های تکتونیکی، عیار Fe% و خواص لیتولوژی',
+        color: '#8B5CF6',
+        badgeBg: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+        icon: 'Layers'
+      },
+      {
+        id: 'FLEET',
+        titleFa: 'واحد بارگیری، ترابری و دیسپاچینگ',
+        titleEn: 'Fleet & Dispatching Unit',
+        description: 'موقعیت زنده و زون فعالیت شاول‌ها، لودرها، دریل‌ها و ناوگان دامپتراک‌های باربری',
+        color: '#06B6D4',
+        badgeBg: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+        icon: 'Truck'
+      },
+      {
+        id: 'STOCKPILE',
+        titleFa: 'واحد دپوها، انبار و سنگ‌شکن',
+        titleEn: 'Stockpiles & Processing Unit',
+        description: 'محدوده دپوهای مستقیم DSO، دپوی باطله، بونکر دریافت سنگ‌شکن اولیه و ذخایر دپو',
+        color: '#D97706',
+        badgeBg: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+        icon: 'Boxes'
+      },
+      {
+        id: 'SAFETY',
+        titleFa: 'واحد ایمنی، HSE و ژئوتکنیک',
+        titleEn: 'Geotechnical & Safety (HSE)',
+        description: 'پایش پایداری دیواره، ترک‌های کششی، زون‌های خطر، مسیرهای فرار و الزامات ایمنی پیت',
+        color: '#EF4444',
+        badgeBg: 'bg-red-500/15 text-red-300 border-red-500/30',
+        icon: 'ShieldAlert'
+      },
+      {
+        id: 'FIELD_TASKS',
+        titleFa: 'واحد تسک‌ها و دستورکارهای میدانی',
+        titleEn: 'Field Operations & Tasks',
+        description: 'موقعیت مأموریت‌های ابلاغ‌شده شیفت، دستورکارهای میدانی و پین‌های بازرسی',
+        color: '#A855F7',
+        badgeBg: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
+        icon: 'CheckSquare'
+      }
+    ];
+  }
+
+  /**
+   * سناریوهای پیش‌فرض پشتیبانی از تصمیم‌گیری (Decision-Support Multi-Unit Presets)
+   */
+  public static getMultiUnitDecisionPresets(): Array<{
+    id: string;
+    titleFa: string;
+    descriptionFa: string;
+    activeUnits: OperationalUnitType[];
+    icon: string;
+  }> {
+    return [
+      {
+        id: 'FULL_INTEGRATION',
+        titleFa: 'تلفیق جامع تمامی واحدها (دید ۳۶۰ درجه مدیریتی)',
+        descriptionFa: 'نمایش همزمان لایه‌های کلیه واحدهای معدن جهت تحلیل چندبعدی و نظارت یکپارچه',
+        activeUnits: ['SURVEY', 'MINING', 'DRILLING', 'GEOLOGY', 'FLEET', 'STOCKPILE', 'SAFETY', 'FIELD_TASKS', 'ALL'],
+        icon: 'Globe'
+      },
+      {
+        id: 'MINING_DISPATCH',
+        titleFa: 'تصمیم‌گیری استخراج، بارگیری و ترابری',
+        titleEn: 'Mining & Fleet Dispatching',
+        descriptionFa: 'تلفیق نقشه مرجع با ساب‌بلوک‌ها، ناوگان ماشین‌آلات، راه‌های حمل و مقاصد دپو/سنگ‌شکن',
+        activeUnits: ['SURVEY', 'MINING', 'FLEET', 'STOCKPILE', 'ALL'],
+        icon: 'Truck'
+      },
+      {
+        id: 'DRILL_BLAST_SAFETY',
+        titleFa: 'تصمیم‌گیری عملیات آتشباری و ایمنی دیواره',
+        titleEn: 'Blasting & Safety Hazard Decision',
+        descriptionFa: 'تلفیق باندهای حفاری، شبکه چال‌ها، شعاع خطر انفجار و پایش ژئوتکنیک دیواره',
+        activeUnits: ['SURVEY', 'DRILLING', 'SAFETY', 'FIELD_TASKS', 'ALL'],
+        icon: 'Flame'
+      },
+      {
+        id: 'GRADE_CONTROL_GEOLOGY',
+        titleFa: 'کنترل عیار، زمین‌شناسی و تفکیک سنگ',
+        titleEn: 'Grade Control & Ore Blending',
+        descriptionFa: 'تلفیق ساب‌بلوک‌ها با باندهای لیتولوژی کانسنگ، گسل‌ها و عیار پودر چال',
+        activeUnits: ['SURVEY', 'MINING', 'GEOLOGY', 'STOCKPILE', 'ALL'],
+        icon: 'Layers'
+      },
+      {
+        id: 'SURVEY_BASE_ONLY',
+        titleFa: 'نقشه مرجع واحد نقشه‌برداری (پایه لبه و پای پله)',
+        titleEn: 'Surveying Reference Base Only',
+        descriptionFa: 'تمرکز بر خطوط Crest، Toe، توپوگرافی و نقاط مبنای ژئودزی برداشت‌شده',
+        activeUnits: ['SURVEY', 'ALL'],
+        icon: 'Compass'
+      }
+    ];
   }
 }

@@ -91,11 +91,11 @@ export const RecentAlertsCard: React.FC = () => {
 
       {/* Alert List Items */}
       <div className="space-y-2 flex-1 overflow-y-auto pr-1">
-        {alerts.map((item) => {
+        {alerts.map((item, idx) => {
           const IconComp = item.icon;
           return (
             <div
-              key={item.id}
+              key={`recent-alert-${item.id}-${idx}`}
               className={`flex items-center justify-between p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
                 isDark 
                   ? 'bg-[#141F42] border-[#24356B]/25 hover:bg-[#1E2D5C] hover:border-[#00D2FF]/30' 

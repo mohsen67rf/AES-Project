@@ -1,6 +1,6 @@
 // src/modules/auth/presentation/pages/UserManagementPage.tsx
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '../../../dashboard/presentation/components/Header/Header';

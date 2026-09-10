@@ -26,11 +26,14 @@ export type MapFeatureType =
 
 export type OperationalUnitType = 
   | 'ALL'
+  | 'SURVEY'        // واحد نقشه‌برداری و ژئودزی (مرجع اصلی بارگذاری نقشه)
+  | 'MINING'        // واحد استخراج و طراحی معدن
   | 'DRILLING'      // واحد حفاری و آتشباری
   | 'GEOLOGY'       // واحد زمین‌شناسی و مدلسازی کانسار
-  | 'SURVEY'        // واحد نقشه‌برداری و ژئودزی
-  | 'MINING'        // واحد استخراج و دفتر فنی
-  | 'SAFETY';       // واحد ایمنی و ژئوتکنیک
+  | 'FLEET'         // واحد بارگیری، ترابری و دیسپاچینگ ماشین‌آلات
+  | 'STOCKPILE'     // واحد دپوها و سنگ‌شکن
+  | 'SAFETY'        // واحد ایمنی، HSE و ژئوتکنیک
+  | 'FIELD_TASKS';  // واحد تسک‌ها و دستورکارهای میدانی
 
 export type FeatureCategory = 
   | 'SUB_BLOCK'              // ساب‌بلوک استخراجی (SA, SB, SC, SD)
@@ -38,6 +41,7 @@ export type FeatureCategory =
   | 'BLAST_BOUNDARY'         // مرز آتشباری
   | 'BLAST_HOLE'             // سرچال و گمانه حفاری
   | 'DRILLING_BAND'          // باند حفاری و مرز چال‌پاشی (واحد حفاری)
+  | 'BLAST_DANGER_ZONE'      // حریم ایمنی پرتاب سنگ و موج انفجار
   | 'GEOLOGY_ROCK_BAND'      // باند و زون جنس سنگ و لیتولوژی (واحد زمین‌شناسی)
   | 'GEOLOGY_FAULT'          // موقعیت گسل و درزه ساختاری معدن (واحد زمین‌شناسی)
   | 'BENCH_CREST'            // لبه بالای پله (Crest)
@@ -46,7 +50,9 @@ export type FeatureCategory =
   | 'HAUL_ROAD'              // محور جاده باربری و رمپ
   | 'STOCKPILE_BOUNDARY'     // محدوده دپو کانسنگ
   | 'CRUSHER_FACILITY'       // تاسیسات سنگ‌شکن
+  | 'FLEET_EQUIPMENT'        // موقعیت استقرار شاول، لودر، تراک و دریل
   | 'HAZARD_CRACK'           // درزه، ترک و زون ناپایدار
+  | 'TASK_ACTION_PIN'        // پین تسک و دستورکار میدانی روی نقشه
   | 'ANNOTATION';            // یادداشت متنی مهندسی
 
 export interface FeatureStyle {
@@ -151,6 +157,9 @@ export interface SurveyMap {
   };
   version: string;           // e.g. "Rev 1.0", "Rev 1.1"
   status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED_OFFICIAL' | 'SUPERSEDED';
+  isMasterMap?: boolean;     // آیا این نقشه مرجع رسمی فعال کل سامانه است؟
+  masterApprovedAt?: string; // زمان انتشار به عنوان نقشه فعال سامانه
+  masterApprovedBy?: string; // مسئول واحد نقشه‌برداری منتشرکننده
   layers: MapLayer[];
   features: MapFeature[];
   rasterImageUrl?: string;   // For Drone Orthomosaics or Scanned survey overlays

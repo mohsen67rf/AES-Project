@@ -12,8 +12,10 @@ import {
   AlertCircle, 
   Check, 
   Send,
-  UserCheck
+  UserCheck,
+  RotateCcw
 } from 'lucide-react';
+import { ShiftHandoverModal } from './ShiftHandover/ShiftHandoverModal';
 
 interface UnitShiftNotesProps {
   roleId: string;
@@ -38,6 +40,7 @@ export const UnitShiftNotes: React.FC<UnitShiftNotesProps> = ({ roleId, authorNa
   });
 
   const [isAdding, setIsAdding] = useState(false);
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [newCategory, setNewCategory] = useState<'OPERATIONAL' | 'SAFETY' | 'EQUIPMENT' | 'HANDOVER'>('OPERATIONAL');
@@ -100,13 +103,24 @@ export const UnitShiftNotes: React.FC<UnitShiftNotesProps> = ({ roleId, authorNa
           </h3>
         </div>
 
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-[#00D2FF] to-[#38BDF8] hover:brightness-110 shadow-[0_0_12px_rgba(0,210,255,0.3)] transition-all cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>{isAdding ? 'انصراف' : 'ثبت یادداشت'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsHandoverModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-[#00D2FF] bg-[#00D2FF]/10 hover:bg-[#00D2FF]/20 border border-[#00D2FF]/30 transition-all cursor-pointer"
+            title="پروتکل تحویل و تحول هوشمند شیفت (Shift Handover)"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>تحویل شیفت</span>
+          </button>
+
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-[#00D2FF] to-[#38BDF8] hover:brightness-110 shadow-[0_0_12px_rgba(0,210,255,0.3)] transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{isAdding ? 'انصراف' : 'ثبت یادداشت'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Add Note Inline Form */}
@@ -228,6 +242,21 @@ export const UnitShiftNotes: React.FC<UnitShiftNotesProps> = ({ roleId, authorNa
           ))
         )}
       </div>
+
+      <ShiftHandoverModal
+        isOpen={isHandoverModalOpen}
+        onClose={() => setIsHandoverModalOpen(false)}
+        currentUser={{
+          id: `usr-${roleId}`,
+          fullName: authorName,
+          code: authorCode,
+          role: roleId as any,
+          department: roleId,
+          email: '',
+          isActive: true
+        }}
+        targetDepartmentKey={roleId}
+      />
     </div>
   );
 };

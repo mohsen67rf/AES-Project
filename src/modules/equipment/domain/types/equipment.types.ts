@@ -55,6 +55,16 @@ export interface DailyWorkRecord {
   efficiencyPct: number;      // راندمان شیفت (درصد)
 }
 
+export interface WorkingFaceOperation {
+  faceName: string;            // نام جبهه‌کار مثلا «جبهه‌کار پله ۱۰۴۰ - بلوک 1040 B 32»
+  benchLevel: number;         // تراز پله جبهه‌کار
+  blockCode?: string;         // کد بلوک
+  operatingHours: number;     // ساعت فعالیت در این جبهه‌کار
+  shift: 'MORNING' | 'EVENING' | 'NIGHT';
+  date: string;               // تاریخ فعالیت
+  notes?: string;
+}
+
 export interface EquipmentItem {
   id: string;
   code: string;               // کد منحصر به فرد ماشین (e.g. EX-101, DT-100-01, DR-301)
@@ -67,13 +77,16 @@ export interface EquipmentItem {
   capacityTonOrM3?: string;   // ظرفیت باکت یا بار (e.g. 100 Ton, 6.7 m³)
   status: EquipmentStatus;
   currentActivityFa: string;  // شرح فعالیت فعلی (e.g. در حال بارگیری پله ۱۲۲۰ بلوک B-14)
+  activeFaceFa?: string;       // جبهه‌کار فعال فعلی
+  operatingHoursShift?: number;// ساعت کارکرد در شیفت جاری
+  workingFacesHistory?: WorkingFaceOperation[]; // سابقه فعالیت در جبهه‌کارهای مختلف با ساعات کارکرد
   operatorName: string;       // نام راننده / اپراتور
   operatorPhone?: string;     // شماره تماس اپراتور
   currentShift: 'MORNING' | 'EVENING' | 'NIGHT';
   totalEngineHours: number;   // ساعت کارکرد کل کنتور موتور
   position: EquipmentPosition;
   dailyStats: DailyWorkRecord;
-  telemetry: EquipmentTelemetry;
+  telemetry?: EquipmentTelemetry;
   contractor: string;         // شرکت پیمانکار / امانی (e.g. شرکت معدنی تدبیرگران / امانی کارفرما)
   lastServiceDate: string;    // تاریخ آخرین سرویس دوره‌ای
   nextServiceHours: number;   // ساعت کارکرد تا سرویس بعدی

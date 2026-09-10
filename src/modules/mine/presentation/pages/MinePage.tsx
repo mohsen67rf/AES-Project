@@ -15,6 +15,7 @@ import {
   SparklesIcon, 
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
+import { MineShiftKpiDashboard } from '../../../dashboard/presentation/components/MineShiftKpiDashboard';
 
 interface MinePageProps {
   mineId?: string;
@@ -97,6 +98,9 @@ export const MinePage: React.FC<MinePageProps> = ({ mineId }) => {
             <div className="text-xl font-black text-purple-400 mt-1">۹۸.۴٪ تطابق مدل</div>
           </div>
         </div>
+
+        {/* Real-time Mine Shift KPI Dashboard Component */}
+        <MineShiftKpiDashboard mineId={mine.id} />
 
         {/* Quick Links Banner */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

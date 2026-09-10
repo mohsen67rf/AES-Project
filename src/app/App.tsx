@@ -17,6 +17,8 @@ import { MiningLifecyclePage } from '../modules/mine/presentation/pages/MiningLi
 import { WarehousePage } from '../modules/warehouse/presentation/pages/WarehousePage';
 import { EquipmentPage } from '../modules/equipment/presentation/pages/EquipmentPage';
 import { UnitWorkspacePage } from '../modules/workspace/presentation/pages/UnitWorkspacePage';
+import { ShiftHandoverPage } from '../modules/workspace/presentation/pages/ShiftHandoverPage';
+import { TallyControllerPage } from '../modules/tally/presentation/pages/TallyControllerPage';
 import { 
   UserRepository, 
   MineRepository, 
@@ -44,6 +46,8 @@ function NavigationAuditTracker({ currentUser }: { currentUser: User | null }) {
     const pageTitles: Record<string, string> = {
       '/workspace': 'میز کار تخصصی واحدها و کاربران',
       '/unit-workspace': 'میز کار تخصصی واحدها و کاربران',
+      '/tally-controller': 'میز کار کنترل‌چی و سرویس‌شمار باربری',
+      '/dispatch/tally': 'میز کار کنترل‌چی و سرویس‌شمار باربری',
       '/dashboard': 'داشبورد اصلی عملیات معدن و میز کار واحد',
       '/management-dashboard': 'داشبورد مدیریت کلان و KPIها',
       '/blocks-management': 'مدیریت و طرح‌های استخراج بلوک‌ها',
@@ -390,6 +394,9 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/workspace" element={<UnitWorkspacePage />} />
               <Route path="/unit-workspace" element={<UnitWorkspacePage />} />
+              <Route path="/tally-controller" element={<TallyControllerPage />} />
+              <Route path="/dispatch/tally" element={<TallyControllerPage />} />
+              <Route path="/shift-handover" element={<ShiftHandoverPage />} />
               <Route path="/dashboard" element={<DashboardPage user={user} onLogout={handleLogout} />} />
               <Route path="/management-dashboard" element={<ManagementDashboardPage />} />
               <Route path="/blocks-management" element={<BlockManagementPage />} />

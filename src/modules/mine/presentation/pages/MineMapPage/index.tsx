@@ -26,24 +26,49 @@ export const MineMapPage: React.FC = () => {
   // تب فعال: استودیو نقشه‌برداری مهندسی vs ورود و اتصال متادیتا
   const [activeTab, setActiveTab] = useState<'SURVEY_STUDIO' | 'IMPORT_LINKER'>('SURVEY_STUDIO');
   
-  // لیست نقشه‌ها و نقشه فعال در هدر صفحه (با بارگذاری تنبل اولیه بدون تکرار رندر)
+  // لیست نقشه‌ها و نقشه فعال بر اساس آخرین نقشه مرجع تأییدشده واحد نقشه‌برداری
   const [mapsList, setMapsList] = useState<SurveyMap[]>(() => SurveyMapService.getAllMaps());
-  const [activeMapId, setActiveMapId] = useState<string>(() => {
-    const initial = SurveyMapService.getAllMaps();
-    return initial.length > 0 ? initial[0].id : '';
-  });
+  const [activeMapId, setActiveMapId] = useState<string>(() => SurveyMapService.getActiveMasterMapId());
+  const [masterMapId, setMasterMapId] = useState<string>(() => SurveyMapService.getActiveMasterMapId());
 
   const refreshMapsList = () => {
     const all = SurveyMapService.getAllMaps();
     setMapsList(all);
+    const currentMaster = SurveyMapService.getActiveMasterMapId();
+    setMasterMapId(currentMaster);
     if (!activeMapId && all.length > 0) {
-      setActiveMapId(all[0].id);
+      setActiveMapId(currentMaster || all[0].id);
     }
   };
+
+  // اشتراک در تغییرات بلادرنگ نقشه مرجع واحد نقشه‌برداری
+  React.useEffect(() => {
+    const unsubscribe = SurveyMapService.subscribeToMasterMapUpdates((updatedMasterMap) => {
+      const all = SurveyMapService.getAllMaps();
+      setMapsList(all);
+      setMasterMapId(updatedMasterMap.id);
+      setActiveMapId(updatedMasterMap.id);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const currentSelectedMap = useMemo(() => {
     return mapsList.find(m => m.id === activeMapId) || mapsList[0] || null;
   }, [mapsList, activeMapId]);
+
+  const isCurrentMapMaster = currentSelectedMap?.id === masterMapId || !!currentSelectedMap?.isMasterMap;
+
+  // تعیین نقشه انتخابی به عنوان نقشه مرجع رسمی سامانه توسط واحد نقشه‌برداری
+  const handleSetAsMasterMap = () => {
+    if (!currentSelectedMap) return;
+    SurveyMapService.setActiveMasterMap(
+      currentSelectedMap.id, 
+      'SUPERVISION', 
+      'مهندس مرادی (واحد نقشه‌برداری)'
+    );
+    refreshMapsList();
+  };
 
   const mines = MineRepository.getAll();
   const mine = mines[0] || { name: isRtl ? 'مجتمع معدنی سنگ‌آهن چادرملو' : 'Chadormalu Iron Ore Complex', code: 'MINE-01' };
@@ -93,20 +118,27 @@ export const MineMapPage: React.FC = () => {
                 >
                   {mapsList.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.title} ({m.version})
+                      {m.isMasterMap ? '⭐ [نقشه مرجع] ' : ''}{m.title} ({m.version})
                     </option>
                   ))}
                 </select>
 
                 {currentSelectedMap && (
                   <>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
-                      currentSelectedMap.status === 'APPROVED_OFFICIAL'
-                        ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
-                        : 'bg-amber-950/60 border-amber-500/40 text-amber-300'
-                    }`}>
-                      <span>{currentSelectedMap.status === 'APPROVED_OFFICIAL' ? (isRtl ? 'مصوب' : 'Approved') : (isRtl ? 'پیش‌نویس' : 'Draft')}</span>
-                    </span>
+                    {isCurrentMapMaster ? (
+                      <span className="text-[10px] font-black px-2.5 py-0.5 rounded-md border flex items-center gap-1 bg-cyan-950/80 border-cyan-400/60 text-cyan-300 shadow-sm" title={isRtl ? 'این نقشه مرجع رسمی و مبنای فعالیت تمام واحدهای معدن است' : 'Master Reference Map for all units'}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <span>{isRtl ? 'نقشه مرجع سامانه (واحد نقشه‌برداری)' : 'Master Map (Surveying)'}</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleSetAsMasterMap}
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300 transition-colors"
+                        title={isRtl ? 'انتشار این نقشه به عنوان نقشه مبنا و مرجع کل سامانه' : 'Set as Master Reference Map for all units'}
+                      >
+                        {isRtl ? '⭐ انتشار به عنوان نقشه مرجع سامانه' : 'Publish as Master Map'}
+                      </button>
+                    )}
 
                     <span className={`text-[10px] font-mono hidden md:inline px-1.5 py-0.5 rounded ${
                       isDark ? 'text-slate-300 bg-slate-800' : 'text-slate-700 bg-slate-200'
@@ -186,6 +218,8 @@ export const MineMapPage: React.FC = () => {
               userName="مهندس مرادی (واحد نقشه‌برداری)"
               isStandalonePage={false}
               onMapImported={(newMap) => {
+                // تعیین خودکار به عنوان آخرین نقشه مرجع فعال کل سامانه توسط واحد نقشه‌برداری
+                SurveyMapService.setActiveMasterMap(newMap.id, 'SUPERVISION', 'مهندس مرادی (واحد نقشه‌برداری)');
                 refreshMapsList();
                 setActiveMapId(newMap.id);
                 setActiveTab('SURVEY_STUDIO');

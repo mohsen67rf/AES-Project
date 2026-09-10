@@ -1,6 +1,6 @@
 {
   "name": "AES Mining Operations",
-  "description": "Comprehensive mining operations, executive KPI dashboard, specialized unit workspaces for all 9 operational roles, and warehouse & explosives logistics management system",
+  "description": "Comprehensive human-centric mining operations platform, featuring intelligent shift handover protocol, real-time cross-department orchestration, executive KPI dashboards, and specialized unit workspaces.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

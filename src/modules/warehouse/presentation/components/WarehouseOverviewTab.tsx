@@ -84,42 +84,42 @@ export const WarehouseOverviewTab: React.FC<WarehouseOverviewTabProps> = ({
       >
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-3 w-3 relative">
+            <span className="flex h-2.5 w-2.5 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
-              سامانه آنلاین پایش انبار مواد ناریه و لجستیک سوخت معدن
+            <h2 className="text-base font-black text-slate-800 dark:text-[#F1F5F9]">
+              انبار مواد ناریه و سوخت
             </h2>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium border border-emerald-500/30">
+              سامانه پایش زاغه‌ها
+            </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            پایش لحظه‌ای موجودی زاغه‌ها، محاسبه خودکار خرج ویژه بلوک‌های معدنی و مدیریت سوخت ناوگان
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={onOpenIntakeModal}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
           >
             <ArrowDownTrayIcon className="w-4 h-4" />
-            <span>شارژ انبار ناریه / ورود محموله</span>
+            <span>شارژ انبار ناریه</span>
           </button>
 
           <button
             onClick={onGoToCalculator}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold transition-all shadow-md shadow-amber-600/20 active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
           >
             <CalculatorIcon className="w-4 h-4" />
-            <span>محاسبه مواد مصرفی بلوک معدنی</span>
+            <span>محاسبه خرج ویژه</span>
           </button>
 
           <button
             onClick={onOpenRefuelModal}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
           >
             <TruckIcon className="w-4 h-4" />
-            <span>ثبت سوخت‌گیری تجهیزات</span>
+            <span>ثبت سوخت‌گیری</span>
           </button>
         </div>
       </div>
