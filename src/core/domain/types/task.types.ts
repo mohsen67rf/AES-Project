@@ -4,19 +4,25 @@ export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface TaskMapLocation {
-  type: 'POINT' | 'POLYGON' | 'BENCH_ZONE';
+  type: 'POINT' | 'POLYGON' | 'LINE' | 'BENCH_ZONE';
   bench: string; // e.g. "1040"
   blockCode?: string; // e.g. "1040 B 33"
   blockId?: string;
   zoneName?: string; // e.g. "زون غربی پله ۱۰۴۰"
-  x: number; // percentage on map 0-100
-  y: number; // percentage on map 0-100
+  x: number; // percentage on map 0-100 or svg coord
+  y: number; // percentage on map 0-100 or svg coord
   polygonPoints?: [number, number][]; // optional polygon vertices percentage [[x1, y1], [x2, y2], ...]
-  areaM2?: number;
+  linePoints?: [number, number][]; // optional polyline vertices percentage [[x1, y1], [x2, y2], ...]
+  lengthM?: number; // length in meters for lines
+  areaM2?: number; // area in square meters for polygons/zones
   eastingUTM?: number;
   northingUTM?: number;
   elevation?: number;
   notes?: string;
+  comment?: string; // کامنت و یادداشت فنی متصل به عارضه ترسیم‌شده
+  mapId?: string; // شناسه نقشه مرجع مبنا
+  mapTitle?: string; // عنوان نقشه مرجع
+  utmCoords?: [number, number][]; // آرایه مختصات واقعی UTM رأس‌ها
 }
 
 export interface TaskActionLog {

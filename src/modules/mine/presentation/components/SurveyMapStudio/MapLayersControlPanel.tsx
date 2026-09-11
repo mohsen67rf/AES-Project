@@ -1,13 +1,10 @@
 // src/modules/mine/presentation/components/SurveyMapStudio/MapLayersControlPanel.tsx
 
-import React, { useState, useMemo } from 'react';
-import type { MapLayer, FeatureCategory, OperationalUnitType } from '../../../../../core/domain/types/survey-map.types';
+import React, { useState, useMemo, useCallback } from 'react';
+import type { MapLayer } from '../../../../../core/domain/types/survey-map.types';
 import { SurveyMapService } from '../../../services/SurveyMapService';
 import { useLanguage } from '../../../../../shared/context/LanguageContext';
 import {
-  Square2StackIcon,
-  EyeIcon,
-  EyeSlashIcon,
   LockClosedIcon,
   LockOpenIcon,
   AdjustmentsHorizontalIcon,
@@ -20,14 +17,11 @@ import {
   ChevronUpIcon,
   XMarkIcon,
   CheckIcon,
-  ArrowPathIcon,
   TagIcon,
   PaintBrushIcon,
   CheckCircleIcon,
-  SwatchIcon,
   WrenchScrewdriverIcon,
   GlobeAltIcon,
-  FireIcon,
   PlusCircleIcon,
   BuildingStorefrontIcon,
   ClipboardDocumentCheckIcon,
@@ -58,6 +52,7 @@ export type LayerGroupType =
   | 'FIELD_TASKS';
 
 interface MapLayersControlPanelProps {
+  mapId?: string;
   layers: MapLayer[];
   featureCountsByLayer?: Record<string, number>;
   displaySettings: DisplayOverlaySettings;
@@ -107,6 +102,7 @@ const CAD_COLOR_PALETTE = [
 ];
 
 export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
+  mapId,
   layers,
   featureCountsByLayer = {},
   displaySettings,
@@ -249,23 +245,23 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
   }, [layers]);
 
   // فیلتر لایه‌ها با جستجو و تب
-  const filterList = (list: MapLayer[]) => {
+  const filterList = useCallback((list: MapLayer[]) => {
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase().trim();
     return list.filter(l => 
       l.name.toLowerCase().includes(q) || 
       (l.description && l.description.toLowerCase().includes(q))
     );
-  };
+  }, [searchQuery]);
 
-  const visibleSurvey = useMemo(() => filterList(categorizedLayers.survey), [categorizedLayers.survey, searchQuery]);
-  const visibleMining = useMemo(() => filterList(categorizedLayers.mining), [categorizedLayers.mining, searchQuery]);
-  const visibleDrilling = useMemo(() => filterList(categorizedLayers.drilling), [categorizedLayers.drilling, searchQuery]);
-  const visibleGeology = useMemo(() => filterList(categorizedLayers.geology), [categorizedLayers.geology, searchQuery]);
-  const visibleFleet = useMemo(() => filterList(categorizedLayers.fleet), [categorizedLayers.fleet, searchQuery]);
-  const visibleStockpile = useMemo(() => filterList(categorizedLayers.stockpile), [categorizedLayers.stockpile, searchQuery]);
-  const visibleSafety = useMemo(() => filterList(categorizedLayers.safety), [categorizedLayers.safety, searchQuery]);
-  const visibleFieldTasks = useMemo(() => filterList(categorizedLayers.fieldTasks), [categorizedLayers.fieldTasks, searchQuery]);
+  const visibleSurvey = useMemo(() => filterList(categorizedLayers.survey), [categorizedLayers.survey, filterList]);
+  const visibleMining = useMemo(() => filterList(categorizedLayers.mining), [categorizedLayers.mining, filterList]);
+  const visibleDrilling = useMemo(() => filterList(categorizedLayers.drilling), [categorizedLayers.drilling, filterList]);
+  const visibleGeology = useMemo(() => filterList(categorizedLayers.geology), [categorizedLayers.geology, filterList]);
+  const visibleFleet = useMemo(() => filterList(categorizedLayers.fleet), [categorizedLayers.fleet, filterList]);
+  const visibleStockpile = useMemo(() => filterList(categorizedLayers.stockpile), [categorizedLayers.stockpile, filterList]);
+  const visibleSafety = useMemo(() => filterList(categorizedLayers.safety), [categorizedLayers.safety, filterList]);
+  const visibleFieldTasks = useMemo(() => filterList(categorizedLayers.fieldTasks), [categorizedLayers.fieldTasks, filterList]);
 
   // آمار کلی
   const totalLayersCount = layers.length;
@@ -348,19 +344,14 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
       setActiveTab('SURVEY');
     }
 
-    if (mapId) {
+    const targetMapId = mapId || layers[0]?.mapId;
+    if (targetMapId) {
       try {
-        SurveyMapService.applyDecisionPreset(mapId, presetId);
+        SurveyMapService.applyDecisionPreset(targetMapId, presetId);
       } catch (err) {
         console.warn('Failed to persist decision preset:', err);
       }
     }
-  };
-
-  // روشن یا خاموش کردن کل لایه‌های یک واحد خاص با یک کلیک
-  const handleToggleUnitLayers = (unitList: MapLayer[], makeVisible: boolean) => {
-    const ids = unitList.map(l => l.id);
-    onBatchToggleLayers(ids, makeVisible);
   };
 
   // انتخاب لایه‌های خطوط شکست (Crest و Toe)
@@ -402,54 +393,6 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
       onSetLayersLabelsVisibility(selectedLayerIds, show);
     } else if (onUpdateLayersStyle && selectedLayerIds.length > 0) {
       onUpdateLayersStyle(selectedLayerIds, { showLabels: show }, true);
-    }
-  };
-
-  // پیش‌تنظیم‌های سریع (Presets)
-  const applyPreset = (preset: 'ALL_ON' | 'ALL_OFF' | 'ONLY_DRILLING' | 'ONLY_GEOLOGY' | 'ONLY_TOPO' | 'ONLY_MINING' | 'ONLY_SAFETY' | 'HIDE_LINE_LABELS') => {
-    if (preset === 'ALL_ON') {
-      onBatchToggleLayers(layers.map(l => l.id), true);
-      onChangeDisplaySettings({ showContourLines: true, showCadGrid: true, showLabels: true });
-    } else if (preset === 'ALL_OFF') {
-      onBatchToggleLayers(layers.map(l => l.id), false);
-    } else if (preset === 'ONLY_DRILLING') {
-      const drillIds = categorizedLayers.drilling.map(l => l.id);
-      const otherIds = layers.filter(l => !drillIds.includes(l.id)).map(l => l.id);
-      onBatchToggleLayers(drillIds, true);
-      onBatchToggleLayers(otherIds, false);
-      setActiveTab('DRILLING');
-    } else if (preset === 'ONLY_GEOLOGY') {
-      const geoIds = categorizedLayers.geology.map(l => l.id);
-      const otherIds = layers.filter(l => !geoIds.includes(l.id)).map(l => l.id);
-      onBatchToggleLayers(geoIds, true);
-      onBatchToggleLayers(otherIds, false);
-      setActiveTab('GEOLOGY');
-    } else if (preset === 'ONLY_TOPO') {
-      const topoIds = categorizedLayers.topography.map(l => l.id);
-      const otherIds = layers.filter(l => !topoIds.includes(l.id)).map(l => l.id);
-      onBatchToggleLayers(topoIds, true);
-      onBatchToggleLayers(otherIds, false);
-      onChangeDisplaySettings({ showContourLines: true, showCadGrid: true });
-      setActiveTab('TOPOGRAPHY');
-    } else if (preset === 'ONLY_MINING') {
-      const miningIds = categorizedLayers.mining.map(l => l.id);
-      const otherIds = layers.filter(l => !miningIds.includes(l.id)).map(l => l.id);
-      onBatchToggleLayers(miningIds, true);
-      onBatchToggleLayers(otherIds, false);
-      setActiveTab('MINING');
-    } else if (preset === 'ONLY_SAFETY') {
-      const safetyIds = categorizedLayers.safety.map(l => l.id);
-      const otherIds = layers.filter(l => !safetyIds.includes(l.id)).map(l => l.id);
-      onBatchToggleLayers(safetyIds, true);
-      onBatchToggleLayers(otherIds, false);
-      setActiveTab('SAFETY');
-    } else if (preset === 'HIDE_LINE_LABELS') {
-      // خاموش کردن برچسب تمامی خطوط و باندهای پله
-      onChangeDisplaySettings({ showLineLabels: false });
-      const lineLayerIds = layers.filter(l => l.category === 'BENCH_CREST' || l.category === 'BENCH_TOE' || l.category === 'HAUL_ROAD' || l.id.includes('topography')).map(l => l.id);
-      if (onSetLayersLabelsVisibility) {
-        onSetLayersLabelsVisibility(lineLayerIds, false);
-      }
     }
   };
 
@@ -728,6 +671,11 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
               </div>
               <div className="text-[10px] text-slate-400 truncate mt-0.5">
                 {isRtl ? `مرجع: ${masterApprovedBy}` : `Authority: ${masterApprovedBy}`}
+                {masterApprovedAt && (
+                  <span className="text-slate-500 font-mono text-[9px] mx-1.5">
+                    ({new Date(masterApprovedAt).toLocaleDateString(isRtl ? 'fa-IR' : 'en-US')})
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -972,6 +920,23 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
                   ┈┈┈
                 </button>
               </div>
+            </div>
+
+            {/* شفافیت لایه‌ها (Opacity) */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                <span>{isRtl ? 'شفافیت لایه (Opacity):' : 'Layer Opacity:'}</span>
+                <span className="font-mono text-cyan-400">{Math.round(customOpacity * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                value={customOpacity}
+                onChange={(e) => setCustomOpacity(parseFloat(e.target.value))}
+                className="w-full accent-cyan-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+              />
             </div>
           </div>
 

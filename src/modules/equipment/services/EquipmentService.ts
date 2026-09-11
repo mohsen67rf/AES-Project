@@ -108,6 +108,13 @@ export class EquipmentService {
   }
 
   /**
+   * دریافت کلیه تجهیزات (Alias برای getEquipmentList جهت سازگاری کامل)
+   */
+  public static getAll(): EquipmentItem[] {
+    return this.getEquipmentList();
+  }
+
+  /**
    * ذخیره کلیه تجهیزات
    */
   public static saveEquipmentList(items: EquipmentItem[]): void {

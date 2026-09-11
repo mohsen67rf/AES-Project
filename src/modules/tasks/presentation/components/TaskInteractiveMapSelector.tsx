@@ -1,134 +1,68 @@
 // src/modules/tasks/presentation/components/TaskInteractiveMapSelector.tsx
 
-import React, { useState, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
-  MapPin,
   Layers,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
   Compass,
-  Maximize2,
   CheckCircle2,
-  AlertTriangle,
   Info,
   Square,
   Crosshair,
+  Slash,
+  PenTool,
+  CornerUpLeft,
+  Trash2,
+  MessageSquare,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 import type { TaskMapLocation } from '../../../../core/domain/types/task.types';
+import type { SurveyMap, MapFeature } from '../../../../core/domain/types/survey-map.types';
 import { useActiveMasterSurveyMap } from '../../../mine/presentation/hooks/useActiveMasterSurveyMap';
+import { SurveyMapService } from '../../../mine/services/SurveyMapService';
+import { BENCHES, MINE_MAP_BLOCKS, type MineMapBlock } from './taskMapConstants';
 
-export interface MineMapBench {
-  level: string;
-  nameFa: string;
-  elevation: number;
-  color: string;
-  yMin: number;
-  yMax: number;
-}
+export { BENCHES, MINE_MAP_BLOCKS };
+export type DrawingTool = 'POINT' | 'LINE' | 'POLYGON' | 'BLOCK_ZONE';
 
-export interface MineMapBlock {
-  id: string;
-  code: string;
-  bench: string;
-  type: 'ORE_HIGH' | 'ORE_MED' | 'ORE_LOW' | 'WASTE';
-  gradeText: string;
-  polygon: [number, number][]; // percentage [x, y]
-  center: [number, number];
-  areaM2: number;
-  eastingUTM: number;
-  northingUTM: number;
-}
-
-const BENCHES: MineMapBench[] = [
-  { level: '1060', nameFa: 'پله ۱۰۶۰ (تراز بالادست پیت)', elevation: 1060, color: '#F59E0B', yMin: 10, yMax: 28 },
-  { level: '1050', nameFa: 'پله ۱۰۵۰ (پله میانی استخراج)', elevation: 1050, color: '#3B82F6', yMin: 28, yMax: 46 },
-  { level: '1040', nameFa: 'پله ۱۰۴۰ (جبهه‌کار فعال اصلی)', elevation: 1040, color: '#00D2FF', yMin: 46, yMax: 66 },
-  { level: '1030', nameFa: 'پله ۱۰۳۰ (کف پیت و زهکشی)', elevation: 1030, color: '#10B981', yMin: 66, yMax: 84 },
-];
-
-export const MINE_MAP_BLOCKS: MineMapBlock[] = [
-  {
-    id: 'block-1040-b33',
-    code: '1040 B 33',
-    bench: '1040',
-    type: 'ORE_HIGH',
-    gradeText: 'مگنتیت پرعیار Fe 61.8%',
-    polygon: [[52, 48], [66, 48], [64, 60], [50, 60]],
-    center: [58, 54],
-    areaM2: 1850,
-    eastingUTM: 642450,
-    northingUTM: 3584320,
-  },
-  {
-    id: 'block-1040-b32',
-    code: '1040 B 32',
-    bench: '1040',
-    type: 'ORE_HIGH',
-    gradeText: 'مگنتیت پرعیار Fe 62.4%',
-    polygon: [[36, 48], [50, 48], [48, 60], [34, 60]],
-    center: [42, 54],
-    areaM2: 1900,
-    eastingUTM: 642320,
-    northingUTM: 3584280,
-  },
-  {
-    id: 'block-1040-b12',
-    code: '1040 B 12',
-    bench: '1040',
-    type: 'ORE_MED',
-    gradeText: 'متوسط‌عیار Fe 52.0%',
-    polygon: [[20, 50], [32, 50], [30, 61], [18, 61]],
-    center: [25, 55.5],
-    areaM2: 1550,
-    eastingUTM: 642100,
-    northingUTM: 3584210,
-  },
-  {
-    id: 'block-1050-b15',
-    code: '1050 B 15',
-    bench: '1050',
-    type: 'ORE_MED',
-    gradeText: 'مگنتیت Fe 54.1%',
-    polygon: [[38, 32], [52, 32], [50, 43], [36, 43]],
-    center: [44, 37.5],
-    areaM2: 1750,
-    eastingUTM: 642380,
-    northingUTM: 3584420,
-  },
-  {
-    id: 'block-1050-b16',
-    code: '1050 B 16',
-    bench: '1050',
-    type: 'ORE_LOW',
-    gradeText: 'کم‌عیار اسکارن Fe 44.5%',
-    polygon: [[55, 32], [69, 32], [67, 43], [53, 43]],
-    center: [61, 37.5],
-    areaM2: 1680,
-    eastingUTM: 642510,
-    northingUTM: 3584460,
-  },
-  {
-    id: 'block-1030-b08',
-    code: '1030 B 08',
-    bench: '1030',
-    type: 'WASTE',
-    gradeText: 'باطله برونزون پیت',
-    polygon: [[42, 69], [58, 69], [56, 79], [40, 79]],
-    center: [49, 74],
-    areaM2: 2100,
-    eastingUTM: 642390,
-    northingUTM: 3584160,
-  },
-];
-
-interface TaskInteractiveMapSelectorProps {
+export interface TaskInteractiveMapSelectorProps {
   value?: TaskMapLocation;
-  onChange: (location: TaskMapLocation | undefined) => void;
+  onChange: (location?: TaskMapLocation) => void;
   selectedBench?: string;
   onBenchSelect?: (bench: string) => void;
   isDark?: boolean;
+  onApplyCommentToDescription?: (comment: string) => void;
+}
+
+const CANVAS_WIDTH = 1000;
+const CANVAS_HEIGHT = 650;
+const PADDING = 35;
+
+/** محاسبه مساحت چندضلعی به متر مربع بر اساس فرمول Shoelace در مختصات واقعی UTM */
+function calculatePolygonAreaM2(coords: [number, number][]): number {
+  if (coords.length < 3) return 0;
+  let area = 0;
+  for (let i = 0; i < coords.length; i++) {
+    const j = (i + 1) % coords.length;
+    area += coords[i][0] * coords[j][1];
+    area -= coords[i][1] * coords[j][0];
+  }
+  return Math.round(Math.abs(area) / 2);
+}
+
+/** محاسبه طول خط بر حسب متر در مختصات اقلیدسی UTM */
+function calculateLineLengthM(coords: [number, number][]): number {
+  if (coords.length < 2) return 0;
+  let length = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const dx = coords[i + 1][0] - coords[i][0];
+    const dy = coords[i + 1][1] - coords[i][1];
+    length += Math.sqrt(dx * dx + dy * dy);
+  }
+  return Math.round(length);
 }
 
 export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProps> = ({
@@ -136,433 +70,1019 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
   onChange,
   selectedBench = '1040',
   onBenchSelect,
-  isDark = true,
+  onApplyCommentToDescription,
 }) => {
-  const { masterMap, hasNewUpdateAlert, lastSyncTime } = useActiveMasterSurveyMap();
+  // ۱. دریافت آخرین نقشه مرجع فعال آپلود شده در سامانه (Master Reference Map)
+  const { masterMap, hasNewUpdateAlert } = useActiveMasterSurveyMap();
+  const allMaps = useMemo<SurveyMap[]>(() => SurveyMapService.getAllMaps(), []);
+  const [selectedMapId, setSelectedMapId] = useState<string>(
+    () => masterMap?.id || SurveyMapService.getActiveMasterMapId()
+  );
 
+  const activeSurveyMap = useMemo<SurveyMap | null>(() => {
+    if (selectedMapId) {
+      const found = allMaps.find((m) => m.id === selectedMapId);
+      if (found) return found;
+    }
+    return masterMap || allMaps[0] || null;
+  }, [selectedMapId, allMaps, masterMap]);
+
+  // ابزارهای ترسیم و تعامل
+  const [drawingTool, setDrawingTool] = useState<DrawingTool>('POLYGON');
   const [zoom, setZoom] = useState<number>(1);
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [selectionMode, setSelectionMode] = useState<'POINT' | 'BLOCK_ZONE'>('BLOCK_ZONE');
   const [activeBench, setActiveBench] = useState<string>(selectedBench);
-  const [hoveredBlock, setHoveredBlock] = useState<MineMapBlock | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [hoveredBlock, setHoveredBlock] = useState<MineMapBlock | MapFeature | null>(null);
+  const [mouseUtm, setMouseUtm] = useState<{ x: number; y: number } | null>(null);
 
-  // استخراج بلوک‌ها به صورت مستقیم از آخرین نقشه فعال برداشت‌شده واحد نقشه‌برداری
-  const activeBlocks = useMemo<MineMapBlock[]>(() => {
-    if (!masterMap?.features) return MINE_MAP_BLOCKS;
-    const subBlockFeatures = masterMap.features.filter(f => f.category === 'SUB_BLOCK' || f.category === 'MINING_BLOCK');
-    if (subBlockFeatures.length === 0) return MINE_MAP_BLOCKS;
+  // رأس‌های موقت در حال ترسیم
+  const [activeDrawingPoints, setActiveDrawingPoints] = useState<[number, number][]>([]);
+  const [isDrawingActive, setIsDrawingActive] = useState<boolean>(false);
 
-    return subBlockFeatures.map((f, idx) => {
-      const code = f.properties.code || f.name || `SB-${idx + 1}`;
-      const bench = f.properties.benchLevel?.toString() || masterMap.benchLevel?.toString() || '1040';
-      const fe = f.properties.feGrade || 58.0;
-      const type: MineMapBlock['type'] = fe >= 60 ? 'ORE_HIGH' : fe >= 50 ? 'ORE_MED' : fe >= 40 ? 'ORE_LOW' : 'WASTE';
-      const gradeText = f.properties.gradeType || (fe >= 50 ? `سنگ‌آهن مگنتیت Fe ${fe}%` : `باطله Fe ${fe}%`);
+  // کامنت و عنوان عارضه (استخراج مستقیم از مقدار prop value یا استیت محلی هنگام ویرایش)
+  const [localTitle, setLocalTitle] = useState<string | null>(null);
+  const [localComment, setLocalComment] = useState<string | null>(null);
+  const [commentCopiedFeedback, setCommentCopiedFeedback] = useState<boolean>(false);
 
-      const col = idx % 3;
-      const row = Math.floor(idx / 3);
-      const x1 = 22 + col * 20;
-      const x2 = x1 + 17;
-      const y1 = 44 + row * 15;
-      const y2 = y1 + 12;
+  const displayTitle = localTitle !== null ? localTitle : value?.zoneName || '';
+  const displayComment = localComment !== null ? localComment : value?.comment || value?.notes || '';
 
+  const mapSvgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // محاسبه مرزهای هندسی واقعی نقشه مرجع آپلود شده
+  const mapBounds = useMemo(() => {
+    if (
+      activeSurveyMap?.bounds &&
+      activeSurveyMap.bounds.maxX > activeSurveyMap.bounds.minX &&
+      activeSurveyMap.bounds.maxY > activeSurveyMap.bounds.minY
+    ) {
       return {
-        id: f.id,
-        code,
-        bench,
-        type,
-        gradeText,
-        polygon: [[x1, y1], [x2, y1], [x2 - 2, y2], [x1 - 2, y2]],
-        center: [(x1 + x2) / 2, (y1 + y2) / 2],
-        areaM2: f.properties.areaM2 || 1900,
-        eastingUTM: f.properties.easting || 642300 + idx * 50,
-        northingUTM: f.properties.northing || 3584200 + idx * 40,
+        minX: activeSurveyMap.bounds.minX,
+        maxX: activeSurveyMap.bounds.maxX,
+        minY: activeSurveyMap.bounds.minY,
+        maxY: activeSurveyMap.bounds.maxY,
+        width: activeSurveyMap.bounds.maxX - activeSurveyMap.bounds.minX,
+        height: activeSurveyMap.bounds.maxY - activeSurveyMap.bounds.minY,
       };
-    });
-  }, [masterMap]);
+    }
 
-  const handleBenchChange = (bench: string) => {
-    setActiveBench(bench);
-    if (onBenchSelect) onBenchSelect(bench);
-  };
+    if (activeSurveyMap?.features && activeSurveyMap.features.length > 0) {
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      let hasValid = false;
 
-  const handleBlockClick = (block: MineMapBlock) => {
-    setActiveBench(block.bench);
-    const newLoc: TaskMapLocation = {
-      type: 'BENCH_ZONE',
-      bench: block.bench,
-      blockCode: block.code,
-      blockId: block.id,
-      zoneName: `محدوده پله ${block.bench} - بلوک ${block.code} (${block.gradeText})`,
-      x: block.center[0],
-      y: block.center[1],
-      polygonPoints: block.polygon,
-      areaM2: block.areaM2,
-      eastingUTM: block.eastingUTM,
-      northingUTM: block.northingUTM,
-      elevation: parseInt(block.bench, 10),
-      notes: `تعیین شده به عنوان زون عملیاتی دستور کار در بلوک ${block.code} (مبنا: آخرین نقشه واحد نقشه‌برداری ${masterMap?.version || 'Rev 1.0'})`,
+      activeSurveyMap.features.forEach((f) => {
+        const coords = f.coordinates || [];
+        coords.forEach((pt: [number, number] | number[]) => {
+          const x = Number(pt[0]);
+          const y = Number(pt[1]);
+          if (!isNaN(x) && !isNaN(y)) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            hasValid = true;
+          }
+        });
+      });
+
+      if (hasValid && maxX > minX && maxY > minY) {
+        return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+      }
+    }
+
+    return { minX: 642000, maxX: 643500, minY: 3583500, maxY: 3585000, width: 1500, height: 1500 };
+  }, [activeSurveyMap]);
+
+  // مقیاس‌دهی یکنواخت و بدون دفرمه شدن هندسه (Isotropic Scale)
+  const { uniformScale, offsetX, offsetY, drawnWidth, drawnHeight } = useMemo(() => {
+    const availW = CANVAS_WIDTH - PADDING * 2;
+    const availH = CANVAS_HEIGHT - PADDING * 2;
+    const scale = Math.min(availW / (mapBounds.width || 1), availH / (mapBounds.height || 1));
+    const dW = (mapBounds.width || 1) * scale;
+    const dH = (mapBounds.height || 1) * scale;
+    const oX = PADDING + (availW - dW) / 2;
+    const oY = PADDING + (availH - dH) / 2;
+    return {
+      uniformScale: scale,
+      offsetX: oX,
+      offsetY: oY,
+      drawnWidth: dW,
+      drawnHeight: dH,
     };
-    onChange(newLoc);
+  }, [mapBounds]);
+
+  // تبدیل مختصات UTM به پیکسل SVG بوم
+  const utmToSvg = useCallback(
+    (utmX: number, utmY: number): [number, number] => {
+      const svgX = offsetX + (utmX - mapBounds.minX) * uniformScale;
+      const svgY = offsetY + (mapBounds.maxY - utmY) * uniformScale;
+      return [svgX, svgY];
+    },
+    [mapBounds, uniformScale, offsetX, offsetY]
+  );
+
+  // تبدیل پیکسل SVG بوم به مختصات واقعی UTM
+  const svgToUtm = useCallback(
+    (svgX: number, svgY: number): [number, number] => {
+      const utmX = mapBounds.minX + (svgX - offsetX) / uniformScale;
+      const utmY = mapBounds.maxY - (svgY - offsetY) / uniformScale;
+      return [utmX, utmY];
+    },
+    [mapBounds, uniformScale, offsetX, offsetY]
+  );
+
+  // به‌روزرسانی زنده کامنت در موقعیت مکانی تسک
+  const handleUpdateComment = (newComment: string, newTitle?: string) => {
+    setLocalComment(newComment);
+    if (newTitle !== undefined) setLocalTitle(newTitle);
+
+    if (value) {
+      onChange({
+        ...value,
+        comment: newComment,
+        notes: newComment,
+        zoneName: newTitle !== undefined ? newTitle : value.zoneName,
+      });
+    }
   };
 
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!mapContainerRef.current) return;
-    const rect = mapContainerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+  // اعمال کامنت در متن اصلی شرح تسک
+  const handleApplyToTaskDescription = () => {
+    if (onApplyCommentToDescription && displayComment.trim()) {
+      onApplyCommentToDescription(displayComment.trim());
+      setCommentCopiedFeedback(true);
+      setTimeout(() => setCommentCopiedFeedback(false), 2500);
+    }
+  };
 
-    // Convert to percentage coordinates (0 - 100)
-    const pctX = Math.round(Math.max(2, Math.min(98, (clickX / rect.width) * 100)));
-    const pctY = Math.round(Math.max(2, Math.min(98, (clickY / rect.height) * 100)));
+  // دریافت مختصات ماوس در بوم SVG
+  const getSvgCoordinates = (e: React.MouseEvent<SVGSVGElement>): [number, number] | null => {
+    if (!mapSvgRef.current) return null;
+    const rect = mapSvgRef.current.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
 
-    // Approximate bench based on Y
-    let detectedBench = activeBench;
-    const matchedBench = BENCHES.find((b) => pctY >= b.yMin && pctY <= b.yMax);
-    if (matchedBench) detectedBench = matchedBench.level;
+    const scaleX = CANVAS_WIDTH / rect.width;
+    const scaleY = CANVAS_HEIGHT / rect.height;
 
-    // Approximate UTM
-    const easting = 642000 + Math.round(pctX * 10);
-    const northing = 3584000 + Math.round((100 - pctY) * 8);
+    const svgX = clientX * scaleX;
+    const svgY = clientY * scaleY;
+    return [svgX, svgY];
+  };
 
+  // ردیابی موقعیت نشانگر ماوس و محاسبه مختصات UTM لحظه‌ای
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const pt = getSvgCoordinates(e);
+    if (!pt) return;
+    const [ux, uy] = svgToUtm(pt[0], pt[1]);
+    setMouseUtm({ x: Math.round(ux), y: Math.round(uy) });
+  };
+
+  // کلیک روی بوم نقشه بر اساس ابزار فعال
+  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    const pt = getSvgCoordinates(e);
+    if (!pt) return;
+    const [svgX, svgY] = pt;
+    const [utmX, utmY] = svgToUtm(svgX, svgY);
+
+    const pctX = Math.round((svgX / CANVAS_WIDTH) * 100);
+    const pctY = Math.round((svgY / CANVAS_HEIGHT) * 100);
+
+    if (drawingTool === 'POINT') {
+      const pointTitle = `نقطه پایش در پله ${activeBench} (UTM: ${Math.round(utmX)}E / ${Math.round(utmY)}N)`;
+      const newLoc: TaskMapLocation = {
+        type: 'POINT',
+        bench: activeBench,
+        zoneName: pointTitle,
+        x: pctX,
+        y: pctY,
+        areaM2: 100,
+        eastingUTM: Math.round(utmX),
+        northingUTM: Math.round(utmY),
+        elevation: parseInt(activeBench, 10) || 1040,
+        mapId: activeSurveyMap?.id,
+        mapTitle: activeSurveyMap?.title,
+        comment: displayComment || 'موقعیت نقطه‌ای علامت‌گذاری‌شده روی نقشه مرجع جهت بررسی و اقدام میدانی',
+        notes: displayComment || 'موقعیت نقطه‌ای علامت‌گذاری‌شده روی نقشه مرجع',
+        utmCoords: [[Math.round(utmX), Math.round(utmY)]],
+      };
+      setLocalTitle(pointTitle);
+      setActiveDrawingPoints([]);
+      setIsDrawingActive(false);
+      onChange(newLoc);
+    } else if (drawingTool === 'LINE') {
+      const updated: [number, number][] = [...activeDrawingPoints, [svgX, svgY]];
+      setActiveDrawingPoints(updated);
+      setIsDrawingActive(true);
+    } else if (drawingTool === 'POLYGON') {
+      const updated: [number, number][] = [...activeDrawingPoints, [svgX, svgY]];
+      setActiveDrawingPoints(updated);
+      setIsDrawingActive(true);
+    }
+  };
+
+  // تکمیل و نهایی‌سازی خط
+  const handleFinishLine = () => {
+    if (activeDrawingPoints.length < 2) return;
+
+    const utmPoints: [number, number][] = activeDrawingPoints.map((pt) => svgToUtm(pt[0], pt[1]));
+    const lengthM = calculateLineLengthM(utmPoints);
+
+    const midIdx = Math.floor(activeDrawingPoints.length / 2);
+    const midPt = activeDrawingPoints[midIdx];
+    const pctX = Math.round((midPt[0] / CANVAS_WIDTH) * 100);
+    const pctY = Math.round((midPt[1] / CANVAS_HEIGHT) * 100);
+    const midUtm = utmPoints[midIdx];
+
+    const percentagePoints: [number, number][] = activeDrawingPoints.map((pt) => [
+      Math.round((pt[0] / CANVAS_WIDTH) * 100),
+      Math.round((pt[1] / CANVAS_HEIGHT) * 100),
+    ]);
+
+    const lineTitle = `مسیر خطی به طول ${lengthM} متر در پله ${activeBench}`;
     const newLoc: TaskMapLocation = {
-      type: 'POINT',
-      bench: detectedBench,
-      zoneName: `موقعیت نقطه‌ای در پله ${detectedBench} (X: ${pctX}%, Y: ${pctY}%)`,
+      type: 'LINE',
+      bench: activeBench,
+      zoneName: lineTitle,
       x: pctX,
       y: pctY,
-      areaM2: 500,
-      eastingUTM: easting,
-      northingUTM: northing,
-      elevation: parseInt(detectedBench, 10),
-      notes: `نقطه مشخص‌شده توسط کاربر در پله ${detectedBench}`,
+      linePoints: percentagePoints,
+      lengthM,
+      areaM2: lengthM * 10,
+      eastingUTM: Math.round(midUtm[0]),
+      northingUTM: Math.round(midUtm[1]),
+      elevation: parseInt(activeBench, 10) || 1040,
+      mapId: activeSurveyMap?.id,
+      mapTitle: activeSurveyMap?.title,
+      comment: displayComment || `مسیر ترسیم شده شامل ${activeDrawingPoints.length} نقطه به طول ${lengthM} متر`,
+      notes: displayComment || `مسیر به طول ${lengthM} متر`,
+      utmCoords: utmPoints.map((p) => [Math.round(p[0]), Math.round(p[1])]),
     };
+
+    setLocalTitle(lineTitle);
+    setIsDrawingActive(false);
     onChange(newLoc);
   };
 
-  const handleClearLocation = () => {
+  // تکمیل و نهایی‌سازی چندضلعی (Polygon)
+  const handleFinishPolygon = () => {
+    if (activeDrawingPoints.length < 3) return;
+
+    const utmPoints: [number, number][] = activeDrawingPoints.map((pt) => svgToUtm(pt[0], pt[1]));
+    const areaM2 = calculatePolygonAreaM2(utmPoints);
+
+    let sumX = 0;
+    let sumY = 0;
+    activeDrawingPoints.forEach((pt) => {
+      sumX += pt[0];
+      sumY += pt[1];
+    });
+    const avgX = sumX / activeDrawingPoints.length;
+    const avgY = sumY / activeDrawingPoints.length;
+
+    let sumUtmX = 0;
+    let sumUtmY = 0;
+    utmPoints.forEach((pt) => {
+      sumUtmX += pt[0];
+      sumUtmY += pt[1];
+    });
+    const avgUtmX = Math.round(sumUtmX / utmPoints.length);
+    const avgUtmY = Math.round(sumUtmY / utmPoints.length);
+
+    const percentagePoints: [number, number][] = activeDrawingPoints.map((pt) => [
+      Math.round((pt[0] / CANVAS_WIDTH) * 100),
+      Math.round((pt[1] / CANVAS_HEIGHT) * 100),
+    ]);
+
+    const polygonTitle = `محدوده ترسیمی به مساحت ${areaM2.toLocaleString()} م² (پله ${activeBench})`;
+    const newLoc: TaskMapLocation = {
+      type: 'POLYGON',
+      bench: activeBench,
+      zoneName: polygonTitle,
+      x: Math.round((avgX / CANVAS_WIDTH) * 100),
+      y: Math.round((avgY / CANVAS_HEIGHT) * 100),
+      polygonPoints: percentagePoints,
+      areaM2,
+      eastingUTM: avgUtmX,
+      northingUTM: avgUtmY,
+      elevation: parseInt(activeBench, 10) || 1040,
+      mapId: activeSurveyMap?.id,
+      mapTitle: activeSurveyMap?.title,
+      comment: displayComment || `محدوده ترسیم شده به مساحت ${areaM2.toLocaleString()} مترمربع با ${activeDrawingPoints.length} رأس`,
+      notes: displayComment || `محدوده عملیاتی به مساحت ${areaM2.toLocaleString()} م²`,
+      utmCoords: utmPoints.map((p) => [Math.round(p[0]), Math.round(p[1])]),
+    };
+
+    setLocalTitle(polygonTitle);
+    setIsDrawingActive(false);
+    onChange(newLoc);
+  };
+
+  // لغو آخرین نقطه
+  const handleUndoPoint = () => {
+    if (activeDrawingPoints.length > 0) {
+      setActiveDrawingPoints((prev) => prev.slice(0, prev.length - 1));
+    }
+  };
+
+  // پاک کردن کامل ترسیم و موقعیت
+  const handleClear = () => {
+    setActiveDrawingPoints([]);
+    setIsDrawingActive(false);
+    setLocalTitle('');
+    setLocalComment('');
     onChange(undefined);
   };
 
+  // انتخاب مستقیم بلوک یا ساب‌بلوک از عوارض نقشه
+  const handleSelectBlockFeature = (block: MineMapBlock | MapFeature) => {
+    const isMock = 'code' in block && 'gradeText' in block;
+    const code = isMock ? block.code : block.properties?.code || block.name || 'بلوک معدنی';
+    const bench = isMock ? block.bench : block.properties?.benchLevel?.toString() || activeBench;
+    const gradeText = isMock ? block.gradeText : block.properties?.gradeType || `عیار آهن Fe ${block.properties?.feGrade || 58}%`;
+    const area = isMock ? block.areaM2 : block.properties?.areaM2 || 1850;
+    const easting = isMock ? block.eastingUTM : block.properties?.easting || 642400;
+    const northing = isMock ? block.northingUTM : block.properties?.northing || 3584300;
+
+    setActiveBench(bench);
+
+    const blockTitle = `محدوده بلوک ${code} (${gradeText} - پله ${bench})`;
+    const newLoc: TaskMapLocation = {
+      type: 'BENCH_ZONE',
+      bench,
+      blockCode: code,
+      blockId: block.id,
+      zoneName: blockTitle,
+      x: isMock ? block.center[0] : 50,
+      y: isMock ? block.center[1] : 50,
+      polygonPoints: isMock ? block.polygon : undefined,
+      areaM2: area,
+      eastingUTM: easting,
+      northingUTM: northing,
+      elevation: parseInt(bench, 10) || 1040,
+      mapId: activeSurveyMap?.id,
+      mapTitle: activeSurveyMap?.title,
+      comment: displayComment || `محدوده استخراجی بلوک ${code} برگرفته از نقشه مرجع مهندسی`,
+      notes: `تعیین شده به عنوان زون عملیاتی در بلوک ${code}`,
+    };
+
+    setLocalTitle(blockTitle);
+    setActiveDrawingPoints([]);
+    setIsDrawingActive(false);
+    onChange(newLoc);
+  };
+
   return (
-    <div className="space-y-3 rounded-2xl border p-3.5 bg-[#0C1427]/80 border-[#223366] text-white">
-      {/* بنر وضعیت اتصال به آخرین نقشه مرجع واحد نقشه‌برداری */}
-      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#09152E] border border-cyan-500/30 text-[11px]">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="font-bold text-cyan-300">
-            {masterMap ? `مبنای استخراج: ${masterMap.title} (${masterMap.version})` : 'مبنای استخراج: نقشه پیش‌فرض پیت مرکزی'}
+    <div className="space-y-3 rounded-2xl border p-3.5 bg-[#0A1020] border-[#1E2E52] text-white shadow-xl select-none">
+      {/* ۱. نوار وضعیت و انتخاب نقشه مرجع آپلود شده */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 py-2 rounded-xl bg-[#0F172E] border border-cyan-500/30 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-sm shadow-cyan-400" />
+          <span className="font-bold text-cyan-300 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span>نقشه مرجع مبنا:</span>
           </span>
-          <span className="text-[10px] text-slate-400 hidden sm:inline">
-            • واحد نقشه‌برداری (مرجع اصلی سامانه)
+
+          {/* سلکتور تعویض نقشه میان نقشه‌های آپلود شده */}
+          <div className="relative inline-block">
+            <select
+              value={activeSurveyMap?.id || ''}
+              onChange={(e) => setSelectedMapId(e.target.value)}
+              className="bg-[#14213F] text-white font-bold text-[11px] px-2.5 py-1 rounded-lg border border-cyan-500/40 focus:outline-none focus:ring-1 focus:ring-cyan-400 cursor-pointer"
+            >
+              {allMaps.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.title} {m.isMasterMap ? '★ (نقشه مرجع فعال پیت)' : `(تراز ${m.benchLevel}m)`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <span className="text-[10px] text-slate-400 font-mono hidden md:inline">
+            {activeSurveyMap?.coordinateSystem || 'UTM WGS84'} • تراز: {activeSurveyMap?.benchLevel || 1040}m
           </span>
         </div>
+
         {hasNewUpdateAlert && (
-          <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2 py-0.5 rounded-md animate-pulse">
-            نقشه آپدیت شد
-          </span>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold animate-pulse">
+            <Sparkles className="w-3 h-3 text-amber-400" />
+            <span>نقشه مرجع تازه منتشر شد</span>
+          </div>
         )}
       </div>
 
-      {/* Top Controls: Mode Switcher + Bench Selector + Clear */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#223366]/60 pb-3">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-[#8E9EB8] flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-[#00D2FF]" />
-            <span>ثبت محدوده روی نقشه آنلاین:</span>
+      {/* ۲. نوار ابزارهای ترسیم (نقطه، خط، محدوده، انتخاب بلوک) و کنترل دید */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 pb-2 border-b border-[#1E2E52]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-black text-[#8E9EB8] flex items-center gap-1">
+            <PenTool className="w-3.5 h-3.5 text-cyan-400" />
+            <span>ابزار ترسیم روی نقشه:</span>
           </span>
-          <div className="flex items-center gap-1 bg-[#101935] p-0.5 rounded-xl border border-[#24356B]">
+
+          <div className="flex items-center gap-1 bg-[#101935] p-1 rounded-xl border border-[#24356B]">
             <button
               type="button"
-              onClick={() => setSelectionMode('BLOCK_ZONE')}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition-colors flex items-center gap-1 ${
-                selectionMode === 'BLOCK_ZONE'
-                  ? 'bg-[#00D2FF] text-[#070F1E] font-bold shadow-sm'
-                  : 'text-[#8E9EB8] hover:text-white'
+              onClick={() => {
+                setDrawingTool('POLYGON');
+                setActiveDrawingPoints([]);
+                setIsDrawingActive(false);
+              }}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                drawingTool === 'POLYGON'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
+              title="ترسیم محدوده چندضلعی بسته (حداقل ۳ نقطه)"
             >
-              <Square className="w-3 h-3" />
-              <span>محدوده بلوک</span>
+              <PenTool className="w-3 h-3" />
+              <span>ترسیم محدوده (مساحت)</span>
             </button>
+
             <button
               type="button"
-              onClick={() => setSelectionMode('POINT')}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition-colors flex items-center gap-1 ${
-                selectionMode === 'POINT'
-                  ? 'bg-[#00D2FF] text-[#070F1E] font-bold shadow-sm'
-                  : 'text-[#8E9EB8] hover:text-white'
+              onClick={() => {
+                setDrawingTool('LINE');
+                setActiveDrawingPoints([]);
+                setIsDrawingActive(false);
+              }}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                drawingTool === 'LINE'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
+              title="رسم مسیر خطی (محاسبه طول به متر)"
+            >
+              <Slash className="w-3 h-3" />
+              <span>رسم خط (طول/مسیر)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDrawingTool('POINT');
+                setActiveDrawingPoints([]);
+                setIsDrawingActive(false);
+              }}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                drawingTool === 'POINT'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+              title="نقطه‌گذاری آزاد روی نقشه با ثبت مختصات UTM"
             >
               <Crosshair className="w-3 h-3" />
-              <span>نقطه‌گذاری آزاد</span>
+              <span>نقطه‌گذاری</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDrawingTool('BLOCK_ZONE');
+                setActiveDrawingPoints([]);
+                setIsDrawingActive(false);
+              }}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                drawingTool === 'BLOCK_ZONE'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+              title="انتخاب یکی از بلوک‌های نقشه مرجع"
+            >
+              <Square className="w-3 h-3" />
+              <span>انتخاب بلوک</span>
             </button>
           </div>
+
+          {/* اکشن‌های تکمیلی حین ترسیم */}
+          {activeDrawingPoints.length > 0 && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleUndoPoint}
+                className="px-2 py-1 text-[10px] rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1"
+                title="حذف آخرین نقطه"
+              >
+                <CornerUpLeft className="w-3 h-3" />
+                <span>لغو نقطه ({activeDrawingPoints.length})</span>
+              </button>
+
+              {drawingTool === 'LINE' && activeDrawingPoints.length >= 2 && (
+                <button
+                  type="button"
+                  onClick={handleFinishLine}
+                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-1 animate-bounce"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>تکمیل خط</span>
+                </button>
+              )}
+
+              {drawingTool === 'POLYGON' && activeDrawingPoints.length >= 3 && (
+                <button
+                  type="button"
+                  onClick={handleFinishPolygon}
+                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-1 animate-bounce"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>بستن محدوده</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Bench Quick Selection Buttons */}
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] text-[#64748B]">تراز پله:</span>
-          {BENCHES.map((b) => (
+        {/* تراز پله، زوم و پاک کردن */}
+        <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-1">
+            <span className="text-[10px] text-slate-400">تراز:</span>
+            {BENCHES.map((b) => (
+              <button
+                key={b.level}
+                type="button"
+                onClick={() => {
+                  setActiveBench(b.level);
+                  if (onBenchSelect) onBenchSelect(b.level);
+                }}
+                className={`px-1.5 py-0.5 text-[10px] font-bold rounded border transition-all ${
+                  activeBench === b.level
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                }`}
+              >
+                {b.level}m
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-0.5 bg-[#101935] p-0.5 rounded-lg border border-[#24356B]">
             <button
-              key={b.level}
               type="button"
-              onClick={() => handleBenchChange(b.level)}
-              className={`px-2 py-0.5 text-[10px] font-bold rounded-md border transition-all ${
-                activeBench === b.level
-                  ? 'bg-[#00D2FF]/20 border-[#00D2FF] text-[#00D2FF]'
-                  : 'bg-[#101935] border-[#24356B]/60 text-[#8E9EB8] hover:text-white'
-              }`}
+              onClick={() => setZoom((z) => Math.min(2.5, z + 0.25))}
+              className="p-1 text-slate-400 hover:text-white"
+              title="بزرگنمایی"
             >
-              {b.level}m
+              <ZoomIn className="w-3.5 h-3.5" />
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.max(0.8, z - 0.25))}
+              className="p-1 text-slate-400 hover:text-white"
+              title="کوچکنمایی"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              className="p-1 text-[10px] font-mono text-slate-400 hover:text-white px-1"
+              title="بازنشانی زوم"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+          </div>
+
+          {(value || activeDrawingPoints.length > 0) && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="px-2 py-1 text-[10px] rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors flex items-center gap-1"
+              title="پاک کردن ترسیم و انتخاب جدید"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>پاک‌کردن</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Interactive Map Visual Stage */}
+      {/* راهنمای ابزار جاری */}
+      <div className="px-3 py-1.5 rounded-lg bg-[#0E172E]/60 border border-[#223366]/40 flex items-center justify-between text-[11px] text-slate-300">
+        <div className="flex items-center gap-1.5">
+          <Info className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+          <span>
+            {drawingTool === 'POLYGON' && (
+              isDrawingActive
+                ? `در حال ترسیم چندضلعی: روی نقشه کلیک کنید تا رأس‌های محدوده مشخص شوند (${activeDrawingPoints.length} رأس ثبت شد). برای بستن محدوده دکمه «بستن محدوده» را بزنید.`
+                : 'حالت ترسیم محدوده فعال است: برای تعیین منطقه، محدوده انفجار یا پترن چال‌ها روی نقشه کلیک کنید.'
+            )}
+            {drawingTool === 'LINE' && (
+              isDrawingActive
+                ? `در حال رسم خط: روی نقشه کلیک کنید تا مسیر خط امتداد یابد (${activeDrawingPoints.length} نقطه). برای ثبت «تکمیل خط» را بزنید.`
+                : 'حالت رسم خط فعال است: برای تعیین مسیر رمپ، جاده یا ترانشه روی نقشه کلیک کنید.'
+            )}
+            {drawingTool === 'POINT' && 'حالت نقطه‌گذاری فعال است: روی هر نقطه از نقشه کلیک کنید تا پین تسک ثبت شود.'}
+            {drawingTool === 'BLOCK_ZONE' && 'روی یکی از بلوک‌های استخراجی نقشه کلیک کنید تا کل محدوده آن به تسک اختصاص یابد.'}
+          </span>
+        </div>
+
+        {mouseUtm && (
+          <div className="hidden sm:flex items-center gap-2 font-mono text-[10px] text-cyan-300/80 bg-slate-900/80 px-2 py-0.5 rounded border border-cyan-500/20">
+            <span>E: {mouseUtm.x}</span>
+            <span>N: {mouseUtm.y}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ۳. بوم نقشه مرجع مهندسی (Canvas / SVG Stage) */}
       <div
-        ref={mapContainerRef}
-        onClick={selectionMode === 'POINT' ? handleMapClick : undefined}
-        className="relative w-full h-64 md:h-72 rounded-xl overflow-hidden cursor-crosshair border border-[#24356B]/70 bg-[#070D1A] select-none group shadow-inner"
-        style={{
-          backgroundImage: `
-            radial-gradient(circle at 50% 50%, rgba(0, 210, 255, 0.05) 0%, transparent 70%),
-            linear-gradient(rgba(36, 53, 107, 0.25) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(36, 53, 107, 0.25) 1px, transparent 1px)
-          `,
-          backgroundSize: '100% 100%, 20px 20px, 20px 20px',
-        }}
+        ref={containerRef}
+        className="relative w-full h-80 md:h-96 rounded-xl overflow-hidden border border-[#24356B] bg-[#070C18] select-none shadow-inner"
+        style={{ cursor: drawingTool === 'BLOCK_ZONE' ? 'pointer' : 'crosshair' }}
       >
-        {/* SVG Topography & Haul Roads Layer */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Bench Contour Curves */}
-          <path
-            d="M 5,15 Q 50,10 95,15 Q 90,30 95,45 Q 50,42 5,45 Z"
+        <svg
+          ref={mapSvgRef}
+          viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+          className="w-full h-full transition-transform duration-150 ease-out"
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'center center',
+          }}
+          onClick={handleSvgClick}
+          onMouseMove={handleMouseMove}
+        >
+          <defs>
+            <pattern id="taskCadGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(36, 53, 107, 0.35)" strokeWidth="0.8" />
+            </pattern>
+            <pattern id="taskCadSubGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(36, 53, 107, 0.15)" strokeWidth="0.4" />
+            </pattern>
+            <filter id="taskPinGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#00D2FF" floodOpacity="0.6" />
+            </filter>
+          </defs>
+
+          <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="#070D1A" />
+          <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#taskCadSubGrid)" />
+          <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#taskCadGrid)" />
+
+          {/* الف: تصویر رستری نقشه مرجع آپلود شده */}
+          {activeSurveyMap?.rasterImageUrl && (
+            <image
+              href={activeSurveyMap.rasterImageUrl}
+              x={offsetX}
+              y={offsetY}
+              width={drawnWidth}
+              height={drawnHeight}
+              opacity={0.88}
+              preserveAspectRatio="none"
+            />
+          )}
+
+          {/* ب: کادر نقشه مرجع */}
+          <rect
+            x={offsetX}
+            y={offsetY}
+            width={drawnWidth}
+            height={drawnHeight}
             fill="none"
-            stroke="#F59E0B"
-            strokeWidth="0.5"
-            strokeDasharray="2,2"
-            opacity="0.35"
-          />
-          <path
-            d="M 10,32 Q 50,28 90,32 Q 88,50 90,65 Q 50,62 10,65 Z"
-            fill="none"
-            stroke="#3B82F6"
-            strokeWidth="0.6"
-            strokeDasharray="2,2"
-            opacity="0.4"
-          />
-          <path
-            d="M 15,48 Q 50,44 85,48 Q 82,65 85,78 Q 50,75 15,78 Z"
-            fill="none"
-            stroke="#00D2FF"
-            strokeWidth="0.8"
-            opacity="0.5"
-          />
-          <path
-            d="M 25,68 Q 50,65 75,68 Q 72,82 75,88 Q 50,86 25,88 Z"
-            fill="none"
-            stroke="#10B981"
-            strokeWidth="0.5"
-            strokeDasharray="1,1"
-            opacity="0.4"
+            stroke="rgba(0, 210, 255, 0.3)"
+            strokeWidth="1.5"
+            strokeDasharray="6,4"
           />
 
-          {/* Main Haulage Ramps (جاده‌های دسترسی و حمل باطله/سنگ‌آهن) */}
-          <path
-            d="M 2,12 C 30,22 75,20 92,38 C 96,55 78,72 82,90"
-            fill="none"
-            stroke="#E2E8F0"
-            strokeWidth="1.6"
-            strokeDasharray="3,2"
-            opacity="0.35"
-          />
-          <path
-            d="M 8,88 C 22,76 34,70 42,54"
-            fill="none"
-            stroke="#E2E8F0"
-            strokeWidth="1.2"
-            strokeDasharray="2,2"
-            opacity="0.25"
-          />
+          <g className="text-[10px] font-mono fill-slate-400 pointer-events-none select-none opacity-75">
+            <text x={offsetX + 6} y={offsetY + 16}>
+              UTM: {mapBounds.minX.toFixed(0)}E / {mapBounds.maxY.toFixed(0)}N
+            </text>
+            <text x={offsetX + drawnWidth - 6} y={offsetY + drawnHeight - 8} textAnchor="end">
+              UTM: {mapBounds.maxX.toFixed(0)}E / {mapBounds.minY.toFixed(0)}N
+            </text>
+          </g>
+
+          {/* ج: رندر عوارض وکتوری نقشه مرجع آپلود شده */}
+          {activeSurveyMap?.features && activeSurveyMap.features.length > 0 ? (
+            activeSurveyMap.features.map((feature: MapFeature, idx: number) => {
+              const coords = feature.coordinates || [];
+              if (!Array.isArray(coords) || coords.length === 0) return null;
+              const fKey = `feat-${feature.id || idx}`;
+
+              if (feature.type === 'POLYGON' && coords.length >= 3) {
+                const pointsStr = coords
+                  .map((pt: [number, number] | number[]) => {
+                    const [sx, sy] = utmToSvg(Number(pt[0]), Number(pt[1]));
+                    return `${sx.toFixed(1)},${sy.toFixed(1)}`;
+                  })
+                  .join(' ');
+
+                const isSelected =
+                  value?.blockId === feature.id ||
+                  (value?.blockCode && feature.properties?.code === value.blockCode);
+
+                return (
+                  <polygon
+                    key={fKey}
+                    points={pointsStr}
+                    fill={isSelected ? 'rgba(0, 210, 255, 0.4)' : feature.style?.fillColor || '#38BDF8'}
+                    fillOpacity={isSelected ? 0.45 : feature.style?.fillOpacity ?? 0.18}
+                    stroke={isSelected ? '#00D2FF' : feature.style?.strokeColor || '#38BDF8'}
+                    strokeWidth={isSelected ? 2.5 : feature.style?.strokeWidth || 1.2}
+                    strokeDasharray={feature.style?.strokeDash === 'dashed' ? '5,4' : undefined}
+                    className="cursor-pointer transition-all hover:opacity-90"
+                    onClick={(e) => {
+                      if (drawingTool === 'BLOCK_ZONE') {
+                        e.stopPropagation();
+                        handleSelectBlockFeature(feature);
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredBlock(feature)}
+                    onMouseLeave={() => setHoveredBlock(null)}
+                  />
+                );
+              }
+
+              if ((feature.type === 'POLYLINE' || feature.type === 'LINE') && coords.length >= 2) {
+                const pathData = coords
+                  .map((pt: [number, number] | number[], pIdx: number) => {
+                    const [sx, sy] = utmToSvg(Number(pt[0]), Number(pt[1]));
+                    return `${pIdx === 0 ? 'M' : 'L'} ${sx.toFixed(1)} ${sy.toFixed(1)}`;
+                  })
+                  .join(' ');
+
+                const isCrest = feature.category === 'BENCH_CREST';
+                const isToe = feature.category === 'BENCH_TOE';
+                const isRoad = feature.category === 'HAUL_ROAD';
+                const defStroke = isCrest ? '#00D4FF' : isToe ? '#38BDF8' : isRoad ? '#F59E0B' : '#64748B';
+
+                return (
+                  <path
+                    key={fKey}
+                    d={pathData}
+                    fill="none"
+                    stroke={feature.style?.strokeColor || defStroke}
+                    strokeWidth={feature.style?.strokeWidth || (isRoad ? 3 : isCrest ? 2 : 1.2)}
+                    strokeDasharray={isToe ? '5,4' : undefined}
+                    strokeOpacity={0.7}
+                  />
+                );
+              }
+
+              if (feature.type === 'POINT' && coords[0]) {
+                const [sx, sy] = utmToSvg(Number(coords[0][0]), Number(coords[0][1]));
+                return (
+                  <circle
+                    key={fKey}
+                    cx={sx}
+                    cy={sy}
+                    r={3.5}
+                    fill="#F59E0B"
+                    stroke="#FFFFFF"
+                    strokeWidth="1"
+                    opacity={0.8}
+                  />
+                );
+              }
+
+              return null;
+            })
+          ) : (
+            <g>
+              {MINE_MAP_BLOCKS.map((block) => {
+                const isSelected = value?.blockCode === block.code || value?.blockId === block.id;
+                const pointsStr = block.polygon
+                  .map((pt) => `${((pt[0] / 100) * CANVAS_WIDTH).toFixed(1)},${((pt[1] / 100) * CANVAS_HEIGHT).toFixed(1)}`)
+                  .join(' ');
+
+                return (
+                  <polygon
+                    key={block.id}
+                    points={pointsStr}
+                    fill={isSelected ? 'rgba(0, 210, 255, 0.35)' : 'rgba(56, 189, 248, 0.15)'}
+                    stroke={isSelected ? '#00D2FF' : '#38BDF8'}
+                    strokeWidth={isSelected ? 2.5 : 1.2}
+                    className="cursor-pointer transition-all hover:opacity-90"
+                    onClick={(e) => {
+                      if (drawingTool === 'BLOCK_ZONE') {
+                        e.stopPropagation();
+                        handleSelectBlockFeature(block);
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredBlock(block)}
+                    onMouseLeave={() => setHoveredBlock(null)}
+                  />
+                );
+              })}
+            </g>
+          )}
+
+          {/* د: ترسیم زنده کاربر (Live Drawing Preview) */}
+          {activeDrawingPoints.length > 0 && (
+            <g className="pointer-events-none">
+              {drawingTool === 'LINE' && activeDrawingPoints.length >= 2 && (
+                <polyline
+                  points={activeDrawingPoints.map((pt) => `${pt[0]},${pt[1]}`).join(' ')}
+                  fill="none"
+                  stroke="#F59E0B"
+                  strokeWidth="3.5"
+                  strokeDasharray="6,4"
+                  strokeLinecap="round"
+                />
+              )}
+
+              {drawingTool === 'POLYGON' && (
+                <polygon
+                  points={activeDrawingPoints.map((pt) => `${pt[0]},${pt[1]}`).join(' ')}
+                  fill="rgba(0, 210, 255, 0.25)"
+                  stroke="#00D2FF"
+                  strokeWidth="2.5"
+                  strokeDasharray="5,3"
+                />
+              )}
+
+              {activeDrawingPoints.map((pt, pIdx) => (
+                <g key={`draw-pt-${pIdx}`}>
+                  <circle cx={pt[0]} cy={pt[1]} r={6} fill="#00D2FF" stroke="#FFFFFF" strokeWidth="2" />
+                  <circle cx={pt[0]} cy={pt[1]} r={12} fill="none" stroke="#00D2FF" strokeWidth="1" opacity="0.4" />
+                </g>
+              ))}
+            </g>
+          )}
+
+          {/* ه: شکل نهایی ثبت شده موقعیت تسک */}
+          {value && (
+            <g className="pointer-events-none">
+              {value.polygonPoints && value.polygonPoints.length >= 3 && (
+                <polygon
+                  points={value.polygonPoints
+                    .map((pt) => `${((pt[0] / 100) * CANVAS_WIDTH).toFixed(1)},${((pt[1] / 100) * CANVAS_HEIGHT).toFixed(1)}`)
+                    .join(' ')}
+                  fill="rgba(0, 210, 255, 0.35)"
+                  stroke="#00D2FF"
+                  strokeWidth="3"
+                />
+              )}
+
+              {value.linePoints && value.linePoints.length >= 2 && (
+                <polyline
+                  points={value.linePoints
+                    .map((pt) => `${((pt[0] / 100) * CANVAS_WIDTH).toFixed(1)},${((pt[1] / 100) * CANVAS_HEIGHT).toFixed(1)}`)
+                    .join(' ')}
+                  fill="none"
+                  stroke="#F59E0B"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+
+              {/* پین مارکر و برچسب */}
+              {(() => {
+                const cx = (value.x / 100) * CANVAS_WIDTH;
+                const cy = (value.y / 100) * CANVAS_HEIGHT;
+                return (
+                  <g transform={`translate(${cx}, ${cy})`}>
+                    <circle r="18" fill="rgba(0, 210, 255, 0.25)" className="animate-ping" />
+                    <circle r="10" fill="rgba(0, 210, 255, 0.4)" />
+
+                    <g transform="translate(-14, -28)">
+                      <path
+                        d="M 14 0 C 6.268 0 0 6.268 0 14 C 0 24.5 14 36 14 36 C 14 36 28 24.5 28 14 C 28 6.268 21.732 0 14 0 Z"
+                        fill="#00D2FF"
+                        stroke="#FFFFFF"
+                        strokeWidth="2"
+                        filter="url(#taskPinGlow)"
+                      />
+                      <circle cx="14" cy="14" r="5" fill="#0A1020" />
+                    </g>
+
+                    <g transform="translate(20, -18)">
+                      <rect
+                        x="0"
+                        y="-12"
+                        width={Math.max(120, (value.blockCode || value.zoneName || 'موقعیت تسک').length * 8 + 20)}
+                        height="24"
+                        rx="6"
+                        fill="#0A1020"
+                        stroke="#00D2FF"
+                        strokeWidth="1.5"
+                        opacity="0.95"
+                      />
+                      <text x="10" y="4" fill="#00D2FF" fontSize="11" fontWeight="bold" fontFamily="sans-serif">
+                        {value.blockCode ? `بلوک ${value.blockCode}` : value.zoneName || 'موقعیت تسک'}
+                      </text>
+                    </g>
+                  </g>
+                );
+              })()}
+            </g>
+          )}
         </svg>
 
-        {/* Bench Level Watermarks */}
-        <div className="absolute top-2 left-3 pointer-events-none text-[10px] font-mono text-[#F59E0B]/60 tracking-wider">
-          BENCH 1060m
-        </div>
-        <div className="absolute top-[28%] left-3 pointer-events-none text-[10px] font-mono text-[#3B82F6]/60 tracking-wider">
-          BENCH 1050m
-        </div>
-        <div className="absolute top-[48%] left-3 pointer-events-none text-[10px] font-mono text-[#00D2FF]/80 font-bold tracking-wider">
-          BENCH 1040m (MAIN PIT ORE)
-        </div>
-        <div className="absolute top-[72%] left-3 pointer-events-none text-[10px] font-mono text-[#10B981]/60 tracking-wider">
-          BENCH 1030m
-        </div>
-
-        {/* Compass Indicator */}
-        <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-1 rounded-md bg-[#101935]/80 border border-[#24356B] text-[10px] font-bold text-[#8E9EB8] pointer-events-none backdrop-blur-sm">
-          <Compass className="w-3 h-3 text-[#00D2FF] animate-spin-slow" />
+        {/* قطب‌نما */}
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0E172E]/90 border border-[#24356B] text-[10px] font-bold text-[#8E9EB8] pointer-events-none backdrop-blur-sm shadow-md">
+          <Compass className="w-3.5 h-3.5 text-cyan-400" />
           <span>شمال N</span>
         </div>
 
-        {/* Interactive Block Polygons on the Map */}
-        {activeBlocks.map((block) => {
-          const isSelected = value?.blockCode === block.code || value?.blockId === block.id;
-          const isTarget1040B33 = block.code === '1040 B 33';
+        {/* تراز پله */}
+        <div className="absolute top-2.5 left-3 pointer-events-none text-[10px] font-mono text-cyan-400/80 bg-[#0E172E]/80 px-2 py-0.5 rounded border border-[#24356B]">
+          BENCH {activeSurveyMap?.benchLevel || activeBench}m
+        </div>
 
-          // Convert polygon points to SVG path or CSS polygon
-          const pointsStr = block.polygon.map((pt) => `${pt[0]}% ${pt[1]}%`).join(', ');
-
-          let fillColor = 'rgba(59, 130, 246, 0.15)';
-          let borderColor = 'rgba(59, 130, 246, 0.5)';
-          if (block.type === 'ORE_HIGH') {
-            fillColor = isSelected ? 'rgba(0, 210, 255, 0.45)' : 'rgba(0, 210, 255, 0.2)';
-            borderColor = isSelected ? '#00D2FF' : 'rgba(0, 210, 255, 0.7)';
-          } else if (block.type === 'WASTE') {
-            fillColor = 'rgba(100, 116, 139, 0.2)';
-            borderColor = 'rgba(100, 116, 139, 0.5)';
-          }
-
-          return (
-            <div
-              key={block.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBlockClick(block);
-              }}
-              onMouseEnter={() => setHoveredBlock(block)}
-              onMouseLeave={() => setHoveredBlock(null)}
-              className={`absolute transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center p-1 group/block ${
-                isSelected ? 'z-20 scale-[1.02]' : 'hover:scale-[1.01] hover:z-10'
-              }`}
-              style={{
-                left: `${block.polygon[0][0]}%`,
-                top: `${block.polygon[0][1]}%`,
-                width: `${block.polygon[1][0] - block.polygon[0][0]}%`,
-                height: `${block.polygon[3][1] - block.polygon[0][1]}%`,
-              }}
-            >
-              <div
-                className={`w-full h-full rounded-lg border transition-all flex flex-col items-center justify-center p-1 relative overflow-hidden ${
-                  isSelected
-                    ? 'border-[#00D2FF] bg-[#00D2FF]/25 shadow-lg shadow-[#00D2FF]/30 ring-2 ring-[#00D2FF]'
-                    : isTarget1040B33
-                    ? 'border-[#00D2FF]/70 bg-[#00D2FF]/15 hover:bg-[#00D2FF]/25'
-                    : 'border-slate-500/40 bg-slate-800/40 hover:bg-slate-700/50'
-                }`}
-              >
-                {/* Visual Hatch Pattern for Mining Ore Blocks */}
-                <div
-                  className="absolute inset-0 opacity-15 pointer-events-none"
-                  style={{
-                    backgroundImage: 'repeating-linear-gradient(45deg, #00D2FF 0, #00D2FF 1px, transparent 0, transparent 8px)',
-                  }}
-                />
-
-                <span
-                  className={`text-[10px] md:text-xs font-black tracking-tight ${
-                    isSelected ? 'text-white' : isTarget1040B33 ? 'text-[#00D2FF]' : 'text-slate-300'
-                  }`}
-                >
-                  {block.code}
-                </span>
-
-                <span className="text-[9px] text-slate-300 hidden md:inline truncate max-w-full">
-                  {block.gradeText.split(' ')[0]}
-                </span>
-
-                {/* Selection Badge */}
-                {isSelected && (
-                  <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#00D2FF] animate-ping" />
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Point Marker (if free point or selected block center) */}
-        {value && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="absolute z-30 pointer-events-none transform -translate-x-1/2 -translate-y-full"
-            style={{ left: `${value.x}%`, top: `${value.y}%` }}
-          >
-            <div className="relative flex flex-col items-center">
-              {/* Pulsing Target Ring */}
-              <div className="absolute -bottom-1 w-6 h-6 rounded-full bg-[#00D2FF]/40 animate-ping" />
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00D2FF] to-[#0099FF] text-[#070F1E] shadow-xl flex items-center justify-center border-2 border-white">
-                <MapPin className="w-4 h-4 fill-current stroke-[2.5]" />
-              </div>
-              <div className="px-2 py-0.5 mt-1 rounded-md bg-[#101935]/90 border border-[#00D2FF] text-[9px] font-bold text-white whitespace-nowrap shadow-lg">
-                {value.blockCode || `پله ${value.bench}`}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Hover Block Tooltip inside map */}
+        {/* هاور روی عوارض */}
         {hoveredBlock && (
-          <div className="absolute bottom-2 left-2 right-2 md:right-auto md:w-80 p-2.5 rounded-xl bg-[#101935]/95 border border-[#00D2FF]/60 text-white text-[11px] shadow-2xl backdrop-blur-md pointer-events-none z-40">
-            <div className="flex items-center justify-between font-bold text-[#00D2FF] mb-1">
-              <span>بلوک معدنی {hoveredBlock.code}</span>
-              <span className="text-[10px] text-slate-400">تراز {hoveredBlock.bench}m</span>
+          <div className="absolute bottom-2 left-2 p-2 rounded-xl bg-[#0F172E]/95 border border-cyan-500/50 text-white text-[11px] shadow-2xl backdrop-blur-md pointer-events-none z-30">
+            <div className="flex items-center gap-2 font-bold text-cyan-300">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>
+                {'code' in hoveredBlock ? `بلوک ${hoveredBlock.code}` : hoveredBlock.name || 'عارضه نقشه مرجع'}
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300">
-              <div>عیار: <span className="font-semibold text-white">{hoveredBlock.gradeText}</span></div>
-              <div>مساحت: <span className="font-semibold text-white">{hoveredBlock.areaM2.toLocaleString()} م²</span></div>
-              <div>UTM Easting: <span className="font-mono text-slate-400">{hoveredBlock.eastingUTM}</span></div>
-              <div>UTM Northing: <span className="font-mono text-slate-400">{hoveredBlock.northingUTM}</span></div>
-            </div>
-            <div className="mt-1.5 pt-1 border-t border-[#24356B] text-[9px] text-[#00D2FF]">
-              برای اختصاص محدوده این بلوک به تسک کلیک کنید
-            </div>
+            <p className="text-[10px] text-slate-300 mt-0.5">برای انتخاب این محدوده به عنوان زون تسک کلیک کنید.</p>
           </div>
         )}
       </div>
 
-      {/* Selected Location Summary Card */}
-      {value ? (
-        <div className="p-3 rounded-xl bg-[#101935] border border-[#00D2FF]/40 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#00D2FF]/15 border border-[#00D2FF]/30 text-[#00D2FF] flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle2 className="w-4 h-4" />
+      {/* ۴. بخش کامنت‌گذاری، یادداشت فنی و جزئیات هندسی عارضه ترسیم‌شده */}
+      {value && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3.5 rounded-xl bg-[#0F172E] border border-cyan-500/40 space-y-3"
+        >
+          <div className="flex items-center justify-between border-b border-[#24356B]/60 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                  <span>کامنت‌گذاری و یادداشت فنی عارضه ترسیم‌شده</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300">
+                    {value.type === 'POLYGON' ? 'محدوده چندضلعی' : value.type === 'LINE' ? 'مسیر خطی' : value.type === 'POINT' ? 'نقطه پایش' : 'بلوک استخراجی'}
+                  </span>
+                </h4>
+                <p className="text-[10px] text-slate-400">این یادداشت بر روی موقعیت مکانی نقشه ثبت و در ارجاع تسک به واحد درج می‌گردد.</p>
+              </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2 font-bold text-white">
-                <span>موقعیت مکانی ثبت شد:</span>
-                <span className="px-2 py-0.5 rounded-md bg-[#00D2FF]/20 text-[#00D2FF] font-black">
-                  {value.blockCode ? `بلوک ${value.blockCode}` : `پله ${value.bench}`}
+
+            {/* مشخصات هندسی محاسبه شده */}
+            <div className="flex items-center gap-2 font-mono text-[10px] text-cyan-300">
+              {value.areaM2 && (
+                <span className="bg-[#14213F] px-2 py-1 rounded border border-cyan-500/30">
+                  مساحت: {value.areaM2.toLocaleString()} م²
                 </span>
-                <span className="text-[10px] text-slate-400">({value.zoneName})</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-[10px] text-[#8E9EB8] mt-1 font-mono">
-                {value.elevation && <span>تراز: {value.elevation}m</span>}
-                {value.areaM2 && <span>مساحت زون: {value.areaM2.toLocaleString()} م²</span>}
-                {value.eastingUTM && <span>UTM: {value.eastingUTM}E / {value.northingUTM}N</span>}
-              </div>
+              )}
+              {value.lengthM && (
+                <span className="bg-[#14213F] px-2 py-1 rounded border-amber-500/40 text-amber-300">
+                  طول مسیر: {value.lengthM.toLocaleString()} متر
+                </span>
+              )}
+              {value.eastingUTM && (
+                <span className="hidden sm:inline bg-[#14213F] px-2 py-1 rounded border border-slate-700 text-slate-300">
+                  UTM: {value.eastingUTM}E / {value.northingUTM}N
+                </span>
+              )}
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleClearLocation}
-            className="self-end md:self-center px-2.5 py-1 text-[11px] rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
-          >
-            پاک کردن موقعیت
-          </button>
-        </div>
-      ) : (
-        <div className="p-2.5 rounded-xl bg-[#101935]/60 border border-[#24356B]/40 text-xs flex items-center gap-2 text-[#8E9EB8]">
-          <Info className="w-4 h-4 text-[#00D2FF] flex-shrink-0" />
-          <span>
-            برای ارجاع دقیق تسک، روی یکی از بلوک‌های پله ۱۰۴۰ (نظیر <strong className="text-white">1040 B 33</strong>) کلیک کنید یا هر نقطه از نقشه را انتخاب نمایید.
-          </span>
-        </div>
+          {/* فرم ثبت کامنت و عنوان عارضه */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                برچسب / عنوان عارضه:
+              </label>
+              <input
+                type="text"
+                value={displayTitle}
+                onChange={(e) => handleUpdateComment(displayComment, e.target.value)}
+                placeholder="مثلاً: محدوده چال‌های ترانشه شرقی"
+                className="w-full px-3 py-1.5 text-xs rounded-lg bg-[#070D1A] border border-[#24356B] text-white focus:outline-none focus:border-cyan-400 font-medium"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 flex items-center justify-between">
+                <span>کامنت، دستورالعمل فنی و ملاحظات مکانی:</span>
+                {onApplyCommentToDescription && (
+                  <button
+                    type="button"
+                    onClick={handleApplyToTaskDescription}
+                    className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 transition-colors"
+                  >
+                    <Sparkles className="w-3 h-3 text-cyan-400" />
+                    <span>{commentCopiedFeedback ? 'به شرح تسک اضافه شد ✓' : 'درج خودکار در شرح کلی تسک'}</span>
+                  </button>
+                )}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={displayComment}
+                  onChange={(e) => handleUpdateComment(e.target.value)}
+                  placeholder="دستور کار ویژه این عارضه (مثلاً: شیارزنی و رگلاژ قبل از ورود شاول، بررسی پایداری شیب...)"
+                  className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-[#070D1A] border border-[#24356B] text-white focus:outline-none focus:border-cyan-400 font-medium"
+                />
+              </div>
+            </div>
+          </div>
+        </motion.div>
       )}
     </div>
   );
 };
+
+export default TaskInteractiveMapSelector;

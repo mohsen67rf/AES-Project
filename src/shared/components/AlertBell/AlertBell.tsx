@@ -9,21 +9,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function AlertBell() {
   const { isDark } = useTheme();
+  const getInitialAlerts = (): Alert[] => {
+    const allAlerts: Alert[] = AlertService.getAllAlerts();
+    return allAlerts.sort((a: Alert, b: Alert) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ).slice(0, 20);
+  };
+
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [alerts, setAlerts] = useState<Alert[]>(getInitialAlerts);
+  const [unreadCount, setUnreadCount] = useState<number>(() => AlertService.getUnreadAlerts().length);
 
   const loadAlerts = (): void => {
-    const allAlerts: Alert[] = AlertService.getAllAlerts();
-    const sorted: Alert[] = allAlerts.sort((a: Alert, b: Alert) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    setAlerts(sorted.slice(0, 20));
+    const sorted = getInitialAlerts();
+    setAlerts(sorted);
     setUnreadCount(AlertService.getUnreadAlerts().length);
   };
 
   useEffect(() => {
-    loadAlerts();
     const interval = setInterval(() => {
       AlertService.checkAndGenerateAlerts();
       loadAlerts();

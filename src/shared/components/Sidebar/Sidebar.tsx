@@ -13,7 +13,6 @@ import {
   ArchiveBoxIcon, 
   DocumentTextIcon, 
   MapIcon, 
-  WrenchScrewdriverIcon, 
   BellAlertIcon, 
   Cog6ToothIcon,
   SunIcon,
@@ -66,7 +65,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     { id: 'warehouse', label: isRtl ? 'انبار و مواد ناریه' : 'Warehouse', path: '/warehouse', icon: ArchiveBoxIcon },
     { id: 'reports', label: isRtl ? 'گزارش‌ها و ممیزی' : 'Reports', path: '/reports', icon: DocumentTextIcon },
     { id: 'gis', label: isRtl ? 'نقشه و GIS' : 'GIS', path: '/mine/map', icon: MapIcon },
-    { id: 'maintenance', label: isRtl ? 'تعمیر و نگهداری' : 'Maintenance', path: '/maintenance', icon: WrenchScrewdriverIcon },
     { id: 'alerts', label: isRtl ? 'هشدارها' : 'Alerts', path: '/alerts', icon: BellAlertIcon, badge: 4 },
     { id: 'settings', label: isRtl ? 'تنظیمات سامانه' : 'Settings', path: '/settings', icon: Cog6ToothIcon },
   ];

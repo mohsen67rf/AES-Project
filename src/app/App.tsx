@@ -19,6 +19,7 @@ import { EquipmentPage } from '../modules/equipment/presentation/pages/Equipment
 import { UnitWorkspacePage } from '../modules/workspace/presentation/pages/UnitWorkspacePage';
 import { ShiftHandoverPage } from '../modules/workspace/presentation/pages/ShiftHandoverPage';
 import { TallyControllerPage } from '../modules/tally/presentation/pages/TallyControllerPage';
+import { ReportsAndAuditPage } from '../modules/reports/presentation/pages/ReportsAndAuditPage';
 import { 
   UserRepository, 
   MineRepository, 
@@ -59,6 +60,8 @@ function NavigationAuditTracker({ currentUser }: { currentUser: User | null }) {
       '/personnel': 'مدیریت پرسنل و دسترسی‌ها',
       '/warehouse': 'انبار مواد ناریه و لجستیک سوخت معدن',
       '/equipment': 'مدیریت، رصد و جانمایی ماشین‌آلات معدنی',
+      '/reports': 'سامانه جامع گزارش‌ها و ممیزی معدن',
+      '/audit': 'سامانه جامع گزارش‌ها و ممیزی معدن',
     };
 
     let title = pageTitles[currentPath];
@@ -402,6 +405,8 @@ function App() {
               <Route path="/blocks-management" element={<BlockManagementPage />} />
               <Route path="/warehouse" element={<WarehousePage />} />
               <Route path="/equipment" element={<EquipmentPage />} />
+              <Route path="/reports" element={<ReportsAndAuditPage />} />
+              <Route path="/audit" element={<ReportsAndAuditPage />} />
               <Route path="/mining-lifecycle" element={<MiningLifecyclePage />} />
               <Route path="/subblocks-lifecycle" element={<MiningLifecyclePage />} />
               <Route path="/users" element={<UserManagementPage />} />

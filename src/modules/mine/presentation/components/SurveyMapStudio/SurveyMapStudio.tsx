@@ -916,6 +916,7 @@ export function SurveyMapStudio({
             onClick={(e) => e.stopPropagation()}
           >
             <MapLayersControlPanel
+              mapId={currentMap.id}
               layers={currentMap.layers || []}
               displaySettings={displaySettings}
               isMasterMap={currentMap.isMasterMap}

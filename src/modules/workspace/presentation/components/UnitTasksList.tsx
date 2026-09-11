@@ -1,6 +1,6 @@
 // src/modules/workspace/presentation/components/UnitTasksList.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '../../../../shared/context/ThemeContext';
 import { TaskService } from '../../../tasks/services/TaskService';
 import { UnitTask, TaskPriority } from '../../../../core/domain/types/task.types';
@@ -32,39 +32,27 @@ export const UnitTasksList: React.FC<UnitTasksListProps> = ({
 }) => {
   const { isDark } = useTheme();
 
-  const [tasks, setTasks] = useState<UnitTask[]>(() => {
+  const [updateTick, setUpdateTick] = useState(0);
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
+
+  useEffect(() => {
+    const handleUpdate = () => setUpdateTick(t => t + 1);
+    window.addEventListener('taskUpdated', handleUpdate);
+    return () => window.removeEventListener('taskUpdated', handleUpdate);
+  }, []);
+
+  const tasks = useMemo(() => {
     const all = TaskService.getAllTasks();
     return all.filter(
       t => t.assignedRole.toLowerCase() === roleId.toLowerCase() || 
            t.createdByUserRole?.toLowerCase() === roleId.toLowerCase()
     );
-  });
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
-
-  const loadTasks = () => {
-    const all = TaskService.getAllTasks();
-    const roleTasks = all.filter(
-      t => t.assignedRole.toLowerCase() === roleId.toLowerCase() || 
-           t.createdByUserRole?.toLowerCase() === roleId.toLowerCase()
-    );
-    setTasks(roleTasks);
-  };
-
-  useEffect(() => {
-    const all = TaskService.getAllTasks();
-    setTasks(all.filter(
-      t => t.assignedRole.toLowerCase() === roleId.toLowerCase() || 
-           t.createdByUserRole?.toLowerCase() === roleId.toLowerCase()
-    ));
-    const handleUpdate = () => loadTasks();
-    window.addEventListener('taskUpdated', handleUpdate);
-    return () => window.removeEventListener('taskUpdated', handleUpdate);
-  }, [roleId]);
+  }, [roleId, updateTick]);
 
   const handleUpdateStatus = (taskId: string, newStatus: 'IN_PROGRESS' | 'COMPLETED') => {
     if (!currentUser) return;
     TaskService.updateTaskStatus(taskId, newStatus, currentUser, `به‌روزرسانی مستقیم از میز کار واحد ${roleId}`);
-    loadTasks();
+    setUpdateTick(t => t + 1);
   };
 
   const filtered = tasks.filter(t => {

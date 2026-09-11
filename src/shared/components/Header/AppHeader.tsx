@@ -45,22 +45,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Active User & Session State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [pendingTasksCount, setPendingTasksCount] = useState<number>(0);
-
-  // Modals
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [assignModalBlockCode, setAssignModalBlockCode] = useState<string | undefined>(undefined);
-  const [assignModalBench, setAssignModalBench] = useState<string | undefined>('1040');
-  const [isTasksDrawerOpen, setIsTasksDrawerOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [selectedTaskForMap, setSelectedTaskForMap] = useState<UnitTask | null>(null);
-  const [isMapViewerModalOpen, setIsMapViewerModalOpen] = useState(false);
-
-  const isRtl = language === 'fa';
-
-  const loadSessionAndTasks = () => {
+  const getInitialUser = (): User => {
     let user: User | null = null;
     try {
       const saved = localStorage.getItem('aes_session');
@@ -72,7 +57,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
     }
 
     if (!user) {
-      // Default to Mining Engineer or Admin
       const allUsers = UserRepository.getAll();
       user = allUsers[1] || allUsers[0] || {
         id: 'usr-02',
@@ -86,9 +70,36 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         createdAt: new Date().toISOString(),
       };
-      localStorage.setItem('aes_session', JSON.stringify(user));
+      try {
+        localStorage.setItem('aes_session', JSON.stringify(user));
+      } catch (err) {
+        console.warn(err);
+      }
     }
+    return user;
+  };
 
+  // Active User & Session State
+  const [currentUser, setCurrentUser] = useState<User | null>(getInitialUser);
+  const [pendingTasksCount, setPendingTasksCount] = useState<number>(() => {
+    const user = getInitialUser();
+    const tasks = TaskService.getTasksForUser(user);
+    return tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length;
+  });
+
+  // Modals
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignModalBlockCode, setAssignModalBlockCode] = useState<string | undefined>(undefined);
+  const [assignModalBench, setAssignModalBench] = useState<string | undefined>('1040');
+  const [isTasksDrawerOpen, setIsTasksDrawerOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [selectedTaskForMap, setSelectedTaskForMap] = useState<UnitTask | null>(null);
+  const [isMapViewerModalOpen, setIsMapViewerModalOpen] = useState(false);
+
+  const isRtl = language === 'fa';
+
+  const loadSessionAndTasks = () => {
+    const user = getInitialUser();
     setCurrentUser(user);
     if (user) {
       const tasks = TaskService.getTasksForUser(user);
@@ -98,8 +109,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSearch 
   };
 
   useEffect(() => {
-    loadSessionAndTasks();
-
     const handleStorage = () => loadSessionAndTasks();
     window.addEventListener('storage', handleStorage);
     window.addEventListener('taskUpdated', handleStorage);
