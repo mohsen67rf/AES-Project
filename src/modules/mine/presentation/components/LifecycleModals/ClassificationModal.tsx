@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, TagIcon, SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import type { SubBlock } from '../../../../../core/domain/types/mine.types';
 import { SubBlockLifecycleService } from '../../../services/SubBlockLifecycleService';
+import { BlockCodeDisplay } from '../../../../../shared/components/BlockCodeDisplay';
 
 interface ClassificationModalProps {
   subBlock: SubBlock;
@@ -85,10 +86,12 @@ export function ClassificationModal({ subBlock, onClose, onSuccess }: Classifica
               </div>
               <div>
                 <h3 className="font-bold text-white text-base">طبقه‌بندی ژئومتالورژی کانسار</h3>
-                <p className="text-xs text-[#8A9DB0]">
-                  ساب‌بلوک: <span className="font-mono text-[#00D4FF] font-bold">{subBlock.code}</span>
-                  {' '}| عیار: <span className="font-mono text-white font-bold">{fe.toFixed(2)}% Fe</span>
-                </p>
+                <div className="text-xs text-[#8A9DB0] flex items-center gap-1.5 mt-0.5">
+                  <span>ساب‌بلوک:</span>
+                  <BlockCodeDisplay code={subBlock.code} className="text-[#00D4FF] font-bold" />
+                  <span>| عیار:</span>
+                  <span className="font-mono text-white font-bold">{fe.toFixed(2)}% Fe</span>
+                </div>
               </div>
             </div>
             <button 

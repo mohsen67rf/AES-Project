@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, DocumentTextIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import type { SubBlock } from '../../../../../core/domain/types/mine.types';
 import { SubBlockLifecycleService } from '../../../services/SubBlockLifecycleService';
+import { BlockCodeDisplay } from '../../../../../shared/components/BlockCodeDisplay';
 
 interface SamplingModalProps {
   subBlock: SubBlock;
@@ -66,7 +67,10 @@ export function SamplingModal({ subBlock, onClose, onSuccess }: SamplingModalPro
               </div>
               <div>
                 <h3 className="font-bold text-white text-base">ثبت پروتکل نمونه‌برداری</h3>
-                <p className="text-xs text-[#8A9DB0]">ساب‌بلوک: <span className="font-mono text-[#00D4FF] font-bold">{subBlock.code}</span></p>
+                <p className="text-xs text-[#8A9DB0] flex items-center gap-1.5 mt-0.5">
+                  <span>ساب‌بلوک:</span>
+                  <BlockCodeDisplay code={subBlock.code} className="text-[#00D4FF] font-bold" />
+                </p>
               </div>
             </div>
             <button 

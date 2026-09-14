@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../../../shared/context/ThemeContext';
 import { XMarkIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { BlockCodeDisplay } from '../../../../shared/components/BlockCodeDisplay';
 import type { FullBlock } from '../../../../core/domain/types/block.types';
 
 interface BlockApprovalModalProps {
@@ -46,7 +47,10 @@ export const BlockApprovalModal: React.FC<BlockApprovalModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-[#2A3A5A]/30">
           <div>
             <h3 className="font-black text-base">تأیید / رد طرح بلوک استخراجی</h3>
-            <p className="text-xs text-[#8A9DB0] mt-0.5">بلوک {block.code} - تراز {block.targetLevel}m</p>
+            <p className="text-xs text-[#8A9DB0] mt-1 flex items-center gap-1.5">
+              <BlockCodeDisplay code={block.code} prefix="بلوک" className="text-[#00D4FF] font-bold" />
+              <span>- تراز {block.targetLevel}m</span>
+            </p>
           </div>
           <button
             onClick={onClose}

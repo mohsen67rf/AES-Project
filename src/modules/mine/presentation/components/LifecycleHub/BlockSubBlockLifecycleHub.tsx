@@ -32,12 +32,15 @@ import {
 import type { Block, SubBlock, DestinationType, StakeholderRole } from '../../../../../core/domain/types/mine.types';
 import { SubBlockLifecycleService } from '../../../services/SubBlockLifecycleService';
 import { SubBlocksTable } from '../SubBlocksTable/SubBlocksTable';
+import { SubBlockLifecycleOverviewBar } from './SubBlockLifecycleOverviewBar';
+import { getSubBlockStageStates } from './SubBlockSteppedProgress';
 import { SamplingModal } from '../LifecycleModals/SamplingModal';
 import { LabResultsModal } from '../LifecycleModals/LabResultsModal';
 import { ClassificationModal } from '../LifecycleModals/ClassificationModal';
 import { DestinationModal } from '../LifecycleModals/DestinationModal';
 import { CrusherConsumptionModal } from '../LifecycleModals/CrusherConsumptionModal';
 import { SubBlockDetailModal } from '../LifecycleModals/SubBlockDetailModal';
+import { BlockCodeDisplay, formatBlockCode } from '../../../../../shared/components/BlockCodeDisplay';
 import { DESTINATION_LABELS } from '../../../../../core/domain/constants/mine.constants';
 
 // کامپوننت‌های ارکان ۴گانه و چرخه ۱۳ مرحله‌ای
@@ -120,15 +123,16 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
       if (searchTerm && !sb.code.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
-      // فیلتر مرحله
+      // فیلتر مرحله بر اساس نوار پیشرفت ۶ مرحله‌ای
       if (activeStageFilter === 'ALL') return true;
-      if (activeStageFilter === 'SAMPLING' && (sb.status === 'DEFINED' || sb.status === 'SUB_BLOCKED' || sb.status === 'SAMPLING_REQUESTED')) return true;
-      if (activeStageFilter === 'LAB' && (sb.status === 'SAMPLING_COMPLETED' || sb.status === 'LAB_SENT' || sb.status === 'LAB_IN_PROGRESS')) return true;
-      if (activeStageFilter === 'CLASSIFY' && (sb.status === 'LAB_COMPLETED' || sb.status === 'CLASSIFICATION_PENDING')) return true;
-      if (activeStageFilter === 'DESTINATION' && (sb.status === 'CLASSIFICATION_DONE' || sb.status === 'DESTINATION_PENDING')) return true;
-      if (activeStageFilter === 'CRUSHING' && (sb.status === 'DESTINATION_APPROVED' || sb.status === 'DELIVERED' || sb.status === 'PROCESSING')) return true;
-      if (activeStageFilter === 'COMPLETED' && (sb.status === 'FINAL_PRODUCT' || sb.status === 'COMPLETED' || sb.status === 'SOLD')) return true;
-      return false;
+      const { currentStageIndex } = getSubBlockStageStates(sb);
+      if (activeStageFilter === 'DEFINITION') return currentStageIndex === 0;
+      if (activeStageFilter === 'SAMPLING') return currentStageIndex === 1;
+      if (activeStageFilter === 'LAB') return currentStageIndex === 2;
+      if (activeStageFilter === 'CLASSIFY') return currentStageIndex === 3;
+      if (activeStageFilter === 'DESTINATION') return currentStageIndex === 4;
+      if (activeStageFilter === 'CRUSHING') return currentStageIndex === 5;
+      return true;
     });
   }, [subBlocks, activeStageFilter, searchTerm]);
 
@@ -346,7 +350,7 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
                   >
                     {blocks.map(b => (
                       <option key={b.id} value={b.id}>
-                        بلوک {b.code} (تراز {b.targetLevel})
+                        بلوک {formatBlockCode(b.code)} (تراز {b.targetLevel})
                       </option>
                     ))}
                   </select>
@@ -377,7 +381,7 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
               <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-xs">
                 <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                   <span className="text-[#8A9DB0] block mb-1">کد و شناسه بلوک</span>
-                  <span className="text-white font-mono font-bold text-sm">{selectedBlock.code}</span>
+                  <BlockCodeDisplay code={selectedBlock.code} className="text-white font-bold text-sm" />
                 </div>
                 <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                   <span className="text-[#8A9DB0] block mb-1">تراز پله معدن</span>
@@ -405,114 +409,28 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
             )}
           </div>
 
-          {/* خط لوله پیشرفت چرخه (Lifecycle Pipeline Tracker) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {/* فاز ۱: نمونه‌برداری */}
-            <button
-              onClick={() => setActiveStageFilter(activeStageFilter === 'SAMPLING' ? 'ALL' : 'SAMPLING')}
-              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-                activeStageFilter === 'SAMPLING' ? 'bg-yellow-500/20 border-yellow-500 shadow-lg shadow-yellow-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-yellow-400">۶. نمونه‌برداری</span>
-                <DocumentPlusIcon className="w-5 h-5 text-yellow-400" />
-              </div>
-              <p className="text-2xl font-bold font-mono text-white">{metrics.sampledCount} <span className="text-xs text-[#8A9DB0]">از {metrics.totalSubBlocks}</span></p>
-              <p className="text-[11px] text-[#8A9DB0] mt-1">پودر حفاری چال‌ها</p>
-            </button>
-
-            {/* فاز ۲: آزمایشگاه */}
-            <button
-              onClick={() => setActiveStageFilter(activeStageFilter === 'LAB' ? 'ALL' : 'LAB')}
-              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-                activeStageFilter === 'LAB' ? 'bg-purple-500/20 border-purple-500 shadow-lg shadow-purple-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-purple-400">۷. آنالیز آزمایشگاه</span>
-                <BeakerIcon className="w-5 h-5 text-purple-400" />
-              </div>
-              <p className="text-2xl font-bold font-mono text-white">{metrics.assayedCount} <span className="text-xs text-[#8A9DB0]">آنالیز شده</span></p>
-              <p className="text-[11px] text-[#8A9DB0] mt-1">XRF (Fe, FeO, SiO2)</p>
-            </button>
-
-            {/* فاز ۳: طبقه‌بندی کانسار */}
-            <button
-              onClick={() => setActiveStageFilter(activeStageFilter === 'CLASSIFY' ? 'ALL' : 'CLASSIFY')}
-              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-                activeStageFilter === 'CLASSIFY' ? 'bg-blue-500/20 border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-blue-400">۸. طبقه‌بندی سنگ</span>
-                <TagIcon className="w-5 h-5 text-blue-400" />
-              </div>
-              <p className="text-2xl font-bold font-mono text-white">
-                {metrics.highGradeCount + metrics.mediumGradeCount} <span className="text-xs text-green-400 font-normal">کانسنگ</span>
-              </p>
-              <p className="text-[11px] text-[#8A9DB0] mt-1">{metrics.wasteCount} باطله معدنی</p>
-            </button>
-
-            {/* فاز ۴: تعیین مقصد */}
-            <button
-              onClick={() => setActiveStageFilter(activeStageFilter === 'DESTINATION' ? 'ALL' : 'DESTINATION')}
-              className={`p-4 rounded-2xl border text-right transition-all cursor-pointer ${
-                activeStageFilter === 'DESTINATION' ? 'bg-cyan-500/20 border-cyan-500 shadow-lg shadow-cyan-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-cyan-400">۹. تعیین مقصد</span>
-                <TruckIcon className="w-5 h-5 text-cyan-400" />
-              </div>
-              <p className="text-2xl font-bold font-mono text-white">
-                {subBlocks.filter(sb => !!sb.destination).length} <span className="text-xs text-[#8A9DB0]">مجوز حمل</span>
-              </p>
-              <p className="text-[11px] text-[#8A9DB0] mt-1">تخصیص دپوها</p>
-            </button>
-
-            {/* فاز ۵: ناوگان حمل و سرویس‌ها */}
-            <button
-              onClick={() => setActiveTab('DYNAMIC_STOCKPILES')}
-              className="p-4 rounded-2xl border text-right transition-all cursor-pointer bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-amber-400">۱۰. سرویس‌شمار</span>
-                <TruckIcon className="w-5 h-5 text-amber-400" />
-              </div>
-              <p className="text-xl font-bold font-mono text-amber-300">تراک‌های ۱۰۰، ۶۰، ۳۵</p>
-              <p className="text-[11px] text-[#8A9DB0] mt-1">برآورد تناژ با سرویس</p>
-            </button>
-
-            {/* فاز ۶: موجودی دپوها */}
-            <button
-              onClick={() => setActiveTab('DYNAMIC_STOCKPILES')}
-              className="p-4 rounded-2xl border text-right transition-all cursor-pointer bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-purple-400">۱۱. موجودی دپوها</span>
-                <ArchiveBoxIcon className="w-5 h-5 text-purple-400" />
-              </div>
-              <p className="text-xl font-bold font-mono text-purple-300">بالانس دینامیک</p>
-              <p className="text-[11px] text-[#8A9DB0] mt-1">میانگین وزنی عیار</p>
-            </button>
-          </div>
+          {/* نوار پیشرفت مرحله‌ای کل چرخه ساب‌بلوک‌ها (Master Stepped Lifecycle Pipeline Tracker) */}
+          <SubBlockLifecycleOverviewBar
+            subBlocks={subBlocks}
+            activeStageFilter={activeStageFilter}
+            onSelectStageFilter={setActiveStageFilter}
+          />
 
           {/* نوار فیلتر و جستجو و اقدامات گروهی */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center flex-wrap gap-3">
               <div className="relative">
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="جستجوی کد ساب‌بلوک (مانند 1040 B 32 – SA)..."
-                  className="px-4 py-2 pr-9 bg-[#0A1628] border border-white/10 rounded-xl text-white text-xs placeholder-[#4A6A8A] focus:outline-none focus:border-[#00D4FF] min-w-[260px]"
+                  className="px-4 py-2 pr-9 bg-[#0A1628] border border-white/10 rounded-xl text-white text-xs placeholder-[#4A6A8A] focus:outline-none focus:border-[#00D4FF] min-w-[240px]"
                 />
                 <FunnelIcon className="w-4 h-4 text-[#4A6A8A] absolute right-3 top-2.5" />
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center flex-wrap gap-1">
                 <button
                   onClick={() => setActiveStageFilter('ALL')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
@@ -522,12 +440,20 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
                   همه ({subBlocks.length})
                 </button>
                 <button
+                  onClick={() => setActiveStageFilter('DEFINITION')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    activeStageFilter === 'DEFINITION' ? 'bg-slate-300 text-slate-950 font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
+                  }`}
+                >
+                  ۱. تفکیک
+                </button>
+                <button
                   onClick={() => setActiveStageFilter('SAMPLING')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     activeStageFilter === 'SAMPLING' ? 'bg-yellow-500 text-black font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
                   }`}
                 >
-                  نمونه‌برداری
+                  ۲. نمونه‌برداری
                 </button>
                 <button
                   onClick={() => setActiveStageFilter('LAB')}
@@ -535,7 +461,7 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
                     activeStageFilter === 'LAB' ? 'bg-purple-500 text-white font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
                   }`}
                 >
-                  آزمایشگاه
+                  ۳. آزمایشگاه
                 </button>
                 <button
                   onClick={() => setActiveStageFilter('CLASSIFY')}
@@ -543,7 +469,7 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
                     activeStageFilter === 'CLASSIFY' ? 'bg-blue-500 text-white font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
                   }`}
                 >
-                  طبقه‌بندی
+                  ۴. طبقه‌بندی
                 </button>
                 <button
                   onClick={() => setActiveStageFilter('DESTINATION')}
@@ -551,7 +477,15 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
                     activeStageFilter === 'DESTINATION' ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
                   }`}
                 >
-                  مقاصد و بارگیری
+                  ۵. تعیین مقصد
+                </button>
+                <button
+                  onClick={() => setActiveStageFilter('CRUSHING')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    activeStageFilter === 'CRUSHING' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/5 text-[#8A9DB0] hover:text-white'
+                  }`}
+                >
+                  ۶. تحویل و بارگیری
                 </button>
               </div>
             </div>
@@ -579,9 +513,11 @@ export function BlockSubBlockLifecycleHub({ initialBlockId, onBlockSelect }: Blo
       {activeModal === 'createSubBlocks' && selectedBlock && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-[#0D1B2E] border border-white/10 rounded-2xl p-6 text-right space-y-4">
-            <h3 className="text-base font-bold text-white">تفکیک ساب‌بلوک‌ها برای بلوک {selectedBlock.code}</h3>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <BlockCodeDisplay code={selectedBlock.code} prefix="تفکیک ساب‌بلوک‌ها برای بلوک" className="text-cyan-400 font-bold" />
+            </h3>
             <p className="text-xs text-[#8A9DB0]">
-              بر اساس هندسه و الگوی چال‌پاشی، بلوک به قطعات استخراجی تفکیک و کدهای استاندارد (مانند {selectedBlock.code} – SA, SB, SC, SD) اختصاص داده می‌شود.
+              بر اساس هندسه و الگوی چال‌پاشی، بلوک به قطعات استخراجی تفکیک و کدهای استاندارد (مانند <span dir="ltr" className="font-mono text-cyan-300 font-bold">{formatBlockCode(selectedBlock.code)} – SA, SB, SC, SD</span>) اختصاص داده می‌شود.
             </p>
 
             <div>

@@ -17,6 +17,7 @@ import {
 import { BlockSubBlockLifecycleHub } from '../components/LifecycleHub/BlockSubBlockLifecycleHub';
 import { DailyDrillingForm } from '../components/DailyDrillingForm';
 import { Header } from '../../../dashboard/presentation/components/Header/Header';
+import { BlockCodeDisplay } from '../../../../shared/components/BlockCodeDisplay';
 import type { Block, DrillingPoint, SubBlock } from '../../../../core/domain/types/mine.types';
 
 // ============================================
@@ -146,7 +147,9 @@ export function BlockDetailPage({ blockId: propBlockId, onBack }: BlockDetailPag
               </button>
             )}
             <div>
-              <h2 className={`text-2xl font-bold ${textPrimary}`}>بلوک {block.code}</h2>
+              <h2 className={`text-2xl font-bold ${textPrimary} flex items-center gap-2`}>
+                <BlockCodeDisplay code={block.code} prefix="بلوک" className="text-cyan-400 font-bold" />
+              </h2>
               <p className={`text-sm ${textSecondary}`}>
                 تراز: {block.targetLevel} | شماره: {block.blockNumber}
               </p>
@@ -214,7 +217,9 @@ export function BlockDetailPage({ blockId: propBlockId, onBack }: BlockDetailPag
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className={`text-sm ${textSecondary}`}>کد بلوک</p>
-                <p className={`text-lg font-mono font-bold ${textPrimary}`}>{block.code}</p>
+                <div className="mt-1">
+                  <BlockCodeDisplay code={block.code} className={`text-lg font-bold ${textPrimary}`} />
+                </div>
               </div>
               <div>
                 <p className={`text-sm ${textSecondary}`}>تراز هدف</p>

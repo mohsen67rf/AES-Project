@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { BlockRepository, SubBlockRepository } from '../../../core/infrastructure/repositories';
 import { TaskService } from '../../../modules/tasks/services/TaskService';
+import { BlockCodeDisplay } from '../BlockCodeDisplay';
 import type { UnitTask } from '../../../core/domain/types/task.types';
 
 interface BlockLifecycleSearchDropdownProps {
@@ -235,13 +236,13 @@ export const BlockLifecycleSearchDropdown: React.FC<BlockLifecycleSearchDropdown
               <div className="p-4 rounded-2xl bg-gradient-to-r from-[#101935] via-[#142247] to-[#101935] border border-[#00D2FF]/40 shadow-lg shadow-[#00D2FF]/5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-[#00D2FF]/20 border border-[#00D2FF]/50 text-[#00D2FF] flex items-center justify-center font-black text-sm shadow-md shadow-[#00D2FF]/20">
-                      {blockMatch.code.split(' ')[1] || 'BLK'}
+                    <div className="px-2.5 py-1.5 rounded-xl bg-[#00D2FF]/20 border border-[#00D2FF]/50 text-[#00D2FF] flex items-center justify-center font-mono font-black text-xs shadow-md shadow-[#00D2FF]/20" dir="ltr">
+                      <bdi dir="ltr">{blockMatch.code}</bdi>
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <h2 className="text-base font-black text-white">
-                          بلوک معدنی {blockMatch.code}
+                          <BlockCodeDisplay code={blockMatch.code} prefix="بلوک معدنی" className="text-white font-black" />
                         </h2>
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00D2FF]/20 text-[#00D2FF] border border-[#00D2FF]/40">
                           پله {blockMatch.targetLevel || 1040} متر
@@ -279,7 +280,10 @@ export const BlockLifecycleSearchDropdown: React.FC<BlockLifecycleSearchDropdown
                 <div className="flex items-center justify-between text-xs font-bold text-[#8E9EB8] px-1">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-[#00D2FF]" />
-                    <span>مراحل چرخه کامل عملیاتی و صفحات مربوط به بلوک {blockMatch.code}:</span>
+                    <span className="flex items-center gap-1">
+                      <span>مراحل چرخه کامل عملیاتی و صفحات مربوط به بلوک</span>
+                      <BlockCodeDisplay code={blockMatch.code} className="text-white font-bold" />:
+                    </span>
                   </span>
                   <span className="text-[11px] text-[#00D2FF]">از حفاری و نمونه‌گیری تا آزمایشگاه و مقصد</span>
                 </div>
@@ -500,7 +504,11 @@ export const BlockLifecycleSearchDropdown: React.FC<BlockLifecycleSearchDropdown
                 <div className="flex items-center justify-between text-xs font-bold text-[#8E9EB8] px-1">
                   <span className="flex items-center gap-1.5">
                     <ClipboardList className="w-4 h-4 text-[#00D2FF]" />
-                    <span>تسک‌ها و دستورکارهای ارجاعی مربوط به بلوک {blockMatch.code} ({relatedTasks.length}):</span>
+                    <span className="flex items-center gap-1">
+                      <span>تسک‌ها و دستورکارهای ارجاعی مربوط به بلوک</span>
+                      <BlockCodeDisplay code={blockMatch.code} className="text-white font-bold" />
+                      <span>({relatedTasks.length}):</span>
+                    </span>
                   </span>
                 </div>
 
@@ -555,9 +563,10 @@ export const BlockLifecycleSearchDropdown: React.FC<BlockLifecycleSearchDropdown
                           onClose();
                           onOpenAssignModalForBlock(blockMatch.code, String(blockMatch.targetLevel || 1040));
                         }}
-                        className="text-[#00D2FF] hover:underline font-bold text-xs"
+                        className="text-[#00D2FF] hover:underline font-bold text-xs flex items-center gap-1"
                       >
-                        + ارجاع اولین تسک برای {blockMatch.code}
+                        <span>+ ارجاع اولین تسک برای</span>
+                        <BlockCodeDisplay code={blockMatch.code} className="text-[#00D2FF] font-bold" />
                       </button>
                     )}
                   </div>

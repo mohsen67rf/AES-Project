@@ -15,6 +15,8 @@ import {
 import type { SubBlock } from '../../../../../core/domain/types/mine.types';
 import { SUB_BLOCK_STATUS_LABELS, DESTINATION_LABELS } from '../../../../../core/domain/constants/mine.constants';
 import { SUB_BLOCK_STATUS_COLORS } from '../../../../../core/domain/constants/subblock.constants';
+import { SubBlockSteppedProgress } from '../LifecycleHub/SubBlockSteppedProgress';
+import { BlockCodeDisplay } from '../../../../../shared/components/BlockCodeDisplay';
 
 interface SubBlockDetailModalProps {
   subBlock: SubBlock;
@@ -47,7 +49,9 @@ export function SubBlockDetailModal({ subBlock, onClose, onOpenAction }: SubBloc
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-white text-lg font-mono">ساب‌بلوک {subBlock.code}</h3>
+                  <h3 className="font-bold text-white text-lg">
+                    <BlockCodeDisplay code={subBlock.code} prefix="ساب‌بلوک" className="text-cyan-400 font-bold" />
+                  </h3>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${statusColor}`}>
                     {statusLabel}
                   </span>
@@ -66,6 +70,18 @@ export function SubBlockDetailModal({ subBlock, onClose, onOpenAction }: SubBloc
           </div>
 
           <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+            {/* نوار پیشرفت مرحله‌ای چرخه ساب‌بلوک */}
+            <SubBlockSteppedProgress 
+              subBlock={subBlock} 
+              variant="detailed"
+              interactive={true}
+              onActionClick={(_, actionType) => {
+                if (actionType !== 'view' && onOpenAction) {
+                  onOpenAction(actionType);
+                }
+              }}
+            />
+
             {/* کارت‌های خلاصه فازها */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {/* ۱. نمونه‌برداری */}

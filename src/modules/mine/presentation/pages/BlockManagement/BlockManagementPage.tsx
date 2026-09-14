@@ -24,6 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import type { FullBlock, BlockLifecycleStatus } from '../../../../../core/domain/types/block.types';
 import type { Block } from '../../../../../core/domain/types/mine.types';
+import { BlockCodeDisplay, formatBlockCode } from '../../../../../shared/components/BlockCodeDisplay';
 
 // ============================================
 // کامپوننت وضعیت بلوک
@@ -128,9 +129,10 @@ function BlockFormModal({
 
     setLoading(true);
     try {
+      const normalizedCode = formatBlockCode(code.trim());
       const blockData = {
-        code: code.trim(),
-        name: code.trim(),
+        code: normalizedCode,
+        name: normalizedCode,
         targetLevel: parseInt(targetLevel),
         blockNumber: parseInt(blockNumber),
         drillingParams: {
@@ -239,9 +241,9 @@ function BlockFormModal({
                   type="text"
                   value={code}
                   onChange={handleCodeChange}
-                  placeholder="مثال: 1040 B 60"
+                  placeholder="مثال: 1040 B 33"
                   dir="ltr"
-                  className={`w-full px-4 py-2 rounded-xl border focus:outline-none text-left ${
+                  className={`w-full px-4 py-2 rounded-xl border focus:outline-none text-left font-mono font-bold ${
                     isDark 
                       ? 'bg-[#0A1628] border-[#AACCDD]/10 text-white placeholder-[#4A6A8A] focus:border-[#00D4FF]/50' 
                       : 'bg-gray-100 border-gray-200 text-gray-800 placeholder-gray-400 focus:border-[#C9A227]/50'
@@ -433,7 +435,7 @@ function BlockDetailModal({
                 </div>
                 <div>
                   <h3 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                    {block?.code || 'جزئیات بلوک'}
+                    {block ? <BlockCodeDisplay code={block.code} /> : 'جزئیات بلوک'}
                   </h3>
                   <p className={`text-[10px] ${isDark ? 'text-[#4A6A8A]' : 'text-gray-400'}`}>
                     {block && <BlockStatusBadge status={block.lifecycleStatus} />}
@@ -525,12 +527,12 @@ function BlockDetailModal({
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>کد بلوک</p>
-                          <p 
-                            className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}
-                            style={{ direction: 'ltr', textAlign: 'left' }}
-                          >
-                            {block.code}
-                          </p>
+                          <div className="mt-1">
+                            <BlockCodeDisplay 
+                              code={block.code} 
+                              className={`text-base font-bold ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`} 
+                            />
+                          </div>
                         </div>
                         <div>
                           <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>تراز هدف</p>
@@ -735,12 +737,10 @@ export function BlockManagementPage() {
       header: 'کد بلوک',
       render: (item: FullBlock) => (
         <div>
-          <p 
-            className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}
-            style={{ direction: 'ltr', textAlign: 'left' }}
-          >
-            {item.code}
-          </p>
+          <BlockCodeDisplay 
+            code={item.code} 
+            className={`font-bold text-sm ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`} 
+          />
           <p className={`text-xs ${isDark ? 'text-[#8A9DB0]' : 'text-gray-500'}`}>
             تراز: {item.targetLevel} • شماره: {item.blockNumber}
           </p>
