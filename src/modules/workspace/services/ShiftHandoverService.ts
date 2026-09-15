@@ -681,7 +681,7 @@ const SEED_HANDOVERS: ShiftHandoverRecord[] = [
       },
       notifiedManagers: [
         {
-          id: 'mgr-1',
+          id: 'mgr-arch-1',
           name: 'مهندس کمالی (مدیر کل مجتمع)',
           roleTitle: 'مدیر ارشد',
           notifiedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
@@ -1205,14 +1205,14 @@ export class ShiftHandoverService {
         },
         notifiedManagers: [
           {
-            id: 'mgr-1',
+            id: `mgr-init-1-${Date.now()}`,
             name: 'مهندس کمالی (مدیر کل مجتمع معدنی)',
             roleTitle: 'مدیر ارشد مجتمع',
             notifiedAt: now.toISOString(),
             viewed: false
           },
           {
-            id: 'mgr-2',
+            id: `mgr-init-2-${Date.now()}`,
             name: 'دکتر افشار (سرپرست کل مهندسی و برنامه‌ریزی)',
             roleTitle: 'سرپرست مهندسی معدن',
             notifiedAt: now.toISOString(),

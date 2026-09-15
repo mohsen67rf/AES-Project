@@ -1568,9 +1568,9 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                   <span className="text-[10px] text-slate-400">100%</span>
                 </button>
                 <div className="w-full h-px bg-slate-800 my-0.5" />
-                {[0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5, 10, 25, 50, 100].map((z) => (
+                {[0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5, 10, 25, 50, 100].map((z, zIdx) => (
                   <button
-                    key={z}
+                    key={`zoom-preset-${z}-${zIdx}`}
                     onClick={() => handleSetZoomPreset(z)}
                     className={`px-3 py-0.5 text-right hover:bg-slate-800 flex justify-between ${Math.abs(zoom - z) < 0.01 ? 'text-cyan-400 font-bold bg-cyan-950/40' : 'text-slate-300'}`}
                   >
@@ -1727,7 +1727,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
             )}
 
             {/* رندر المان‌های نقشه (Features) با vectorEffect="non-scaling-stroke" */}
-            {visibleFeatures.map((feat) => {
+            {visibleFeatures.map((feat, fIdx) => {
               const isSelected = selectedFeatureId === feat.id;
               const isHovered = hoveredFeatureId === feat.id;
               const layer = feat.layerId ? layersById[feat.layerId] : null;
@@ -1757,7 +1757,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
 
                 return (
                   <g 
-                    key={feat.id}
+                    key={`feat-poly-${feat.mapId || ''}-${feat.id || 'f'}-${fIdx}`}
                     onClick={(e) => handleFeatureClick(e, feat)}
                     onMouseEnter={() => setHoveredFeatureId(feat.id)}
                     onMouseLeave={() => setHoveredFeatureId(null)}
@@ -1843,7 +1843,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
 
                 return (
                   <g
-                    key={feat.id}
+                    key={`feat-line-${feat.mapId || ''}-${feat.id || 'f'}-${fIdx}`}
                     onClick={(e) => handleFeatureClick(e, feat)}
                     onMouseEnter={() => setHoveredFeatureId(feat.id)}
                     onMouseLeave={() => setHoveredFeatureId(null)}
@@ -1913,7 +1913,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
 
                 return (
                   <g
-                    key={feat.id}
+                    key={`feat-pt-${feat.mapId || ''}-${feat.id || 'f'}-${fIdx}`}
                     onClick={(e) => handleFeatureClick(e, feat)}
                     onMouseEnter={() => setHoveredFeatureId(feat.id)}
                     onMouseLeave={() => setHoveredFeatureId(null)}
@@ -1962,7 +1962,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                 const radiusSvg = (feat.properties?.radiusM || 40) * uniformScale;
                 return (
                   <g
-                    key={feat.id}
+                    key={`feat-circle-${feat.mapId || ''}-${feat.id || 'f'}-${fIdx}`}
                     onClick={(e) => handleFeatureClick(e, feat)}
                     className="cursor-pointer group"
                     opacity={layerOpacity}
@@ -2000,7 +2000,7 @@ export const MapCanvasEditor: React.FC<MapCanvasEditorProps> = ({
                 const [ptSvgX, ptSvgY] = utmToSvg(feat.coordinates[0][0], feat.coordinates[0][1]);
                 return (
                   <g
-                    key={feat.id}
+                    key={`feat-txt-${feat.mapId || ''}-${feat.id || 'f'}-${fIdx}`}
                     onClick={(e) => handleFeatureClick(e, feat)}
                     className="cursor-pointer select-none"
                     opacity={layerOpacity}

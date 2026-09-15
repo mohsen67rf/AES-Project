@@ -290,7 +290,7 @@ export const SubBlockSteppedProgress: React.FC<SubBlockSteppedProgressProps> = (
 
             return (
               <div 
-                key={stage.meta.id}
+                key={`step-compact-${subBlock.id}-${stage.meta.id}-${idx}`}
                 onClick={(e) => isClickable && handleStepClick(e, stage)}
                 title={`${stage.meta.stepNumber}. ${stage.meta.title} (${
                   isCompleted ? 'تکمیل شده: ' + (stage.valueSummary || '') :
@@ -347,7 +347,7 @@ export const SubBlockSteppedProgress: React.FC<SubBlockSteppedProgressProps> = (
         <div className="flex items-center gap-1">
           {stages.map((s, i) => (
             <span
-              key={s.meta.id}
+              key={`step-min-${subBlock.id}-${s.meta.id}-${i}`}
               title={`${s.meta.stepNumber}. ${s.meta.title}`}
               className={`w-2.5 h-2.5 rounded-full transition-all ${
                 s.status === 'COMPLETED'
@@ -404,7 +404,7 @@ export const SubBlockSteppedProgress: React.FC<SubBlockSteppedProgressProps> = (
 
           return (
             <div
-              key={stage.meta.id}
+              key={`step-detail-${subBlock.id}-${stage.meta.id}-${idx}`}
               onClick={(e) => interactive && handleStepClick(e, stage)}
               className={`p-2.5 rounded-xl border text-right transition-all flex flex-col justify-between ${
                 isCompleted

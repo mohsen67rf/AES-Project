@@ -23,6 +23,7 @@ import {
   AuditLogRepository
 } from '../../../../../core/infrastructure/repositories';
 import { SurveyMapService } from '../../../services/SurveyMapService';
+import { formatBlockCode, BlockCodeDisplay } from '../../../../../shared/components/BlockCodeDisplay';
 
 import {
   DocumentArrowUpIcon,
@@ -1346,7 +1347,9 @@ export const SurveyImportMetadataLinker: React.FC<SurveyImportMetadataLinkerProp
                     className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono"
                   >
                     {blocks.map(b => (
-                      <option key={b.id} value={b.id}>{b.code} - {b.name}</option>
+                      <option key={b.id} value={b.id} dir="ltr">
+                        {formatBlockCode(b.code)} — {b.name}
+                      </option>
                     ))}
                   </select>
                 </div>

@@ -1997,7 +1997,7 @@ export class SurveyMapService {
         blastHoles.push({
           id: `hole-b32-${row * 8 + col + 1}`,
           mapId: 'map-default-blast-32',
-          layerId: 'layer-holes',
+          layerId: 'layer-blast-holes',
           name: `چال ${row * 8 + col + 1}`,
           type: 'POINT',
           category: 'BLAST_HOLE',
@@ -2048,14 +2048,14 @@ export class SurveyMapService {
       version: 'Rev 1.0',
       status: 'APPROVED_OFFICIAL',
       layers: [
-        { id: 'layer-holes', mapId: 'map-default-blast-32', name: 'چال‌های حفاری شده و طراحی', category: 'BLAST_HOLE', color: '#F59E0B', isVisible: true, isLocked: false, opacity: 1, featureCount: 48 },
-        { id: 'layer-subblocks', mapId: 'map-default-blast-32', name: 'مرز بلوک آتشباری', category: 'BLAST_BOUNDARY', color: '#EF4444', isVisible: true, isLocked: false, opacity: 0.5, featureCount: 1 }
+        { id: 'layer-blast-holes', mapId: 'map-default-blast-32', name: 'چال‌های حفاری شده و طراحی', category: 'BLAST_HOLE', color: '#F59E0B', isVisible: true, isLocked: false, opacity: 1, featureCount: 48 },
+        { id: 'layer-blast-subblocks', mapId: 'map-default-blast-32', name: 'مرز بلوک آتشباری', category: 'BLAST_BOUNDARY', color: '#EF4444', isVisible: true, isLocked: false, opacity: 0.5, featureCount: 1 }
       ],
       features: [
         {
           id: 'feat-blast-boundary',
           mapId: 'map-default-blast-32',
-          layerId: 'layer-subblocks',
+          layerId: 'layer-blast-subblocks',
           name: 'مرز بلوک انفجار B-32',
           type: 'POLYGON',
           category: 'BLAST_BOUNDARY',

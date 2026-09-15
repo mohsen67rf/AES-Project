@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useTheme } from '../../../../shared/context/ThemeContext';
 import { BlockWorkingFaceProgress } from '../../services/HaulageTallyService';
 import { BlockProgressVisualizer } from './BlockProgressVisualizer';
+import { BlockCodeDisplay } from '../../../../shared/components/BlockCodeDisplay';
 import { 
   MapPinIcon, 
   TruckIcon, 
@@ -51,9 +52,11 @@ export const WorkingFaceProgressCard: React.FC<WorkingFaceProgressCardProps> = (
                   تراز {progress.benchLevel}m
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                بلوک: <span className="font-bold text-slate-300">{progress.blockCode}</span> ({progress.blockName}) | دانسیته سنگ: {progress.density} t/m³
-              </p>
+              <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>بلوک:</span>
+                <BlockCodeDisplay code={progress.blockCode} className="text-slate-200 font-bold" />
+                <span>({progress.blockName}) | دانسیته سنگ: {progress.density} t/m³</span>
+              </div>
             </div>
           </div>
 
@@ -139,7 +142,7 @@ export const WorkingFaceProgressCard: React.FC<WorkingFaceProgressCardProps> = (
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-black text-slate-200">{sb.code}</span>
+                      <BlockCodeDisplay code={sb.code} className="font-bold text-slate-200" />
                       <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                         isComplete ? 'bg-emerald-500/20 text-emerald-400' : 'bg-cyan-500/20 text-cyan-300'
                       }`}>

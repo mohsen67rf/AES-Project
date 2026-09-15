@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { MINE_MAP_BLOCKS } from './taskMapConstants';
 import { SurveyMapService } from '../../../mine/services/SurveyMapService';
 import type { SurveyMap, MapFeature } from '../../../../core/domain/types/survey-map.types';
+import { BlockCodeDisplay } from '../../../../shared/components/BlockCodeDisplay';
 
 interface TaskMapViewerModalProps {
   task: UnitTask | null;
@@ -380,7 +381,9 @@ export const TaskMapViewerModal: React.FC<TaskMapViewerModalProps> = ({
               </div>
               <div className="p-3 rounded-xl bg-[#101935] border border-[#24356B]/60">
                 <span className="text-[10px] text-[#8E9EB8] block mb-1">کد بلوک / زون:</span>
-                <span className="text-sm font-black text-white">{loc.blockCode || loc.zoneName || 'محدوده مشخص'}</span>
+                <span className="text-sm font-black text-white">
+                  {loc.blockCode ? <BlockCodeDisplay code={loc.blockCode} className="text-white font-black" /> : loc.zoneName || 'محدوده مشخص'}
+                </span>
               </div>
               <div className="p-3 rounded-xl bg-[#101935] border border-[#24356B]/60">
                 <span className="text-[10px] text-[#8E9EB8] block mb-1">ابعاد / مساحت / طول:</span>

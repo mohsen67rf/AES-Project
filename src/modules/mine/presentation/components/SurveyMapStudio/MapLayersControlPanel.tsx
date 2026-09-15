@@ -397,7 +397,7 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
   };
 
   // رندر کارت لایه
-  const renderLayerItem = (layer: MapLayer) => {
+  const renderLayerItem = (layer: MapLayer, index?: number) => {
     const count = featureCountsByLayer[layer.id] ?? layer.featureCount ?? 0;
     const isOpacityOpen = expandedOpacityLayerId === layer.id;
     const currentOpacity = layer.opacity ?? 1;
@@ -406,7 +406,7 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
 
     return (
       <div
-        key={layer.id}
+        key={`panel-layer-${layer.mapId || ''}-${layer.id || 'ly'}-${index ?? 0}`}
         className={`group rounded-xl border transition-all ${
           isSelected
             ? 'bg-cyan-950/40 border-cyan-500/60 shadow-lg ring-1 ring-cyan-500/30'
@@ -625,7 +625,7 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
         {/* لیست لایه‌ها */}
         {!isCollapsed && (
           <div className="space-y-1.5 pr-0.5 mt-1">
-            {list.map(layer => renderLayerItem(layer))}
+            {list.map((layer, lIdx) => renderLayerItem(layer, lIdx))}
           </div>
         )}
       </div>
@@ -841,9 +841,9 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
           <div className="space-y-1.5">
             <span className="text-[10px] text-slate-400 font-medium">{isRtl ? 'رنگ لایه‌ها و خطوط:' : 'Color:'}</span>
             <div className="grid grid-cols-6 gap-1.5">
-              {CAD_COLOR_PALETTE.map(item => (
+              {CAD_COLOR_PALETTE.map((item, cIdx) => (
                 <button
-                  key={item.hex}
+                  key={`cad-col-${item.hex}-${cIdx}`}
                   type="button"
                   onClick={() => setCustomColor(item.hex)}
                   className={`h-6 rounded-lg border transition-all flex items-center justify-center ${
@@ -868,9 +868,9 @@ export const MapLayersControlPanel: React.FC<MapLayersControlPanelProps> = ({
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-medium">{isRtl ? 'ضخامت خط (Stroke):' : 'Line Width:'}</span>
               <div className="flex gap-1">
-                {[1, 2, 3, 4, 6].map(w => (
+                {[1, 2, 3, 4, 6].map((w, wIdx) => (
                   <button
-                    key={w}
+                    key={`stroke-w-${w}-${wIdx}`}
                     type="button"
                     onClick={() => setCustomStrokeWidth(w)}
                     className={`flex-1 py-1 text-[10px] font-bold rounded-lg border transition-all ${

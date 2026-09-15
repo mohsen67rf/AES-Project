@@ -55,8 +55,8 @@ export const CostDistribution: React.FC<CostDistributionProps> = ({ isDark }) =>
 
       {/* Legend */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
-        {data.map((item) => (
-          <div key={item.name} className="flex items-center gap-1.5">
+        {data.map((item, index) => (
+          <div key={`cost-item-${item.name}-${index}`} className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
             <span className={isDark ? 'text-[#8A9DB0]' : 'text-slate-600'}>{item.name}</span>
             <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{item.value}٪</span>

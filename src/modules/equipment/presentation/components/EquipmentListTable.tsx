@@ -124,9 +124,9 @@ export const EquipmentListTable: React.FC<EquipmentListTableProps> = ({
       {/* نمایش کارتی یا جدولی */}
       {viewMode === 'GRID' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item, idx) => (
             <div
-              key={item.id}
+              key={`equip-card-${item.id}-${idx}`}
               onClick={() => onSelectEquipment(item)}
               className={`p-4 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between hover:shadow-lg ${
                 isDark ? 'bg-[#0B1323] border-[#1E293B] hover:border-cyan-500/50' : 'bg-white border-slate-200 hover:border-cyan-400'
@@ -222,8 +222,8 @@ export const EquipmentListTable: React.FC<EquipmentListTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
+                {filteredItems.map((item, idx) => (
+                  <tr key={`equip-row-${item.id}-${idx}`} className="hover:bg-slate-800/40 transition-colors">
                     <td className="p-3">
                       <div className="flex items-center gap-2 font-mono font-black text-cyan-400">
                         <EquipmentVectorIcon category={item.category} size={18} />

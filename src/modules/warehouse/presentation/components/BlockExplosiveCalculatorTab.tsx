@@ -9,6 +9,7 @@ import {
 } from '../../domain/types/warehouse.types';
 import { WarehouseService } from '../../services/WarehouseService';
 import { BlockRepository } from '../../../../core/infrastructure/repositories';
+import { BlockCodeDisplay, formatBlockCode } from '../../../../shared/components/BlockCodeDisplay';
 import { 
   CalculatorIcon, 
   SparklesIcon, 
@@ -285,7 +286,8 @@ export const BlockExplosiveCalculatorTab: React.FC<BlockExplosiveCalculatorTabPr
                 type="text"
                 value={input.blockCode}
                 onChange={(e) => setInput({ ...input, blockCode: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200"
+                dir="ltr"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 font-mono text-left"
               />
             </div>
             <div>
@@ -435,8 +437,8 @@ export const BlockExplosiveCalculatorTab: React.FC<BlockExplosiveCalculatorTabPr
             <div className="flex items-center justify-between border-b pb-3 border-slate-200 dark:border-slate-800 mb-4">
               <div className="flex items-center gap-2">
                 <SparklesIcon className="w-5 h-5 text-amber-500" />
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  خروجی هوشمند محاسبات ناریه برای بلوک {input.blockCode}
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <BlockCodeDisplay code={input.blockCode} prefix="خروجی هوشمند محاسبات ناریه برای بلوک" className="text-amber-500 font-bold" />
                 </h3>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold">
@@ -666,7 +668,10 @@ export const BlockExplosiveCalculatorTab: React.FC<BlockExplosiveCalculatorTabPr
                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold transition-all shadow-lg shadow-amber-600/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 <DocumentCheckIcon className="w-4 h-4" />
-                <span>تأیید و صدور حواله خروج ناریه به نام بلوک {input.blockCode}</span>
+                <span className="flex items-center gap-1.5">
+                  <span>تأیید و صدور حواله خروج ناریه به نام بلوک</span>
+                  <BlockCodeDisplay code={input.blockCode} className="text-white font-bold" />
+                </span>
               </button>
             </div>
           </div>

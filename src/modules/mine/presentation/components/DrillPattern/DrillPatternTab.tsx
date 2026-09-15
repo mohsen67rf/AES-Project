@@ -18,6 +18,7 @@ import {
 } from '../../../../../core/infrastructure/repositories';
 import { DrillPatternService } from '../../../services/DrillPatternService';
 import type { DrillPatternDesign, Block, StakeholderRole } from '../../../../../core/domain/types/mine.types';
+import { BlockCodeDisplay, formatBlockCode } from '../../../../../shared/components/BlockCodeDisplay';
 
 interface DrillPatternTabProps {
   stakeholderRole?: StakeholderRole;
@@ -164,7 +165,10 @@ export function DrillPatternTab({ stakeholderRole = 'ALL', onBlockSelect }: Dril
                     <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-800/50">
                       {p.code}
                     </span>
-                    <span className="text-xs text-white font-bold">بلوک: {p.blockCode}</span>
+                    <span className="text-xs text-white font-bold flex items-center gap-1">
+                      <span>بلوک:</span>
+                      <BlockCodeDisplay code={p.blockCode} className="text-white font-bold" />
+                    </span>
                   </div>
                   <div className="text-xs text-slate-400 mt-1">طراح: {p.designerContractor}</div>
                 </div>
@@ -286,8 +290,8 @@ export function DrillPatternTab({ stakeholderRole = 'ALL', onBlockSelect }: Dril
                     className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-white font-mono focus:border-emerald-500 outline-none"
                   >
                     {blocks.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.code} - تراز {b.targetLevel}
+                      <option key={b.id} value={b.id} dir="ltr">
+                        {formatBlockCode(b.code)} — تراز {b.targetLevel}
                       </option>
                     ))}
                   </select>

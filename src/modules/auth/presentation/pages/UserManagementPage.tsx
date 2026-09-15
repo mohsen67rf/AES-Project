@@ -352,11 +352,11 @@ export function UserManagementPage() {
             : 'bg-white/50 backdrop-blur-xl border-l border-[#1A2A3A]/10'
         }`}>
           <nav className="space-y-1">
-            {menuItems.map(item => {
+            {menuItems.map((item, mIdx) => {
               const isActive = item.active || item.path === window.location.pathname;
               return (
                 <button
-                  key={item.label}
+                  key={`user-menu-${item.path || item.label}-${mIdx}`}
                   onClick={() => navigate(item.path)}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group ${
                     isActive
@@ -873,13 +873,13 @@ export function UserManagementPage() {
           {/* TAB 2: ROLES OVERVIEW */}
           {activeTab === 'roles' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {SYSTEM_ROLES.map(role => {
+              {SYSTEM_ROLES.map((role, rIdx) => {
                 const RoleIcon = role.icon;
                 const membersCount = users.filter(u => u.role === role.id).length;
 
                 return (
                   <div
-                    key={role.id}
+                    key={`role-card-${role.id}-${rIdx}`}
                     className={`p-6 rounded-2xl border flex flex-col justify-between transition-all duration-300 ${
                       isDark
                         ? 'bg-[#13203A]/70 border-[#2A3A5A]/40 hover:border-[#00D4FF]/40'
@@ -964,26 +964,26 @@ export function UserManagementPage() {
                   <thead>
                     <tr className={`border-b ${isDark ? 'bg-white/[0.03] border-white/10 text-[#8A9DB0]' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                       <th className="p-3.5 font-semibold">{isFa ? 'ماژول و سطح دسترسی' : 'Permission / Action'}</th>
-                      {SYSTEM_ROLES.map(role => (
-                        <th key={role.id} className="p-3.5 font-semibold text-center">
+                      {SYSTEM_ROLES.map((role, rIdx) => (
+                        <th key={`perm-hdr-${role.id}-${rIdx}`} className="p-3.5 font-semibold text-center">
                           {isFa ? role.nameFa.split(' ')[0] : role.id}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {PERMISSION_LIST.map(perm => (
-                      <tr key={perm.id} className={isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}>
+                    {PERMISSION_LIST.map((perm, pIdx) => (
+                      <tr key={`perm-row-${perm.id}-${pIdx}`} className={isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}>
                         <td className="p-3.5 font-medium">
                           <span className={`block font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                             {isFa ? perm.nameFa : perm.nameEn}
                           </span>
                           <span className="text-[10px] text-slate-500 font-mono">{perm.id}</span>
                         </td>
-                        {SYSTEM_ROLES.map(role => {
+                        {SYSTEM_ROLES.map((role, rIdx) => {
                           const hasPerm = role.defaultPermissions.includes('all') || role.defaultPermissions.includes(perm.id);
                           return (
-                            <td key={role.id} className="p-3.5 text-center">
+                            <td key={`perm-cell-${perm.id}-${role.id}-${rIdx}`} className="p-3.5 text-center">
                               {hasPerm ? (
                                 <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
                                   <Check className="w-3.5 h-3.5" />

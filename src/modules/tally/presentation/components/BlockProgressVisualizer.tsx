@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTheme } from '../../../../shared/context/ThemeContext';
 import { CubeIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { BlockCodeDisplay } from '../../../../shared/components/BlockCodeDisplay';
 
 interface BlockProgressVisualizerProps {
   progressPercent: number;
@@ -142,7 +143,11 @@ export const BlockProgressVisualizer: React.FC<BlockProgressVisualizerProps> = (
             </div>
             <div>
               <h4 className="text-xs font-black text-slate-200 flex items-center gap-1.5">
-                <span>{title || `بلوک ${blockCode}`}</span>
+                {title ? (
+                  <span>{title}</span>
+                ) : (
+                  <BlockCodeDisplay code={blockCode} prefix="بلوک" className="text-slate-200 font-bold" />
+                )}
                 <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${scheme.badge}`}>
                   {clampedPercent >= 100 ? 'تخلیه کامل' : clampedPercent > 0 ? 'در حال بارگیری' : 'شروع‌نشده'}
                 </span>

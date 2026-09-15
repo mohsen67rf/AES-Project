@@ -6,6 +6,7 @@ import type {
   MapFeature 
 } from '../../../../../core/domain/types/survey-map.types';
 import type { DisplayOverlaySettings } from './MapLayersControlPanel';
+import { BlockCodeDisplay } from '../../../../../shared/components/BlockCodeDisplay';
 import {
   Sliders,
   Layers,
@@ -263,7 +264,7 @@ export const AutoCadPropertiesPanel: React.FC<AutoCadPropertiesPanelProps> = ({
                   </div>
                   {selectedFeature.properties?.code && (
                     <span className="text-[10px] font-mono font-bold text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">
-                      {selectedFeature.properties.code}
+                      <BlockCodeDisplay code={selectedFeature.properties.code} className="text-cyan-400 font-bold" />
                     </span>
                   )}
                 </div>

@@ -92,9 +92,9 @@ export function SubBlocksTable({ subBlocks, isLoading, onRowClick, onActionClick
       {/* ۱. نمای کارتی نوار پیشرفت مرحله‌ای */}
       {viewMode === 'CARDS' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {subBlocks.map((sb) => (
+          {subBlocks.map((sb, idx) => (
             <SubBlockProgressCard
-              key={sb.id}
+              key={`sb-card-${sb.id || 'sb'}-${idx}`}
               subBlock={sb}
               onCardClick={onRowClick}
               onActionClick={onActionClick}
@@ -125,7 +125,7 @@ export function SubBlocksTable({ subBlocks, isLoading, onRowClick, onActionClick
 
                 return (
                   <tr 
-                    key={sb.id} 
+                    key={`sb-row-${sb.id || 'sb'}-${idx}`} 
                     onClick={() => onRowClick && onRowClick(sb)}
                     className="hover:bg-cyan-500/[0.04] transition-colors cursor-pointer"
                   >

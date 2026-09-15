@@ -6,6 +6,7 @@ import { XMarkIcon, TruckIcon, CheckCircleIcon } from '@heroicons/react/24/outli
 import type { SubBlock, DestinationType } from '../../../../../core/domain/types/mine.types';
 import { DESTINATION_LABELS } from '../../../../../core/domain/constants/mine.constants';
 import { SubBlockLifecycleService } from '../../../services/SubBlockLifecycleService';
+import { BlockCodeDisplay } from '../../../../../shared/components/BlockCodeDisplay';
 
 interface DestinationModalProps {
   subBlock: SubBlock;
@@ -81,11 +82,14 @@ export function DestinationModal({ subBlock, onClose, onSuccess }: DestinationMo
               </div>
               <div>
                 <h3 className="font-bold text-white text-base">تعیین مقصد و برنامه دیسپاچینگ</h3>
-                <p className="text-xs text-[#8A9DB0]">
-                  ساب‌بلوک: <span className="font-mono text-[#00D4FF] font-bold">{subBlock.code}</span>
-                  {' '}| عیار: <span className="font-mono text-white font-bold">{fe.toFixed(2)}% Fe</span>
-                  {' '}| تناژ: <span className="font-mono text-white font-bold">{subBlock.tonnage?.toLocaleString() || subBlock.estimatedTonnage?.toLocaleString() || '-'} تن</span>
-                </p>
+                <div className="text-xs text-[#8A9DB0] flex items-center gap-1.5 mt-0.5">
+                  <span>ساب‌بلوک:</span>
+                  <BlockCodeDisplay code={subBlock.code} className="text-[#00D4FF] font-bold" />
+                  <span>| عیار:</span>
+                  <span className="font-mono text-white font-bold">{fe.toFixed(2)}% Fe</span>
+                  <span>| تناژ:</span>
+                  <span className="font-mono text-white font-bold">{subBlock.tonnage?.toLocaleString() || subBlock.estimatedTonnage?.toLocaleString() || '-'} تن</span>
+                </div>
               </div>
             </div>
             <button 

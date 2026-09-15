@@ -24,6 +24,7 @@ import type { SurveyMap, MapFeature } from '../../../../core/domain/types/survey
 import { useActiveMasterSurveyMap } from '../../../mine/presentation/hooks/useActiveMasterSurveyMap';
 import { SurveyMapService } from '../../../mine/services/SurveyMapService';
 import { BENCHES, MINE_MAP_BLOCKS, type MineMapBlock } from './taskMapConstants';
+import { BlockCodeDisplay } from '../../../../shared/components/BlockCodeDisplay';
 
 export { BENCHES, MINE_MAP_BLOCKS };
 export type DrawingTool = 'POINT' | 'LINE' | 'POLYGON' | 'BLOCK_ZONE';
@@ -453,8 +454,8 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
               onChange={(e) => setSelectedMapId(e.target.value)}
               className="bg-[#14213F] text-white font-bold text-[11px] px-2.5 py-1 rounded-lg border border-cyan-500/40 focus:outline-none focus:ring-1 focus:ring-cyan-400 cursor-pointer"
             >
-              {allMaps.map((m) => (
-                <option key={m.id} value={m.id}>
+              {allMaps.map((m, mIdx) => (
+                <option key={`map-opt-${m.id}-${mIdx}`} value={m.id}>
                   {m.title} {m.isMasterMap ? '★ (نقشه مرجع فعال پیت)' : `(تراز ${m.benchLevel}m)`}
                 </option>
               ))}
@@ -598,9 +599,9 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
         <div className="flex items-center gap-2">
           <div className="hidden lg:flex items-center gap-1">
             <span className="text-[10px] text-slate-400">تراز:</span>
-            {BENCHES.map((b) => (
+            {BENCHES.map((b, bIdx) => (
               <button
-                key={b.level}
+                key={`bench-${b.level}-${bIdx}`}
                 type="button"
                 onClick={() => {
                   setActiveBench(b.level);
@@ -758,7 +759,7 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
             activeSurveyMap.features.map((feature: MapFeature, idx: number) => {
               const coords = feature.coordinates || [];
               if (!Array.isArray(coords) || coords.length === 0) return null;
-              const fKey = `feat-${feature.id || idx}`;
+              const fKey = `feat-${activeSurveyMap.id || 'map'}-${feature.id || 'f'}-${idx}`;
 
               if (feature.type === 'POLYGON' && coords.length >= 3) {
                 const pointsStr = coords
@@ -840,7 +841,7 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
             })
           ) : (
             <g>
-              {MINE_MAP_BLOCKS.map((block) => {
+              {MINE_MAP_BLOCKS.map((block, bIdx) => {
                 const isSelected = value?.blockCode === block.code || value?.blockId === block.id;
                 const pointsStr = block.polygon
                   .map((pt) => `${((pt[0] / 100) * CANVAS_WIDTH).toFixed(1)},${((pt[1] / 100) * CANVAS_HEIGHT).toFixed(1)}`)
@@ -848,7 +849,7 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
 
                 return (
                   <polygon
-                    key={block.id}
+                    key={`mine-block-${block.id}-${bIdx}`}
                     points={pointsStr}
                     fill={isSelected ? 'rgba(0, 210, 255, 0.35)' : 'rgba(56, 189, 248, 0.15)'}
                     stroke={isSelected ? '#00D2FF' : '#38BDF8'}
@@ -988,7 +989,11 @@ export const TaskInteractiveMapSelector: React.FC<TaskInteractiveMapSelectorProp
             <div className="flex items-center gap-2 font-bold text-cyan-300">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>
-                {'code' in hoveredBlock ? `بلوک ${hoveredBlock.code}` : hoveredBlock.name || 'عارضه نقشه مرجع'}
+                {'code' in hoveredBlock ? (
+                  <BlockCodeDisplay code={hoveredBlock.code} prefix="بلوک" className="text-cyan-300 font-bold" />
+                ) : (
+                  hoveredBlock.name || 'عارضه نقشه مرجع'
+                )}
               </span>
             </div>
             <p className="text-[10px] text-slate-300 mt-0.5">برای انتخاب این محدوده به عنوان زون تسک کلیک کنید.</p>

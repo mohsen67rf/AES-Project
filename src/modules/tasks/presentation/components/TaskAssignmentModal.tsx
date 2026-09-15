@@ -405,12 +405,12 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 </label>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                  {TARGET_UNITS.map((unit) => {
+                  {TARGET_UNITS.map((unit, uIdx) => {
                     const UnitIcon = unit.icon;
                     const isSelected = selectedRole.toLowerCase() === unit.roleId.toLowerCase();
                     return (
                       <button
-                        key={unit.roleId}
+                        key={`unit-role-${unit.roleId}-${uIdx}`}
                         type="button"
                         onClick={() => handleRoleChange(unit.roleId)}
                         className={`p-2.5 rounded-xl border text-right transition-all flex flex-col justify-between gap-1.5 ${
@@ -529,9 +529,9 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                       { id: 'MEDIUM', label: 'متوسط', color: 'border-cyan-500/40 text-cyan-300 hover:border-cyan-400' },
                       { id: 'HIGH', label: 'بالا', color: 'border-amber-500/40 text-amber-300 hover:border-amber-400' },
                       { id: 'URGENT', label: 'فوری 🚨', color: 'border-rose-500/60 text-rose-300 hover:border-rose-400 font-black' },
-                    ].map((p) => (
+                    ].map((p, pIdx) => (
                       <button
-                        key={p.id}
+                        key={`task-prio-${p.id}-${pIdx}`}
                         type="button"
                         onClick={() => setPriority(p.id as TaskPriority)}
                         className={`py-2.5 px-1 rounded-xl border text-center font-bold text-xs transition-all ${
@@ -558,9 +558,9 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                       { days: 1, label: '۲۴ ساعت' },
                       { days: 2, label: '۲ روز' },
                       { days: 5, label: '۵ روز' },
-                    ].map((d) => (
+                    ].map((d, dIdx) => (
                       <button
-                        key={d.days}
+                        key={`task-dead-${d.days}-${dIdx}`}
                         type="button"
                         onClick={() => setDueDateDays(d.days)}
                         className={`py-2.5 px-1 rounded-xl border text-center font-bold text-xs transition-all ${

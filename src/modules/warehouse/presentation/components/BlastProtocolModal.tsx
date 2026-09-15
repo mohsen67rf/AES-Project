@@ -6,6 +6,7 @@ import {
   DocumentTextIcon, 
   PrinterIcon 
 } from '@heroicons/react/24/outline';
+import { BlockCodeDisplay } from '../../../../shared/components/BlockCodeDisplay';
 
 interface BlastProtocolModalProps {
   isOpen: boolean;
@@ -98,7 +99,7 @@ export const BlastProtocolModal: React.FC<BlastProtocolModalProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
             <div className="bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-400 block text-[10px]">کد بلوک:</span>
-              <span className="font-bold text-slate-800 dark:text-slate-100">{blockCode}</span>
+              <BlockCodeDisplay code={blockCode} className="font-bold text-slate-800 dark:text-slate-100 text-xs" />
             </div>
             <div className="bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-400 block text-[10px]">تراز پله:</span>

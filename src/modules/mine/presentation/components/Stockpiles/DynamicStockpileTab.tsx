@@ -19,6 +19,7 @@ import {
 } from '../../../../../core/infrastructure/repositories';
 import { StockpileService } from '../../../services/StockpileService';
 import type { Stockpile, HaulageTrip, SubBlock, StakeholderRole } from '../../../../../core/domain/types/mine.types';
+import { BlockCodeDisplay, formatBlockCode } from '../../../../../shared/components/BlockCodeDisplay';
 
 interface DynamicStockpileTabProps {
   stakeholderRole?: StakeholderRole;
@@ -294,7 +295,9 @@ export function DynamicStockpileTab({ stakeholderRole = 'ALL' }: DynamicStockpil
             <tbody className="divide-y divide-slate-800/60 text-slate-300">
               {trips.map((t) => (
                 <tr key={t.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="p-3 font-mono font-bold text-cyan-400">{t.subBlockCode}</td>
+                  <td className="p-3 font-mono font-bold text-cyan-400">
+                    <BlockCodeDisplay code={t.subBlockCode} className="text-cyan-400 font-bold" />
+                  </td>
                   <td className="p-3 text-white">{t.stockpileName}</td>
                   <td className="p-3">
                     <span className="px-2 py-0.5 rounded-md bg-slate-800 text-amber-300 border border-amber-500/20 font-mono">
@@ -342,8 +345,8 @@ export function DynamicStockpileTab({ stakeholderRole = 'ALL' }: DynamicStockpil
                     className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-cyan-400 font-mono font-bold focus:border-amber-500 outline-none"
                   >
                     {subBlocks.map((sb) => (
-                      <option key={sb.id} value={sb.id}>
-                        {sb.code} (عیار Fe: {sb.labResults?.fe || 'نامشخص'}%)
+                      <option key={sb.id} value={sb.id} dir="ltr">
+                        {formatBlockCode(sb.code)} (عیار Fe: {sb.labResults?.fe || 'نامشخص'}%)
                       </option>
                     ))}
                   </select>
